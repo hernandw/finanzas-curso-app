@@ -1,5 +1,5 @@
 // src/components/VistaAdmin.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
@@ -28,6 +28,15 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
     const [editandoSaldo, setEditandoSaldo] = useState(false);
 
+    // Cuota Mensual Editable con Botón
+    const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
+
+    // Sincronizar el input si los datos del servidor cambian
+    useEffect(() => {
+        setCuotaInput(datos.configuracion.cuota_mensual || 15000);
+        setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
+    }, [datos]);
+
     // Modal de Pago Global
     const [modalAbierto, setModalAbierto] = useState(false);
     const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
@@ -45,6 +54,39 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
     const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
+    
+    const totalCuotasRecaudadas = datos.apoderados.reduce((acc, apo) => {
+        let sub = 0;
+        datos.configuracion.meses.forEach(m => { if (apo.pagos[m]?.monto) sub += Number(apo.pagos[m].monto); });
+        return acc + sub;
+    }, 0);
+
+    const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
+
+    // Guardar Cuota Mensual con Botón Intuitivo
+    const handleActualizarCuota = async () => {
+        const nuevaCuota = Number(cuotaInput);
+        if (isNaN(nuevaCuota) || nuevaCuota <= 0) {
+            mostrarAviso("Ingrese un valor de cuota válido.", "error");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/curso/admin/configuracion', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cuota_mensual: nuevaCuota })
+            });
+            if (res.ok) {
+                mostrarAviso("Cuota mensual actualizada y rebalanceada con éxito.");
+                onActualizar();
+            } else {
+                mostrarAviso("Error al actualizar la cuota.", "error");
+            }
+        } catch (error) {
+            mostrarAviso("Error de conexión.", "error");
+        }
+    };
 
     // Guardar Saldo Inicial
     const handleGuardarSaldoInicial = async () => {
@@ -175,7 +217,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAviso("Error al eliminar el pago.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAviso("Error de conexión con el servidor.", "error");
         }
     };
 
@@ -240,7 +282,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             )}
 
-            {/* SECCIÓN DE CABECERA, CAMBIO DE AÑO Y CUOTA */}
+            {/* CABECERA, AÑO Y CUOTA CON BOTÓN INTUITIVO */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -252,31 +294,27 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Cambiar cuota mensual */}
+                    {/* Cuota con Botón Explicito */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
                         <span className="text-[10px] text-slate-400">Cuota:</span>
                         <input 
                             type="number" 
-                            defaultValue={cuotaOficial}
-                            onBlur={async (e) => {
-                                const nuevaCuota = Number(e.target.value);
-                                if (nuevaCuota > 0) {
-                                    await fetch('/api/curso/admin/configuracion', {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ cuota_mensual: nuevaCuota })
-                                    });
-                                    mostrarAviso("Cuota mensual actualizada.");
-                                    onActualizar();
-                                }
-                            }}
-                            className="bg-slate-900 text-emerald-400 font-bold text-xs w-20 px-2 py-1 rounded border border-slate-700"
+                            value={cuotaInput}
+                            onChange={(e) => setCuotaInput(e.target.value)}
+                            className="bg-slate-900 text-emerald-400 font-bold text-xs w-20 px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-emerald-500"
                         />
+                        <button 
+                            onClick={handleActualizarCuota}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs transition"
+                            title="Actualizar y rebalancear cuotas"
+                        >
+                            <i className="fa-solid fa-check"></i>
+                        </button>
                     </div>
 
-                    {/* Selector de Año / Apertura */}
+                    {/* Selector y Apertura de Año */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
-                        <span className="text-[10px] text-slate-400">Año Activo:</span>
+                        <span className="text-[10px] text-slate-400">Año:</span>
                         <select 
                             value={datos.anio_activo}
                             onChange={async (e) => {
@@ -309,13 +347,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 onActualizar();
                             }}
                             className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded text-xs transition"
-                            title="Aperturar año siguiente"
                         >
                             <i className="fa-solid fa-arrow-right"></i> Aperturar {Number(datos.anio_activo) + 1}
                         </button>
                     </div>
 
-                    {/* Saldo Inicial Editable */}
+                    {/* Saldo Inicial */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-3">
                         <div>
                             <span className="text-[9px] text-slate-400 block font-medium">Saldo Inicial</span>
@@ -338,7 +375,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 OK
                             </button>
                         ) : (
-                            <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs" title="Editar saldo inicial">
+                            <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs">
                                 <i className="fa-solid fa-pen"></i>
                             </button>
                         )}
@@ -346,7 +383,47 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 1: RESUMEN DE PAGOS Y DEUDAS POR ALUMNO */}
+            {/* BALANCE GENERAL / FLUJO DE CAJA */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                    <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja ({datos.anio_activo})
+                </h3>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Saldo Inicial</span>
+                        <span className="text-sm font-bold text-slate-200">
+                            ${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}
+                        </span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Cuotas Recaudadas</span>
+                        <span className="text-sm font-bold text-emerald-400">
+                            ${totalCuotasRecaudadas.toLocaleString('es-CL')}
+                        </span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Ingresos Extra</span>
+                        <span className="text-sm font-bold text-sky-400">
+                            ${totalIngresosExtra.toLocaleString('es-CL')}
+                        </span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Total Gastos</span>
+                        <span className="text-sm font-bold text-rose-400">
+                            ${totalGastos.toLocaleString('es-CL')}
+                        </span>
+                    </div>
+                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl col-span-2 sm:col-span-1 bg-emerald-950/10">
+                        <span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real en Caja</span>
+                        <span className="text-sm font-extrabold text-emerald-400">
+                            ${saldoRealCaja.toLocaleString('es-CL')}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* RESUMEN FINANCIERO POR ALUMNO */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
                     <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno
@@ -402,9 +479,9 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO */}
+            {/* FORMULARIOS DE REGISTRO CON ICONOS DE CALENDARIO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Registrar Gasto con Fecha */}
+                {/* Gasto */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                         <i className="fa-solid fa-receipt"></i> Registrar Gasto
@@ -444,12 +521,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         </div>
                         <div>
                             <label className="text-[11px] text-slate-400 block mb-1">Fecha del Gasto</label>
-                            <input 
-                                type="date" 
-                                value={gastoFecha}
-                                onChange={(e) => setGastoFecha(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
-                            />
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-rose-400">
+                                    <i className="fa-solid fa-calendar-days"></i>
+                                </span>
+                                <input 
+                                    type="date" 
+                                    value={gastoFecha}
+                                    onChange={(e) => setGastoFecha(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                                />
+                            </div>
                         </div>
                         <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
                             Registrar Gasto
@@ -457,7 +539,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     </form>
                 </div>
 
-                {/* Registrar Ingreso Extra */}
+                {/* Ingreso Extra */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                         <i className="fa-solid fa-coins"></i> Ingreso Extra (Ventas/Rifas)
@@ -467,7 +549,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             <label className="text-[11px] text-slate-400 block mb-1">Concepto / Descripción</label>
                             <input 
                                 type="text" 
-                                placeholder="Ej: Venta de rifa, completada..."
+                                placeholder="Ej: Venta de rifa..."
                                 value={extraTitulo}
                                 onChange={(e) => setExtraTitulo(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
@@ -485,12 +567,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         </div>
                         <div>
                             <label className="text-[11px] text-slate-400 block mb-1">Fecha del Ingreso</label>
-                            <input 
-                                type="date" 
-                                value={extraFecha}
-                                onChange={(e) => setExtraFecha(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                            />
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-400">
+                                    <i className="fa-solid fa-calendar-days"></i>
+                                </span>
+                                <input 
+                                    type="date" 
+                                    value={extraFecha}
+                                    onChange={(e) => setExtraFecha(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                                />
+                            </div>
                         </div>
                         <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
                             Registrar Ingreso
@@ -498,7 +585,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     </form>
                 </div>
 
-                {/* Agregar Apoderado */}
+                {/* Apoderado */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
                         <i className="fa-solid fa-user-plus"></i> Agregar Apoderado
@@ -531,82 +618,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 3: TABLAS DE GASTOS E INGRESOS EXTRA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Relación de Gastos */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                            <i className="fa-solid fa-list-check"></i> Relación de Gastos
-                        </h3>
-                        <span className="text-xs text-slate-300 font-medium">
-                            Total: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
-                        </span>
-                    </div>
-                    <div className="overflow-x-auto max-h-60 overflow-y-auto">
-                        {datos.gastos && datos.gastos.length > 0 ? (
-                            <table className="w-full text-left text-xs text-slate-300">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                    <tr>
-                                        <th className="p-2">Fecha</th>
-                                        <th className="p-2">Descripción</th>
-                                        <th className="p-2 text-right">Monto</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {datos.gastos.map(g => (
-                                        <tr key={g.id} className="hover:bg-slate-950/40">
-                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
-                                            <td className="p-2 font-semibold text-white">{g.titulo} <span className="text-[10px] text-slate-400">({g.mes})</span></td>
-                                            <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados.</p>
-                        )}
-                    </div>
-                </div>
-
-                {/* Relación de Ingresos Extra */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                            <i className="fa-solid fa-coins"></i> Ingresos Extra (Ventas/Rifas)
-                        </h3>
-                        <span className="text-xs text-slate-300 font-medium">
-                            Total: <strong className="text-emerald-400">${totalIngresosExtra.toLocaleString('es-CL')}</strong>
-                        </span>
-                    </div>
-                    <div className="overflow-x-auto max-h-60 overflow-y-auto">
-                        {datos.ingresos_extra && datos.ingresos_extra.length > 0 ? (
-                            <table className="w-full text-left text-xs text-slate-300">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                    <tr>
-                                        <th className="p-2">Fecha</th>
-                                        <th className="p-2">Concepto</th>
-                                        <th className="p-2 text-right">Monto</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {datos.ingresos_extra.map(e => (
-                                        <tr key={e.id} className="hover:bg-slate-950/40">
-                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
-                                            <td className="p-2 font-semibold text-white">{e.titulo}</td>
-                                            <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra registrados.</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* SECCIÓN 4: GESTIÓN DE PAGOS MENSUALES */}
+            {/* GESTIÓN DE PAGOS MENSUALES */}
             <div className="space-y-4">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
@@ -711,12 +723,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="text-[11px] text-slate-400 block mb-1">Fecha de Pago</label>
-                                    <input 
-                                        type="date" 
-                                        value={fechaPago}
-                                        onChange={(e) => setFechaPago(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                                    />
+                                    <div className="relative">
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-emerald-400">
+                                            <i className="fa-solid fa-calendar-days"></i>
+                                        </span>
+                                        <input 
+                                            type="date" 
+                                            value={fechaPago}
+                                            onChange={(e) => setFechaPago(e.target.value)}
+                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-[11px] text-slate-400 block mb-1">Persona que paga</label>

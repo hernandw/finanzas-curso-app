@@ -21,7 +21,7 @@
     },
     "2026": {
       "saldo_inicial": 714474,
-      "cuota_mensual": 15000,
+      "cuota_mensual": 20000,
       "meses": [
         "Marzo",
         "Abril",
@@ -107,68 +107,75 @@
           "pagos": {
             "Marzo": {
               "pagado": true,
-              "monto": 15000,
+              "monto": 10000,
               "fecha": "2026-11-06",
               "transacciones": [
                 {
-                  "monto": 15000,
+                  "monto": 10000,
                   "fecha": "2026-11-06",
-                  "responsable": "Williams Hernández"
+                  "responsable": "Yessenia Ortunio"
                 }
               ]
             },
             "Abril": {
               "pagado": true,
-              "monto": 15000,
+              "monto": 10000,
               "fecha": "2026-11-06",
               "transacciones": [
                 {
-                  "monto": 15000,
+                  "monto": 10000,
                   "fecha": "2026-11-06",
-                  "responsable": "Williams Hernández"
+                  "responsable": "Yessenia Ortunio"
                 }
               ]
             },
             "Mayo": {
               "pagado": true,
-              "monto": 15000,
+              "monto": 10000,
               "fecha": "2026-11-06",
               "transacciones": [
                 {
-                  "monto": 15000,
+                  "monto": 10000,
                   "fecha": "2026-11-06",
-                  "responsable": "Williams Hernández"
+                  "responsable": "Yessenia Ortunio"
                 }
               ]
             },
             "Junio": {
               "pagado": true,
-              "monto": 15000,
+              "monto": 10000,
               "fecha": "2026-11-06",
               "transacciones": [
                 {
-                  "monto": 15000,
+                  "monto": 10000,
                   "fecha": "2026-11-06",
-                  "responsable": "Williams Hernández"
+                  "responsable": "Yessenia Ortunio"
                 }
               ]
             },
             "Julio": {
               "pagado": true,
-              "monto": 15000,
+              "monto": 10000,
               "fecha": "2026-11-06",
               "transacciones": [
                 {
-                  "monto": 15000,
+                  "monto": 10000,
                   "fecha": "2026-11-06",
-                  "responsable": "Williams Hernández"
+                  "responsable": "Yessenia Ortunio"
                 }
               ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null
+              "pagado": true,
+              "monto": 10000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 10000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Septiembre": {
               "pagado": false,
@@ -217,6 +224,84 @@
           "fecha": "2026-10-06"
         }
       ]
+    },
+    "2027": {
+      "saldo_inicial": 589474,
+      "cuota_mensual": 10000,
+      "meses": [
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre"
+      ],
+      "apoderados": [
+        {
+          "id": "apo-fy3w3sz13",
+          "nombre": "Yessenia Ortunio",
+          "alumno": "Fabiana Hernández",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        }
+      ],
+      "gastos": [],
+      "ingresos_extra": []
     }
   }
 }

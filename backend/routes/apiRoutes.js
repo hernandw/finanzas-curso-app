@@ -14,6 +14,10 @@ router.get('/curso/datos', async (req, res) => {
             datos.anios[anioActivo] = {
                 saldo_inicial: 0,
                 cuota_mensual: 15000,
+                nombre_curso: "4° Medio A",
+                profesor: "Juan Pérez",
+                presidente: "Ana Gómez",
+                tesorero: "María González",
                 meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
                 apoderados: [],
                 gastos: [],
@@ -67,6 +71,10 @@ router.get('/curso/datos', async (req, res) => {
             configuracion: {
                 saldo_inicial: infoAnio.saldo_inicial || 0,
                 cuota_mensual: cuotaOficial,
+                nombre_curso: infoAnio.nombre_curso || "4° Medio A",
+                profesor: infoAnio.profesor || "Juan Pérez",
+                presidente: infoAnio.presidente || "Ana Gómez",
+                tesorero: infoAnio.tesorero || "María González",
                 meses: infoAnio.meses
             },
             apoderados: infoAnio.apoderados || [],
@@ -79,7 +87,7 @@ router.get('/curso/datos', async (req, res) => {
     }
 });
 
-// 2. Cambiar de año activo o crear uno nuevo
+// 2. Cambiar de año activo
 router.post('/curso/admin/cambiar-anio', async (req, res) => {
     const { nuevoAnio, cuotaMensual } = req.body;
     try {
@@ -114,6 +122,10 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
             datos.anios[nuevoAnio] = {
                 saldo_inicial: saldoFinalAnterior,
                 cuota_mensual: Number(cuotaMensual) || infoAnioAnt.cuota_mensual || 15000,
+                nombre_curso: infoAnioAnt.nombre_curso || "4° Medio A",
+                profesor: infoAnioAnt.profesor || "Juan Pérez",
+                presidente: infoAnioAnt.presidente || "Ana Gómez",
+                tesorero: infoAnioAnt.tesorero || "María González",
                 meses: infoAnioAnt.meses,
                 apoderados: apoderadosActivos,
                 gastos: [],
@@ -130,9 +142,9 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
     }
 });
 
-// 3. Actualizar configuración
+// 3. Actualizar configuración (incluyendo datos del curso, saldo inicial y cuota)
 router.put('/curso/admin/configuracion', async (req, res) => {
-    const { saldo_inicial, cuota_mensual } = req.body;
+    const { saldo_inicial, cuota_mensual, nombre_curso, profesor, presidente, tesorero } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
@@ -140,6 +152,10 @@ router.put('/curso/admin/configuracion', async (req, res) => {
 
         if (saldo_inicial !== undefined) infoAnio.saldo_inicial = Number(saldo_inicial);
         if (cuota_mensual !== undefined) infoAnio.cuota_mensual = Number(cuota_mensual);
+        if (nombre_curso !== undefined) infoAnio.nombre_curso = nombre_curso;
+        if (profesor !== undefined) infoAnio.profesor = profesor;
+        if (presidente !== undefined) infoAnio.presidente = presidente;
+        if (tesorero !== undefined) infoAnio.tesorero = tesorero;
 
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, configuracion: infoAnio });
@@ -356,7 +372,8 @@ router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
         res.status(500).json({ error: "Error al actualizar estado del apoderado" });
     }
 });
-// Descargar copia de seguridad completa
+
+// 10. Backup y Restauración
 router.get('/curso/backup', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -368,7 +385,6 @@ router.get('/curso/backup', async (req, res) => {
     }
 });
 
-// Restaurar copia de seguridad
 router.post('/curso/backup/restaurar', async (req, res) => {
     const nuevoContenido = req.body;
     try {
@@ -382,7 +398,6 @@ router.post('/curso/backup/restaurar', async (req, res) => {
     }
 });
 
-// Borrar / Reiniciar la aplicación completa
 router.delete('/curso/reset', async (req, res) => {
     try {
         const datosVacia = {
@@ -391,6 +406,10 @@ router.delete('/curso/reset', async (req, res) => {
                 "2026": {
                     saldo_inicial: 0,
                     cuota_mensual: 15000,
+                    nombre_curso: "4° Medio A",
+                    profesor: "Juan Pérez",
+                    presidente: "Ana Gómez",
+                    tesorero: "María González",
                     meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
                     apoderados: [],
                     gastos: [],

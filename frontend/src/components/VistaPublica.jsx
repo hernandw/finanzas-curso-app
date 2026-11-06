@@ -43,8 +43,10 @@ export default function VistaPublica({ datos }) {
                     <h2 className="text-xl font-bold text-white mt-2 flex items-center gap-2">
                         <i className="fa-solid fa-school text-sky-400"></i> Tesorería Oficial - {datos.configuracion.nombre_curso || '4° Medio A'}
                     </h2>
-                    <div className="flex flex-wrap gap-4 text-xs text-slate-400 mt-2">
+                    <div className="flex flex-wrap gap-3 text-xs text-slate-400 mt-2">
                         <span><strong className="text-slate-300">Profesor/a:</strong> {datos.configuracion.profesor || 'No asignado'}</span>
+                        <span>•</span>
+                        <span><strong className="text-slate-300">Presidente/a:</strong> {datos.configuracion.presidente || 'No asignado'}</span>
                         <span>•</span>
                         <span><strong className="text-slate-300">Tesorero/a:</strong> {datos.configuracion.tesorero || 'No asignado'}</span>
                         <span>•</span>
@@ -62,7 +64,7 @@ export default function VistaPublica({ datos }) {
                 </div>
             </div>
 
-            {/* BALANCE GENERAL Y FLUJO DE CAJA (TRANSPARENCIA PÚBLICA) */}
+            {/* BALANCE GENERAL Y FLUJO DE CAJA */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                     <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja
@@ -203,7 +205,7 @@ export default function VistaPublica({ datos }) {
                                                                     Pagado ✓
                                                                 </span>
                                                             ) : esAbono ? (
-                                                                <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold">
+                                                                <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold" title={`Abonó $${montoAbonado.toLocaleString('es-CL')}`}>
                                                                     Abono (${montoAbonado.toLocaleString('es-CL')})
                                                                 </span>
                                                             ) : (

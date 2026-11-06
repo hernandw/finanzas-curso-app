@@ -1,5 +1,7 @@
 // src/components/VistaAdmin.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
@@ -24,14 +26,15 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [extraMonto, setExtraMonto] = useState('');
     const [extraFecha, setExtraFecha] = useState(new Date().toISOString().slice(0, 10));
 
-    // Saldo Inicial y Cuota
+    // Saldo y Cuota
     const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
     const [editandoSaldo, setEditandoSaldo] = useState(false);
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
 
-    // Datos del Curso (Info general)
+    // Datos del Curso
     const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '4° Medio A');
     const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Juan Pérez');
+    const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ana Gómez');
     const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'María González');
     const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
 
@@ -40,6 +43,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
         setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
         setNombreCurso(datos.configuracion.nombre_curso || '4° Medio A');
         setProfesorCurso(datos.configuracion.profesor || 'Juan Pérez');
+        setPresidenteCurso(datos.configuracion.presidente || 'Ana Gómez');
         setTesoreroCurso(datos.configuracion.tesorero || 'María González');
     }, [datos]);
 
@@ -50,11 +54,18 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Notificaciones Toast
-    const [notificacion, setNotificacion] = useState(null);
-    const mostrarAviso = (texto, tipo = 'success') => {
-        setNotificacion({ texto, tipo });
-        setTimeout(() => setNotificacion(null), 3500);
+    // Notificaciones por sección (Toast local sobre la tarjeta)
+    const [avisosSeccion, setAvisosSeccion] = useState({}); // { [seccionId]: { texto, tipo } }
+
+    const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
+        setAvisosSeccion(prev => ({ ...prev, [seccionId]: { texto, tipo } }));
+        setTimeout(() => {
+            setAvisosSeccion(prev => {
+                const copia = { ...prev };
+                delete copia[seccionId];
+                return copia;
+            });
+        }, 3500);
     };
 
     const fileInputRef = useRef(null);
@@ -71,8 +82,94 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
+    // Exportar a PDF (Optimizado según requerimiento)
     const handleExportarPDF = () => {
-        window.print();
+        const doc = new jsPDF();
+        const anioActual = datos.anio_activo;
+
+        // Encabezado con datos del curso
+        doc.setFontSize(14);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '4° Medio A'} (${anioActual})`, 14, 15);
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
+        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Saldo Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')}`, 14, 27);
+
+        let currentY = 34;
+
+        // 1. Relación de Ingresos y Egresos con Fecha, Descripción y Saldo
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
+
+        let movimientos = [
+            ...(datos.gastos || []).map(g => ({ fecha: g.fecha || 'N/A', tipo: 'Egreso', desc: g.titulo, monto: -Number(g.monto) })),
+            ...(datos.ingresos_extra || []).map(e => ({ fecha: e.fecha || 'N/A', tipo: 'Ingreso Extra', desc: e.titulo, monto: Number(e.monto) }))
+        ].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+        let saldoAcumulado = Number(datos.configuracion.saldo_inicial || 0);
+        const filasMovimientos = movimientos.map(m => {
+            saldoAcumulado += m.monto;
+            return [
+                m.fecha,
+                `${m.tipo}: ${m.desc}`,
+                m.monto >= 0 ? `+$${m.monto.toLocaleString('es-CL')}` : `-$${Math.abs(m.monto).toLocaleString('es-CL')}`,
+                `$${saldoAcumulado.toLocaleString('es-CL')}`
+            ];
+        });
+
+        doc.autoTable({
+            startY: currentY + 3,
+            head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
+            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos', '-', '-']],
+            theme: 'grid',
+            headStyles: { fillColor: [16, 185, 129] },
+            styles: { fontSize: 8 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+
+        // 2. Relación de Pago / Saldo por cada apoderado
+        doc.setFontSize(11);
+        doc.text('2. Estado de Pagos y Saldos por Apoderado', 14, currentY);
+
+        const filasAlumnos = datos.apoderados.map(apo => {
+            let totalAbonadoApo = 0;
+            let mesesPendientes = 0;
+
+            datos.configuracion.meses.forEach(mes => {
+                const p = apo.pagos[mes];
+                if (p && p.monto) {
+                    totalAbonadoApo += Number(p.monto);
+                    if (!p.pagado) mesesPendientes++;
+                } else {
+                    mesesPendientes++;
+                }
+            });
+
+            const deudaEstimada = mesesPendientes * cuotaOficial;
+
+            return [
+                apo.nombre,
+                apo.alumno,
+                `$${totalAbonadoApo.toLocaleString('es-CL')}`,
+                `${mesesPendientes} meses`,
+                `$${deudaEstimada.toLocaleString('es-CL')}`
+            ];
+        });
+
+        doc.autoTable({
+            startY: currentY + 3,
+            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
+            body: filasAlumnos,
+            theme: 'grid',
+            headStyles: { fillColor: [59, 130, 246] },
+            styles: { fontSize: 8 }
+        });
+
+        doc.save(`Relacion_Tesoreria_${anioActual}.pdf`);
     };
 
     const handleDescargarBackup = async () => {
@@ -82,11 +179,11 @@ export default function VistaAdmin({ datos, onActualizar }) {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `backup_tesoreria_${datos.anio_activo}_${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = `backup_tesoreria_${datos.anio_activo}.json`;
             a.click();
-            mostrarAviso("Copia de seguridad descargada con éxito.");
+            mostrarAvisoLocal('acciones', "Copia de seguridad descargada.");
         } catch (error) {
-            mostrarAviso("Error al generar el backup.", "error");
+            mostrarAvisoLocal('acciones', "Error al generar backup.", "error");
         }
     };
 
@@ -104,31 +201,31 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     body: JSON.stringify(contenidoJson)
                 });
                 if (res.ok) {
-                    mostrarAviso("Aplicación restaurada desde el backup correctamente.");
+                    mostrarAvisoLocal('acciones', "Aplicación restaurada con éxito.");
                     onActualizar();
                 } else {
-                    mostrarAviso("El archivo de backup no es válido.", "error");
+                    mostrarAvisoLocal('acciones', "Archivo de backup no válido.", "error");
                 }
             } catch (err) {
-                mostrarAviso("Error al leer el archivo JSON.", "error");
+                mostrarAvisoLocal('acciones', "Error al leer JSON.", "error");
             }
         };
         reader.readAsText(file);
     };
 
     const handleBorrarAplicacion = async () => {
-        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de borrar todos los datos de la aplicación? Esta acción no se puede deshacer.")) {
-            if (confirm("Confirma nuevamente para proceder al borrado total de registros:")) {
+        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de borrar todos los datos de la aplicación?")) {
+            if (confirm("Confirma nuevamente para proceder al borrado total:")) {
                 try {
                     const res = await fetch('/api/curso/reset', { method: 'DELETE' });
                     if (res.ok) {
-                        mostrarAviso("La aplicación se ha reiniciado de fábrica.");
+                        mostrarAvisoLocal('acciones', "Aplicación reiniciada de fábrica.");
                         onActualizar();
                     } else {
-                        mostrarAviso("Error al reiniciar la aplicación.", "error");
+                        mostrarAvisoLocal('acciones', "Error al reiniciar.", "error");
                     }
                 } catch (error) {
-                    mostrarAviso("Error de conexión.", "error");
+                    mostrarAvisoLocal('acciones', "Error de conexión.", "error");
                 }
             }
         }
@@ -140,24 +237,29 @@ export default function VistaAdmin({ datos, onActualizar }) {
             const res = await fetch('/api/curso/admin/configuracion', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre_curso: nombreCurso, profesor: profesorCurso, tesorero: tesoreroCurso })
+                body: JSON.stringify({ 
+                    nombre_curso: nombreCurso, 
+                    profesor: profesorCurso, 
+                    presidente: presidenteCurso, 
+                    tesorero: tesoreroCurso 
+                })
             });
             if (res.ok) {
                 setEditandoInfoCurso(false);
-                mostrarAviso("Datos del curso actualizados correctamente.");
+                mostrarAvisoLocal('curso', "Datos del curso guardados correctamente.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al actualizar datos del curso.", "error");
+                mostrarAvisoLocal('curso', "Error al guardar datos del curso.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('curso', "Error de conexión.", "error");
         }
     };
 
     const handleActualizarCuota = async () => {
         const nuevaCuota = Number(cuotaInput);
         if (isNaN(nuevaCuota) || nuevaCuota <= 0) {
-            mostrarAviso("Ingrese un valor de cuota válido.", "error");
+            mostrarAvisoLocal('config', "Ingrese cuota válida.", "error");
             return;
         }
 
@@ -168,13 +270,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 body: JSON.stringify({ cuota_mensual: nuevaCuota })
             });
             if (res.ok) {
-                mostrarAviso("Cuota mensual actualizada y rebalanceada con éxito.");
+                mostrarAvisoLocal('config', "Cuota actualizada y rebalanceada.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al actualizar la cuota.", "error");
+                mostrarAvisoLocal('config', "Error al actualizar cuota.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('config', "Error de conexión.", "error");
         }
     };
 
@@ -187,20 +289,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
             });
             if (res.ok) {
                 setEditandoSaldo(false);
-                mostrarAviso("Saldo inicial actualizado correctamente.");
+                mostrarAvisoLocal('config', "Saldo inicial actualizado.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al actualizar el saldo.", "error");
+                mostrarAvisoLocal('config', "Error al actualizar saldo.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('config', "Error de conexión.", "error");
         }
     };
 
     const handleRegistrarGasto = async (e) => {
         e.preventDefault();
         if (!gastoTitulo.trim() || !gastoMonto) {
-            mostrarAviso("Complete los campos del gasto.", "error");
+            mostrarAvisoLocal('gasto', "Complete los campos del gasto.", "error");
             return;
         }
 
@@ -215,13 +317,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 setGastoTitulo('');
                 setGastoMonto('');
                 setGastoFecha(new Date().toISOString().slice(0, 10));
-                mostrarAviso("Gasto registrado correctamente.");
+                mostrarAvisoLocal('gasto', "Gasto registrado correctamente.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al registrar gasto.", "error");
+                mostrarAvisoLocal('gasto', "Error al registrar gasto.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('gasto', "Error de conexión.", "error");
         }
     };
 
@@ -229,20 +331,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
         try {
             const res = await fetch(`/api/curso/admin/gasto/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                mostrarAviso("Gasto eliminado correctamente.");
+                mostrarAvisoLocal('relacionGastos', "Gasto eliminado.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al eliminar el gasto.", "error");
+                mostrarAvisoLocal('relacionGastos', "Error al eliminar.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('relacionGastos', "Error de conexión.", "error");
         }
     };
 
     const handleRegistrarIngresoExtra = async (e) => {
         e.preventDefault();
         if (!extraTitulo.trim() || !extraMonto) {
-            mostrarAviso("Complete los campos del ingreso extra.", "error");
+            mostrarAvisoLocal('ingreso', "Complete los campos del ingreso.", "error");
             return;
         }
 
@@ -257,13 +359,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 setExtraTitulo('');
                 setExtraMonto('');
                 setExtraFecha(new Date().toISOString().slice(0, 10));
-                mostrarAviso("Ingreso extra registrado exitosamente.");
+                mostrarAvisoLocal('ingreso', "Ingreso extra registrado.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al registrar ingreso.", "error");
+                mostrarAvisoLocal('ingreso', "Error al registrar ingreso.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('ingreso', "Error de conexión.", "error");
         }
     };
 
@@ -271,13 +373,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
         try {
             const res = await fetch(`/api/curso/admin/ingreso-extra/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                mostrarAviso("Ingreso extra eliminado correctamente.");
+                mostrarAvisoLocal('relacionIngresos', "Ingreso extra eliminado.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al eliminar el ingreso.", "error");
+                mostrarAvisoLocal('relacionIngresos', "Error al eliminar.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('relacionIngresos', "Error de conexión.", "error");
         }
     };
 
@@ -292,7 +394,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const handleEnviarPagoGlobal = async (e) => {
         e.preventDefault();
         if (!montoPago || Number(montoPago) <= 0) {
-            mostrarAviso("Ingrese un monto válido.", "error");
+            mostrarAvisoLocal('modalPago', "Ingrese monto válido.", "error");
             return;
         }
 
@@ -310,13 +412,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
             if (res.ok) {
                 setModalAbierto(false);
-                mostrarAviso("Pago registrado y distribuido correctamente.");
+                mostrarAvisoLocal('pagos', "Pago registrado y distribuido.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al registrar el pago.", "error");
+                mostrarAvisoLocal('modalPago', "Error al registrar pago.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión con el servidor.", "error");
+            mostrarAvisoLocal('modalPago', "Error de conexión.", "error");
         }
     };
 
@@ -325,20 +427,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
         try {
             const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, { method: 'DELETE' });
             if (res.ok) {
-                mostrarAviso(`Se eliminó el registro de ${mes}`);
+                mostrarAvisoLocal('pagos', `Se eliminó el pago de ${mes}`);
                 onActualizar();
             } else {
-                mostrarAviso("Error al eliminar el pago.", "error");
+                mostrarAvisoLocal('pagos', "Error al eliminar pago.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
         }
     };
 
     const handleAgregarApoderado = async (e) => {
         e.preventDefault();
         if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
-            mostrarAviso("Complete todos los campos del apoderado.", "error");
+            mostrarAvisoLocal('apoderado', "Complete todos los campos.", "error");
             return;
         }
 
@@ -352,13 +454,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
             if (res.ok) {
                 setNombreApoderado('');
                 setNombreAlumno('');
-                mostrarAviso("Apoderado agregado exitosamente.");
+                mostrarAvisoLocal('apoderado', "Apoderado agregado con éxito.");
                 onActualizar();
             } else {
-                mostrarAviso("Error al agregar apoderado.", "error");
+                mostrarAvisoLocal('apoderado', "Error al agregar apoderado.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('apoderado', "Error de conexión.", "error");
         }
     };
 
@@ -372,32 +474,25 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 body: JSON.stringify({ activo: nuevoEstado })
             });
             if (res.ok) {
-                mostrarAviso(`Apoderado ${accion} exitosamente.`);
+                mostrarAvisoLocal('pagos', `Apoderado ${accion}.`);
                 onActualizar();
             } else {
-                mostrarAviso("Error al cambiar el estado.", "error");
+                mostrarAvisoLocal('pagos', "Error al cambiar estado.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
         }
     };
 
     return (
         <div className="space-y-8 relative">
-            {/* NOTIFICACIÓN FLOTANTE (TOAST) */}
-            {notificacion && (
-                <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2 transition-all duration-300 animate-bounce ${
-                    notificacion.tipo === 'error' 
-                        ? 'bg-rose-950/90 border-rose-500/50 text-rose-300' 
-                        : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
-                }`}>
-                    <i className={`fa-solid ${notificacion.tipo === 'error' ? 'fa-circle-exclamation text-rose-400' : 'fa-circle-check text-emerald-400'}`}></i>
-                    {notificacion.texto}
-                </div>
-            )}
-
             {/* BARRA DE HERRAMIENTAS: PDF, BACKUP Y RESTAURACIÓN */}
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3">
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3 relative">
+                {avisosSeccion['acciones'] && (
+                    <div className="absolute -top-10 left-0 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs px-3 py-1.5 rounded-xl shadow-lg z-50 animate-bounce">
+                        {avisosSeccion['acciones'].texto}
+                    </div>
+                )}
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={handleExportarPDF}
@@ -436,7 +531,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
             </div>
 
             {/* CONFIGURACIÓN DE LOS DATOS DEL CURSO */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
+                {avisosSeccion['curso'] && (
+                    <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                        {avisosSeccion['curso'].texto}
+                    </div>
+                )}
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
                         <i className="fa-solid fa-school"></i> Datos Generales del Curso
@@ -451,9 +551,9 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 {editandoInfoCurso ? (
-                    <form onSubmit={handleGuardarInfoCurso} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <form onSubmit={handleGuardarInfoCurso} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Curso / Nivel</label>
+                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Curso</label>
                             <input 
                                 type="text"
                                 value={nombreCurso}
@@ -471,7 +571,16 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             />
                         </div>
                         <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Tesorero/a o Directiva</label>
+                            <label className="text-[11px] text-slate-400 block mb-1">Presidente/a</label>
+                            <input 
+                                type="text"
+                                value={presidenteCurso}
+                                onChange={(e) => setPresidenteCurso(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Tesorero/a</label>
                             <input 
                                 type="text"
                                 value={tesoreroCurso}
@@ -479,14 +588,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
                             />
                         </div>
-                        <div className="sm:col-span-3 flex justify-end">
+                        <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
                             <button type="submit" className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">
                                 Guardar Datos del Curso
                             </button>
                         </div>
                     </form>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-300">
                         <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
                             <span className="text-[10px] text-slate-500 block">Curso:</span>
                             <span className="font-bold text-white text-sm">{datos.configuracion.nombre_curso || '4° Medio A'}</span>
@@ -496,15 +605,24 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             <span className="font-bold text-emerald-400 text-sm">{datos.configuracion.profesor || 'No asignado'}</span>
                         </div>
                         <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                            <span className="text-[10px] text-slate-500 block">Tesorero/a Directiva:</span>
-                            <span className="font-bold text-sky-400 text-sm">{datos.configuracion.tesorero || 'No asignado'}</span>
+                            <span className="text-[10px] text-slate-500 block">Presidente/a:</span>
+                            <span className="font-bold text-sky-400 text-sm">{datos.configuracion.presidente || 'No asignado'}</span>
+                        </div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                            <span className="text-[10px] text-slate-500 block">Tesorero/a:</span>
+                            <span className="font-bold text-amber-400 text-sm">{datos.configuracion.tesorero || 'No asignado'}</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* CABECERA, AÑO Y CUOTA */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* CABECERA, AÑO Y CONFIGURACIÓN */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
+                {avisosSeccion['config'] && (
+                    <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                        {avisosSeccion['config'].texto}
+                    </div>
+                )}
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración ({datos.anio_activo})
@@ -515,7 +633,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Cuota */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
                         <span className="text-[10px] text-slate-400">Cuota:</span>
                         <input 
@@ -533,7 +650,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         </button>
                     </div>
 
-                    {/* Selector y Apertura de Año */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
                         <span className="text-[10px] text-slate-400">Año:</span>
                         <select 
@@ -545,7 +661,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ nuevoAnio: anioElegido })
                                 });
-                                mostrarAviso(`Cambiado al año ${anioElegido}`);
                                 onActualizar();
                             }}
                             className="bg-slate-900 text-white font-bold text-xs px-2 py-1 rounded border border-slate-700 cursor-pointer"
@@ -564,7 +679,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ nuevoAnio: siguienteAnio, cuotaMensual: cuotaOficial })
                                 });
-                                mostrarAviso(`Año ${siguienteAnio} aperturado con éxito.`);
                                 onActualizar();
                             }}
                             className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded text-xs transition"
@@ -573,7 +687,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         </button>
                     </div>
 
-                    {/* Saldo Inicial */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-3">
                         <div>
                             <span className="text-[9px] text-slate-400 block font-medium">Saldo Inicial</span>
@@ -700,10 +813,15 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* FORMULARIOS DE REGISTRO */}
+            {/* FORMULARIOS DE REGISTRO CON TOASTS LOCALES */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Gasto */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
+                    {avisosSeccion['gasto'] && (
+                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                            {avisosSeccion['gasto'].texto}
+                        </div>
+                    )}
                     <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                         <i className="fa-solid fa-receipt"></i> Registrar Gasto
                     </h3>
@@ -761,7 +879,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 {/* Ingreso Extra */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
+                    {avisosSeccion['ingreso'] && (
+                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                            {avisosSeccion['ingreso'].texto}
+                        </div>
+                    )}
                     <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                         <i className="fa-solid fa-coins"></i> Ingreso Extra (Ventas/Rifas)
                     </h3>
@@ -807,7 +930,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 {/* Apoderado */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
+                    {avisosSeccion['apoderado'] && (
+                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                            {avisosSeccion['apoderado'].texto}
+                        </div>
+                    )}
                     <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
                         <i className="fa-solid fa-user-plus"></i> Agregar Apoderado
                     </h3>
@@ -842,7 +970,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
             {/* TABLAS DETALLADAS DE GASTOS E INGRESOS EXTRA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Relación de Gastos */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
+                    {avisosSeccion['relacionGastos'] && (
+                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                            {avisosSeccion['relacionGastos'].texto}
+                        </div>
+                    )}
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                         <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                             <i className="fa-solid fa-receipt"></i> Relación de Gastos
@@ -880,7 +1013,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 {/* Relación de Ingresos Extra */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
+                    {avisosSeccion['relacionIngresos'] && (
+                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                            {avisosSeccion['relacionIngresos'].texto}
+                        </div>
+                    )}
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                         <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                             <i className="fa-solid fa-coins"></i> Relación de Ingresos Extra
@@ -919,7 +1057,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
             </div>
 
             {/* GESTIÓN DE PAGOS MENSUALES */}
-            <div className="space-y-4">
+            <div className="space-y-4 relative">
+                {avisosSeccion['pagos'] && (
+                    <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
+                        {avisosSeccion['pagos'].texto}
+                    </div>
+                )}
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
                 </h3>
@@ -992,7 +1135,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
             {/* MODAL DE REGISTRO DE PAGO / ABONO GLOBAL */}
             {modalAbierto && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 relative">
+                        {avisosSeccion['modalPago'] && (
+                            <div className="absolute top-2 right-4 bg-rose-950/90 border border-rose-500/50 text-rose-300 text-[11px] px-3 py-1 rounded-lg">
+                                {avisosSeccion['modalPago'].texto}
+                            </div>
+                        )}
                         <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                             <h3 className="text-sm font-bold text-white flex items-center gap-2">
                                 <i className="fa-solid fa-cash-register text-emerald-400"></i> Registrar Pago / Abono

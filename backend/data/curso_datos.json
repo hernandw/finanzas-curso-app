@@ -42,55 +42,40 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": true,
-              "monto": 30000,
-              "fecha": "2026-11-06"
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
             },
             "Abril": {
-              "pagado": true,
-              "monto": 15000,
-              "fecha": "2026-11-06",
-              "transacciones": [
-                {
-                  "monto": 15000,
-                  "fecha": "2026-11-06",
-                  "responsable": "Juan Pérez"
-                }
-              ]
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
             },
             "Mayo": {
-              "pagado": true,
-              "monto": 15000,
-              "fecha": "2026-11-06",
-              "transacciones": [
-                {
-                  "monto": 15000,
-                  "fecha": "2026-11-06",
-                  "responsable": "Juan Pérez"
-                }
-              ]
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
             },
             "Junio": {
-              "pagado": true,
-              "monto": 15000,
-              "fecha": "2026-11-06",
-              "transacciones": [
-                {
-                  "monto": 15000,
-                  "fecha": "2026-11-06",
-                  "responsable": "Juan Pérez"
-                }
-              ]
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
             },
             "Julio": {
               "pagado": false,
               "monto": 0,
-              "fecha": null
+              "fecha": null,
+              "transacciones": []
             },
             "Agosto": {
               "pagado": false,
               "monto": 0,
-              "fecha": null
+              "fecha": null,
+              "transacciones": []
             },
             "Septiembre": {
               "pagado": false,

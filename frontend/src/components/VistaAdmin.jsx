@@ -24,6 +24,16 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
+    // Estado para Notificaciones Temporales (Toast)
+    const [notificacion, setNotificacion] = useState(null); // { texto: '...', tipo: 'success' | 'error' }
+
+    const mostrarAviso = (texto, tipo = 'success') => {
+        setNotificacion({ texto, tipo });
+        setTimeout(() => {
+            setNotificacion(null);
+        }, 3500); // Desaparece a los 3.5 segundos
+    };
+
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
 
     // Abrir modal de pago
@@ -39,7 +49,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const handleEnviarPagoGlobal = async (e) => {
         e.preventDefault();
         if (!montoPago || Number(montoPago) <= 0) {
-            alert("Ingrese un monto válido.");
+            mostrarAviso("Ingrese un monto válido.", "error");
             return;
         }
 
@@ -57,16 +67,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
             if (res.ok) {
                 setModalAbierto(false);
+                mostrarAviso("Pago registrado y distribuido correctamente.");
                 onActualizar();
             } else {
-                alert("Error al registrar el pago.");
+                mostrarAviso("Error al registrar el pago.", "error");
             }
         } catch (error) {
-            alert("Error de conexión con el servidor.");
+            mostrarAviso("Error de conexión con el servidor.", "error");
         }
     };
 
-    // 2. Eliminar / Revertir pago de un mes
+    // Eliminar / Revertir pago de un mes
     const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
         if (montoActual <= 0) return;
         if (confirm(`¿Estás seguro de eliminar el registro de pago de ${mes}?`)) {
@@ -76,21 +87,22 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 });
 
                 if (res.ok) {
+                    mostrarAviso(`Se eliminó el registro de ${mes}`);
                     onActualizar();
                 } else {
-                    alert("Error al eliminar el pago.");
+                    mostrarAviso("Error al eliminar el pago.", "error");
                 }
             } catch (error) {
-                alert("Error de conexión con el servidor.");
+                mostrarAviso("Error de conexión con el servidor.", "error");
             }
         }
     };
 
-    // 3. Agregar nuevo apoderado
+    // Agregar nuevo apoderado
     const handleAgregarApoderado = async (e) => {
         e.preventDefault();
         if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
-            alert("Complete todos los campos.");
+            mostrarAviso("Complete todos los campos del apoderado.", "error");
             return;
         }
 
@@ -104,20 +116,21 @@ export default function VistaAdmin({ datos, onActualizar }) {
             if (res.ok) {
                 setNombreApoderado('');
                 setNombreAlumno('');
+                mostrarAviso("Apoderado agregado exitosamente.");
                 onActualizar();
             } else {
-                alert("Error al agregar apoderado.");
+                mostrarAviso("Error al agregar apoderado.", "error");
             }
         } catch (error) {
-            alert("Error de conexión.");
+            mostrarAviso("Error de conexión.", "error");
         }
     };
 
-    // 4. Registrar gasto general
+    // Registrar gasto general
     const handleRegistrarGasto = async (e) => {
         e.preventDefault();
         if (!gastoTitulo.trim() || !gastoMonto) {
-            alert("Complete los campos del gasto.");
+            mostrarAviso("Complete los campos del gasto.", "error");
             return;
         }
 
@@ -131,16 +144,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
             if (res.ok) {
                 setGastoTitulo('');
                 setGastoMonto('');
+                mostrarAviso("Gasto registrado correctamente.");
                 onActualizar();
             } else {
-                alert("Error al registrar gasto.");
+                mostrarAviso("Error al registrar gasto.", "error");
             }
         } catch (error) {
-            alert("Error de conexión.");
+            mostrarAviso("Error de conexión.", "error");
         }
     };
 
-    // 5. Cambiar estado (Ocultar / Activar)
+    // Cambiar estado (Ocultar / Activar)
     const handleCambiarEstado = async (id, nombre, activoActual) => {
         const accion = activoActual ? "ocultar" : "activar";
         if (confirm(`¿Estás seguro de ${accion} a ${nombre}? Se mantendrá su historial.`)) {
@@ -151,18 +165,31 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     body: JSON.stringify({ activo: !activoActual })
                 });
                 if (res.ok) {
+                    mostrarAviso(`Apoderado ${accion}do exitosamente.`);
                     onActualizar();
                 } else {
-                    alert("Error al cambiar el estado.");
+                    mostrarAviso("Error al cambiar el estado.", "error");
                 }
             } catch (error) {
-                alert("Error de conexión.");
+                mostrarAviso("Error de conexión.", "error");
             }
         }
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 relative">
+            {/* NOTIFICACIÓN FLOTANTE TEMPORAL (TOAST) */}
+            {notificacion && (
+                <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2 transition-all duration-300 animate-bounce ${
+                    notificacion.tipo === 'error' 
+                        ? 'bg-rose-950/90 border-rose-500/50 text-rose-300' 
+                        : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
+                }`}>
+                    <i className={`fa-solid ${notificacion.tipo === 'error' ? 'fa-circle-exclamation text-rose-400' : 'fa-circle-check text-emerald-400'}`}></i>
+                    {notificacion.texto}
+                </div>
+            )}
+
             {/* Cabecera Admin */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex justify-between items-center">
                 <div>

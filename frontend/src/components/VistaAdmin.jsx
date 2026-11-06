@@ -29,9 +29,18 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [editandoSaldo, setEditandoSaldo] = useState(false);
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
 
+    // Datos del Curso (Info general)
+    const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '4° Medio A');
+    const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Juan Pérez');
+    const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'María González');
+    const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
+
     useEffect(() => {
         setCuotaInput(datos.configuracion.cuota_mensual || 15000);
         setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
+        setNombreCurso(datos.configuracion.nombre_curso || '4° Medio A');
+        setProfesorCurso(datos.configuracion.profesor || 'Juan Pérez');
+        setTesoreroCurso(datos.configuracion.tesorero || 'María González');
     }, [datos]);
 
     // Modal de Pago Global
@@ -62,12 +71,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF (Impresión limpia formateada)
     const handleExportarPDF = () => {
         window.print();
     };
 
-    // Descargar Backup (JSON)
     const handleDescargarBackup = async () => {
         try {
             const res = await fetch('/api/curso/backup');
@@ -83,7 +90,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // Restaurar Backup
     const handleRestaurarBackup = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -110,9 +116,8 @@ export default function VistaAdmin({ datos, onActualizar }) {
         reader.readAsText(file);
     };
 
-    // Borrar / Reiniciar aplicación
     const handleBorrarAplicacion = async () => {
-        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de borrar todos los datos de la aplicación? Esta acción no se puede deshacer a menos que tengas un backup.")) {
+        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de borrar todos los datos de la aplicación? Esta acción no se puede deshacer.")) {
             if (confirm("Confirma nuevamente para proceder al borrado total de registros:")) {
                 try {
                     const res = await fetch('/api/curso/reset', { method: 'DELETE' });
@@ -126,6 +131,26 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     mostrarAviso("Error de conexión.", "error");
                 }
             }
+        }
+    };
+
+    const handleGuardarInfoCurso = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/curso/admin/configuracion', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre_curso: nombreCurso, profesor: profesorCurso, tesorero: tesoreroCurso })
+            });
+            if (res.ok) {
+                setEditandoInfoCurso(false);
+                mostrarAviso("Datos del curso actualizados correctamente.");
+                onActualizar();
+            } else {
+                mostrarAviso("Error al actualizar datos del curso.", "error");
+            }
+        } catch (error) {
+            mostrarAviso("Error de conexión.", "error");
         }
     };
 
@@ -306,7 +331,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAviso("Error al eliminar el pago.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión con el servidor.", "error");
+            mostrarAviso("Error de conexión.", "error");
         }
     };
 
@@ -408,6 +433,74 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <i className="fa-solid fa-trash-arrow-up"></i> Borrar / Reiniciar App
                     </button>
                 </div>
+            </div>
+
+            {/* CONFIGURACIÓN DE LOS DATOS DEL CURSO */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
+                        <i className="fa-solid fa-school"></i> Datos Generales del Curso
+                    </h3>
+                    <button 
+                        onClick={() => setEditandoInfoCurso(!editandoInfoCurso)}
+                        className="text-xs text-slate-400 hover:text-white transition flex items-center gap-1.5"
+                    >
+                        <i className={`fa-solid ${editandoInfoCurso ? 'fa-xmark' : 'fa-pen-to-square'}`}></i>
+                        {editandoInfoCurso ? 'Cancelar' : 'Editar Datos'}
+                    </button>
+                </div>
+
+                {editandoInfoCurso ? (
+                    <form onSubmit={handleGuardarInfoCurso} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Curso / Nivel</label>
+                            <input 
+                                type="text"
+                                value={nombreCurso}
+                                onChange={(e) => setNombreCurso(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Profesor/a Jefe</label>
+                            <input 
+                                type="text"
+                                value={profesorCurso}
+                                onChange={(e) => setProfesorCurso(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Tesorero/a o Directiva</label>
+                            <input 
+                                type="text"
+                                value={tesoreroCurso}
+                                onChange={(e) => setTesoreroCurso(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                            />
+                        </div>
+                        <div className="sm:col-span-3 flex justify-end">
+                            <button type="submit" className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">
+                                Guardar Datos del Curso
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-slate-300">
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                            <span className="text-[10px] text-slate-500 block">Curso:</span>
+                            <span className="font-bold text-white text-sm">{datos.configuracion.nombre_curso || '4° Medio A'}</span>
+                        </div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                            <span className="text-[10px] text-slate-500 block">Profesor/a Jefe:</span>
+                            <span className="font-bold text-emerald-400 text-sm">{datos.configuracion.profesor || 'No asignado'}</span>
+                        </div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                            <span className="text-[10px] text-slate-500 block">Tesorero/a Directiva:</span>
+                            <span className="font-bold text-sky-400 text-sm">{datos.configuracion.tesorero || 'No asignado'}</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* CABECERA, AÑO Y CUOTA */}

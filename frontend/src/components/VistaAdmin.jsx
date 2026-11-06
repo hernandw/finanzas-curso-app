@@ -31,7 +31,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [editandoSaldo, setEditandoSaldo] = useState(false);
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
 
-    // Datos del Curso
+    // Datos del Curso unificados
     const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '4° Medio A');
     const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Juan Pérez');
     const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ana Gómez');
@@ -54,7 +54,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Notificaciones por sección (Toast local sobre la tarjeta)
+    // Notificaciones locales por sección
     const [avisosSeccion, setAvisosSeccion] = useState({});
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
@@ -82,12 +82,11 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF corregido con la función autoTable
+    // Exportar a PDF con colores dinámicos (Verde/Rojo)
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
 
-        // Encabezado con datos del curso
         doc.setFontSize(14);
         doc.setTextColor(15, 23, 42);
         doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '4° Medio A'} (${anioActual})`, 14, 15);
@@ -99,7 +98,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         let currentY = 34;
 
-        // 1. Relación de Ingresos y Egresos con Fecha, Descripción y Saldo
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
@@ -114,7 +112,8 @@ export default function VistaAdmin({ datos, onActualizar }) {
             saldoAcumulado += m.monto;
             return [
                 m.fecha,
-                `${m.tipo}: ${m.desc}`,
+                m.tipo,
+                m.desc,
                 m.monto >= 0 ? `+$${m.monto.toLocaleString('es-CL')}` : `-$${Math.abs(m.monto).toLocaleString('es-CL')}`,
                 `$${saldoAcumulado.toLocaleString('es-CL')}`
             ];
@@ -122,17 +121,29 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         autoTable(doc, {
             startY: currentY + 3,
-            head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
-            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos', '-', '-']],
+            head: [['Fecha', 'Tipo', 'Descripción', 'Monto', 'Saldo en Caja']],
+            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', '-', 'No hay movimientos', '-', '-']],
             theme: 'grid',
             headStyles: { fillColor: [16, 185, 129] },
-            styles: { fontSize: 8 }
+            styles: { fontSize: 8 },
+            didParseCell: (data) => {
+                if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4)) {
+                    const textVal = data.cell.raw;
+                    if (textVal && textVal.includes('-')) {
+                        data.cell.styles.textColor = [225, 29, 72];
+                        data.cell.styles.fontStyle = 'bold';
+                    } else if (textVal && (textVal.includes('+') || (data.column.index === 4 && !textVal.includes('-')))) {
+                        data.cell.styles.textColor = [16, 185, 129];
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+            }
         });
 
         currentY = doc.lastAutoTable.finalY + 10;
 
-        // 2. Relación de Pago / Saldo por cada apoderado
         doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
         doc.text('2. Estado de Pagos y Saldos por Apoderado', 14, currentY);
 
         const filasAlumnos = datos.apoderados.map(apo => {
@@ -162,11 +173,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         autoTable(doc, {
             startY: currentY + 3,
-            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
+            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo Deuda']],
             body: filasAlumnos,
             theme: 'grid',
             headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8 }
+            styles: { fontSize: 8 },
+            didParseCell: (data) => {
+                if (data.section === 'body' && data.column.index === 4) {
+                    const textVal = data.cell.raw;
+                    if (textVal && textVal !== '$0') {
+                        data.cell.styles.textColor = [225, 29, 72];
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                }
+            }
         });
 
         doc.save(`Relacion_Tesoreria_${anioActual}.pdf`);
@@ -813,7 +833,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* FORMULARIOS DE REGISTRO CON TOASTS LOCALES */}
+            {/* FORMULARIOS DE REGISTRO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Gasto */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">

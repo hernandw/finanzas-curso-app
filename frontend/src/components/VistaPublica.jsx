@@ -21,6 +21,7 @@ export default function VistaPublica({ datos }) {
 
     const cuotaOficial = datos.configuracion?.cuota_mensual || 15000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
+    const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
 
     return (
         <div className="space-y-6">
@@ -28,7 +29,7 @@ export default function VistaPublica({ datos }) {
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <i className="fa-solid fa-clipboard-user text-emerald-400"></i> Estado General de Cuotas y Gastos
+                        <i className="fa-solid fa-clipboard-user text-emerald-400"></i> Estado General de Cuotas, Ingresos y Gastos ({datos.anio_activo})
                     </h2>
                     <p className="text-xs text-slate-400 mt-1">
                         Cuota mensual fija del año: <strong className="text-emerald-400 font-semibold">${Number(cuotaOficial).toLocaleString('es-CL')}</strong>
@@ -45,44 +46,78 @@ export default function VistaPublica({ datos }) {
                 </div>
             </div>
 
-            {/* SECCIÓN DE GASTOS GENERALES */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                        <i className="fa-solid fa-receipt"></i> Gastos Registrados del Curso
-                    </h3>
-                    <span className="text-xs text-slate-300 font-medium">
-                        Total Gastos: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
-                    </span>
+            {/* SECCIÓN DE GASTOS E INGRESOS EXTRA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Gastos */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                            <i className="fa-solid fa-receipt"></i> Gastos Registrados
+                        </h3>
+                        <span className="text-xs text-slate-300 font-medium">
+                            Total: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-48 overflow-y-auto">
+                        {datos.gastos && datos.gastos.length > 0 ? (
+                            <table className="w-full text-left text-xs text-slate-300">
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                                    <tr>
+                                        <th className="p-2">Fecha</th>
+                                        <th className="p-2">Descripción</th>
+                                        <th className="p-2 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60">
+                                    {datos.gastos.map(g => (
+                                        <tr key={g.id} className="hover:bg-slate-950/40">
+                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
+                                            <td className="p-2 font-semibold text-white">{g.titulo}</td>
+                                            <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados.</p>
+                        )}
+                    </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    {datos.gastos && datos.gastos.length > 0 ? (
-                        <table className="w-full text-left text-xs text-slate-300">
-                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
-                                <tr>
-                                    <th className="p-3">Fecha</th>
-                                    <th className="p-3">Descripción</th>
-                                    <th className="p-3">Mes Asociado</th>
-                                    <th className="p-3 text-right">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/60">
-                                {datos.gastos.map(gasto => (
-                                    <tr key={gasto.id} className="hover:bg-slate-950/40">
-                                        <td className="p-3 text-slate-400 font-mono text-[11px]">{gasto.fecha || 'N/A'}</td>
-                                        <td className="p-3 font-semibold text-white">{gasto.titulo}</td>
-                                        <td className="p-3 text-slate-300">{gasto.mes}</td>
-                                        <td className="p-3 text-right font-bold text-rose-400">
-                                            ${Number(gasto.monto).toLocaleString('es-CL')}
-                                        </td>
+                {/* Ingresos Extra */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                            <i className="fa-solid fa-coins"></i> Ingresos Extra (Ventas / Rifas)
+                        </h3>
+                        <span className="text-xs text-slate-300 font-medium">
+                            Total: <strong className="text-emerald-400">${totalIngresosExtra.toLocaleString('es-CL')}</strong>
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-48 overflow-y-auto">
+                        {datos.ingresos_extra && datos.ingresos_extra.length > 0 ? (
+                            <table className="w-full text-left text-xs text-slate-300">
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                                    <tr>
+                                        <th className="p-2">Fecha</th>
+                                        <th className="p-2">Concepto</th>
+                                        <th className="p-2 text-right">Monto</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <p className="text-xs text-slate-500 text-center py-4">No hay gastos generales registrados todavía.</p>
-                    )}
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60">
+                                    {datos.ingresos_extra.map(e => (
+                                        <tr key={e.id} className="hover:bg-slate-950/40">
+                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
+                                            <td className="p-2 font-semibold text-white">{e.titulo}</td>
+                                            <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra registrados.</p>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -114,7 +149,6 @@ export default function VistaPublica({ datos }) {
                                             </span>
                                         </div>
 
-                                        {/* Cuadrícula de meses en formato de tarjetas */}
                                         <div className="grid grid-cols-2 gap-2 pt-1">
                                             {datos.configuracion.meses.map(mes => {
                                                 const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
@@ -131,7 +165,7 @@ export default function VistaPublica({ datos }) {
                                                                     Pagado ✓
                                                                 </span>
                                                             ) : esAbono ? (
-                                                                <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold" title={`Abonó $${montoAbonado.toLocaleString('es-CL')}`}>
+                                                                <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold">
                                                                     Abono (${montoAbonado.toLocaleString('es-CL')})
                                                                 </span>
                                                             ) : (
@@ -140,11 +174,6 @@ export default function VistaPublica({ datos }) {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        {pago.fecha && (
-                                                            <span className="text-[9px] text-slate-400 block text-center mt-0.5">
-                                                                📅 {pago.fecha}
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 );
                                             })}
@@ -155,7 +184,7 @@ export default function VistaPublica({ datos }) {
                         })
                     ) : (
                         <div className="col-span-full text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
-                            No se encontraron apoderados con ese criterio de búsqueda.
+                            No se encontraron apoderados activos.
                         </div>
                     )}
                 </div>

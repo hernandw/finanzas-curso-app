@@ -34,12 +34,16 @@ router.post('/curso/admin/pago', async (req, res) => {
     const { apoderadoId, mes, pagado, monto } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
-        const apoderado = datos.apoderados.find(a => a.id === apoderadoId);
+        const anioActual = datos.anio_activo;
+        const infoAnio = datos.anios[anioActual];
+        
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
+        // Guardamos el estado y el monto exacto (incluso si es un abono parcial)
         apoderado.pagos[mes] = {
             pagado: Boolean(pagado),
-            monto: pagado ? Number(monto) : 0,
+            monto: pagado ? Number(monto) : 0, // Aquí se registra la mitad o el monto parcial entregado
             fecha: pagado ? new Date().toISOString().slice(0, 10) : null
         };
 

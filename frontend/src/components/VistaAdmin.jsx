@@ -191,7 +191,62 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         Registrar Gasto General
                     </button>
                 </form>
+{/* MODULO NUEVO: RESUMEN FINANCIERO DE CADA ALUMNO */}
+<div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+    <h3 className="text-sm font-semibold text-sky-400 flex items-center gap-2">
+        <i className="fa-solid fa-chart-pie"></i> Resumen de Pagos por Alumno
+    </h3>
+    
+    <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
+                <tr>
+                    <th className="p-2">Apoderado / Alumno</th>
+                    <th className="p-2 text-center">Total Pagado</th>
+                    <th className="p-2 text-center">Meses Pendientes</th>
+                    <th className="p-2 text-right">Saldo Deuda</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+                {datos.apoderados.filter(a => a.activo !== false).map(apo => {
+                    let totalPagadoApo = 0;
+                    let mesesDebe = 0;
+                    
+                    datos.configuracion.meses.forEach(mes => {
+                        const p = apo.pagos[mes];
+                        if (p && p.pagado) {
+                            totalPagadoApo += Number(p.monto || 0);
+                        } else {
+                            // Si dejó un abono parcial, sumamos lo abonado pero cuenta como mes pendiente
+                            if (p && p.monto > 0) totalPagadoApo += Number(p.monto);
+                            mesesDebe++;
+                        }
+                    });
 
+                    const deudaTotal = mesesDebe * datos.configuracion.cuota_mensual;
+
+                    return (
+                        <tr key={apo.id} className="hover:bg-slate-900/50">
+                            <td className="p-2">
+                                <span className="font-semibold text-white block">{apo.nombre}</span>
+                                <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
+                            </td>
+                            <td className="p-2 text-center font-bold text-emerald-400">
+                                ${totalPagadoApo.toLocaleString('es-CL')}
+                            </td>
+                            <td className="p-2 text-center text-amber-400">
+                                {mesesDebe} meses
+                            </td>
+                            <td className="p-2 text-right font-bold text-rose-400">
+                                ${deudaTotal.toLocaleString('es-CL')}
+                            </td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    </div>
+</div>
                 {/* MODULO 3: GESTIÓN DE APODERADOS (AGREGAR / EDITAR / RETIRAR) */}
                 <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
                     <div className="flex justify-between items-center">

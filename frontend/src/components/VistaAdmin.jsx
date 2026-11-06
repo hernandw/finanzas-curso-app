@@ -240,42 +240,109 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             )}
 
-            {/* Cabecera Admin y Saldo Inicial */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            {/* SECCIÓN DE CABECERA, CAMBIO DE AÑO Y CUOTA */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración - Tesorería
+                        <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración ({datos.anio_activo})
                     </h2>
                     <p className="text-xs text-slate-400 mt-1">
-                        Cuota mensual oficial: <strong className="text-emerald-400">${cuotaOficial.toLocaleString('es-CL')}</strong>
+                        Gestión de tesorería, saldos, cuotas e ingresos del curso.
                     </p>
                 </div>
-                <div className="bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl flex items-center gap-4">
-                    <div>
-                        <span className="text-[10px] text-slate-400 block font-medium">Saldo Inicial (Año Anterior)</span>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Cambiar cuota mensual */}
+                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400">Cuota:</span>
+                        <input 
+                            type="number" 
+                            defaultValue={cuotaOficial}
+                            onBlur={async (e) => {
+                                const nuevaCuota = Number(e.target.value);
+                                if (nuevaCuota > 0) {
+                                    await fetch('/api/curso/admin/configuracion', {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ cuota_mensual: nuevaCuota })
+                                    });
+                                    mostrarAviso("Cuota mensual actualizada.");
+                                    onActualizar();
+                                }
+                            }}
+                            className="bg-slate-900 text-emerald-400 font-bold text-xs w-20 px-2 py-1 rounded border border-slate-700"
+                        />
+                    </div>
+
+                    {/* Selector de Año / Apertura */}
+                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
+                        <span className="text-[10px] text-slate-400">Año Activo:</span>
+                        <select 
+                            value={datos.anio_activo}
+                            onChange={async (e) => {
+                                const anioElegido = e.target.value;
+                                await fetch('/api/curso/admin/cambiar-anio', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ nuevoAnio: anioElegido })
+                                });
+                                mostrarAviso(`Cambiado al año ${anioElegido}`);
+                                onActualizar();
+                            }}
+                            className="bg-slate-900 text-white font-bold text-xs px-2 py-1 rounded border border-slate-700"
+                        >
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                        </select>
+
+                        <button 
+                            onClick={async () => {
+                                const siguienteAnio = String(Number(datos.anio_activo) + 1);
+                                await fetch('/api/curso/admin/cambiar-anio', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ nuevoAnio: siguienteAnio, cuotaMensual: cuotaOficial })
+                                });
+                                mostrarAviso(`Año ${siguienteAnio} aperturado con éxito.`);
+                                onActualizar();
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded text-xs transition"
+                            title="Aperturar año siguiente"
+                        >
+                            <i className="fa-solid fa-arrow-right"></i> Aperturar {Number(datos.anio_activo) + 1}
+                        </button>
+                    </div>
+
+                    {/* Saldo Inicial Editable */}
+                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-3">
+                        <div>
+                            <span className="text-[9px] text-slate-400 block font-medium">Saldo Inicial</span>
+                            {editandoSaldo ? (
+                                <input 
+                                    type="number"
+                                    value={saldoInicialEdit}
+                                    onChange={(e) => setSaldoInicialEdit(e.target.value)}
+                                    className="bg-slate-900 border border-slate-700 text-emerald-400 text-xs px-2 py-0.5 rounded w-24 font-bold mt-0.5"
+                                    autoFocus
+                                />
+                            ) : (
+                                <span className="text-xs font-bold text-emerald-400">
+                                    ${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}
+                                </span>
+                            )}
+                        </div>
                         {editandoSaldo ? (
-                            <input 
-                                type="number"
-                                value={saldoInicialEdit}
-                                onChange={(e) => setSaldoInicialEdit(e.target.value)}
-                                className="bg-slate-900 border border-slate-700 text-emerald-400 text-xs px-2 py-1 rounded w-28 font-bold mt-1"
-                                autoFocus
-                            />
+                            <button onClick={handleGuardarSaldoInicial} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2.5 py-1 rounded text-[10px] transition">
+                                OK
+                            </button>
                         ) : (
-                            <span className="text-xs font-bold text-emerald-400">
-                                ${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}
-                            </span>
+                            <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs" title="Editar saldo inicial">
+                                <i className="fa-solid fa-pen"></i>
+                            </button>
                         )}
                     </div>
-                    {editandoSaldo ? (
-                        <button onClick={handleGuardarSaldoInicial} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition">
-                            Guardar
-                        </button>
-                    ) : (
-                        <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs">
-                            <i className="fa-solid fa-pen"></i> Editar
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -335,7 +402,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO (Gasto con Fecha, Ingreso Extra y Apoderados) */}
+            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Registrar Gasto con Fecha */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
@@ -390,7 +457,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     </form>
                 </div>
 
-                {/* Registrar Ingreso Extra (Ventas / Rifas sin apoderado específico) */}
+                {/* Registrar Ingreso Extra */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                         <i className="fa-solid fa-coins"></i> Ingreso Extra (Ventas/Rifas)

@@ -13,29 +13,116 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [nombreApoderado, setNombreApoderado] = useState('');
     const [nombreAlumno, setNombreAlumno] = useState('');
     
+    // Gasto
     const [gastoMes, setGastoMes] = useState(datos.configuracion.meses[0]);
     const [gastoTitulo, setGastoTitulo] = useState('');
     const [gastoMonto, setGastoMonto] = useState('');
+    const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().slice(0, 10));
 
-    // Estados para el Modal de Pago Global
+    // Ingreso Extra (Ventas / Rifas)
+    const [extraTitulo, setExtraTitulo] = useState('');
+    const [extraMonto, setExtraMonto] = useState('');
+    const [extraFecha, setExtraFecha] = useState(new Date().toISOString().slice(0, 10));
+
+    // Saldo Inicial Editable
+    const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
+    const [editandoSaldo, setEditandoSaldo] = useState(false);
+
+    // Modal de Pago Global
     const [modalAbierto, setModalAbierto] = useState(false);
     const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
     const [montoPago, setMontoPago] = useState('');
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Estado para Notificaciones Temporales (Toast)
+    // Notificaciones Toast
     const [notificacion, setNotificacion] = useState(null);
-
     const mostrarAviso = (texto, tipo = 'success') => {
         setNotificacion({ texto, tipo });
-        setTimeout(() => {
-            setNotificacion(null);
-        }, 3500);
+        setTimeout(() => setNotificacion(null), 3500);
     };
 
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
+    const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
+
+    // Guardar Saldo Inicial
+    const handleGuardarSaldoInicial = async () => {
+        try {
+            const res = await fetch('/api/curso/admin/configuracion', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ saldo_inicial: Number(saldoInicialEdit) })
+            });
+            if (res.ok) {
+                setEditandoSaldo(false);
+                mostrarAviso("Saldo inicial actualizado correctamente.");
+                onActualizar();
+            } else {
+                mostrarAviso("Error al actualizar el saldo.", "error");
+            }
+        } catch (error) {
+            mostrarAviso("Error de conexión.", "error");
+        }
+    };
+
+    // Registrar Gasto
+    const handleRegistrarGasto = async (e) => {
+        e.preventDefault();
+        if (!gastoTitulo.trim() || !gastoMonto) {
+            mostrarAviso("Complete los campos del gasto.", "error");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/curso/admin/gasto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mes: gastoMes, titulo: gastoTitulo, monto: gastoMonto, fecha: gastoFecha })
+            });
+
+            if (res.ok) {
+                setGastoTitulo('');
+                setGastoMonto('');
+                setGastoFecha(new Date().toISOString().slice(0, 10));
+                mostrarAviso("Gasto registrado correctamente.");
+                onActualizar();
+            } else {
+                mostrarAviso("Error al registrar gasto.", "error");
+            }
+        } catch (error) {
+            mostrarAviso("Error de conexión.", "error");
+        }
+    };
+
+    // Registrar Ingreso Extra
+    const handleRegistrarIngresoExtra = async (e) => {
+        e.preventDefault();
+        if (!extraTitulo.trim() || !extraMonto) {
+            mostrarAviso("Complete los campos del ingreso extra.", "error");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/curso/admin/ingreso-extra', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ titulo: extraTitulo, monto: extraMonto, fecha: extraFecha })
+            });
+
+            if (res.ok) {
+                setExtraTitulo('');
+                setExtraMonto('');
+                setExtraFecha(new Date().toISOString().slice(0, 10));
+                mostrarAviso("Ingreso extra registrado exitosamente.");
+                onActualizar();
+            } else {
+                mostrarAviso("Error al registrar ingreso.", "error");
+            }
+        } catch (error) {
+            mostrarAviso("Error de conexión.", "error");
+        }
+    };
 
     // Abrir modal de pago
     const abrirModalPago = (apo) => {
@@ -46,7 +133,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
         setModalAbierto(true);
     };
 
-    // Enviar pago global con distribución automática
     const handleEnviarPagoGlobal = async (e) => {
         e.preventDefault();
         if (!montoPago || Number(montoPago) <= 0) {
@@ -78,14 +164,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // Eliminar / Revertir pago de un mes (sin confirmaciones molestas)
     const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
         if (montoActual <= 0) return;
         try {
-            const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, {
-                method: 'DELETE'
-            });
-
+            const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, { method: 'DELETE' });
             if (res.ok) {
                 mostrarAviso(`Se eliminó el registro de ${mes}`);
                 onActualizar();
@@ -93,11 +175,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAviso("Error al eliminar el pago.", "error");
             }
         } catch (error) {
-            mostrarAviso("Error de conexión con el servidor.", "error");
+            mostrarAviso("Error de conexión.", "error");
         }
     };
 
-    // Agregar nuevo apoderado
     const handleAgregarApoderado = async (e) => {
         e.preventDefault();
         if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
@@ -125,35 +206,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // Registrar gasto general
-    const handleRegistrarGasto = async (e) => {
-        e.preventDefault();
-        if (!gastoTitulo.trim() || !gastoMonto) {
-            mostrarAviso("Complete los campos del gasto.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/curso/admin/gasto', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mes: gastoMes, titulo: gastoTitulo, monto: gastoMonto })
-            });
-
-            if (res.ok) {
-                setGastoTitulo('');
-                setGastoMonto('');
-                mostrarAviso("Gasto registrado correctamente.");
-                onActualizar();
-            } else {
-                mostrarAviso("Error al registrar gasto.", "error");
-            }
-        } catch (error) {
-            mostrarAviso("Error de conexión.", "error");
-        }
-    };
-
-    // Cambiar estado (Ocultar / Activar) DIRECTAMENTE sin ventanas emergentes
     const handleCambiarEstado = async (id, nombre, activoActual) => {
         const nuevoEstado = !activoActual;
         const accion = nuevoEstado ? "activado" : "ocultado";
@@ -176,7 +228,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     return (
         <div className="space-y-8 relative">
-            {/* NOTIFICACIÓN FLOTANTE TEMPORAL (TOAST) */}
+            {/* NOTIFICACIÓN FLOTANTE (TOAST) */}
             {notificacion && (
                 <div className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2 transition-all duration-300 animate-bounce ${
                     notificacion.tipo === 'error' 
@@ -188,8 +240,8 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             )}
 
-            {/* Cabecera Admin */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex justify-between items-center">
+            {/* Cabecera Admin y Saldo Inicial */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración - Tesorería
@@ -197,6 +249,33 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     <p className="text-xs text-slate-400 mt-1">
                         Cuota mensual oficial: <strong className="text-emerald-400">${cuotaOficial.toLocaleString('es-CL')}</strong>
                     </p>
+                </div>
+                <div className="bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl flex items-center gap-4">
+                    <div>
+                        <span className="text-[10px] text-slate-400 block font-medium">Saldo Inicial (Año Anterior)</span>
+                        {editandoSaldo ? (
+                            <input 
+                                type="number"
+                                value={saldoInicialEdit}
+                                onChange={(e) => setSaldoInicialEdit(e.target.value)}
+                                className="bg-slate-900 border border-slate-700 text-emerald-400 text-xs px-2 py-1 rounded w-28 font-bold mt-1"
+                                autoFocus
+                            />
+                        ) : (
+                            <span className="text-xs font-bold text-emerald-400">
+                                ${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}
+                            </span>
+                        )}
+                    </div>
+                    {editandoSaldo ? (
+                        <button onClick={handleGuardarSaldoInicial} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition">
+                            Guardar
+                        </button>
+                    ) : (
+                        <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs">
+                            <i className="fa-solid fa-pen"></i> Editar
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -256,16 +335,16 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO Y RESUMEN DE GASTOS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Registrar Gasto */}
+            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO (Gasto con Fecha, Ingreso Extra y Apoderados) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Registrar Gasto con Fecha */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                        <i className="fa-solid fa-receipt"></i> Registrar Gasto del Curso
+                        <i className="fa-solid fa-receipt"></i> Registrar Gasto
                     </h3>
                     <form onSubmit={handleRegistrarGasto} className="space-y-3">
                         <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Descripción del gasto</label>
+                            <label className="text-[11px] text-slate-400 block mb-1">Descripción</label>
                             <input 
                                 type="text" 
                                 placeholder="Ej: Compra de materiales..."
@@ -296,16 +375,66 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 />
                             </div>
                         </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Fecha del Gasto</label>
+                            <input 
+                                type="date" 
+                                value={gastoFecha}
+                                onChange={(e) => setGastoFecha(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                            />
+                        </div>
                         <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
                             Registrar Gasto
                         </button>
                     </form>
                 </div>
 
-                {/* Agregar Apoderado */}
+                {/* Registrar Ingreso Extra (Ventas / Rifas sin apoderado específico) */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                        <i className="fa-solid fa-user-plus"></i> Agregar Nuevo Apoderado
+                        <i className="fa-solid fa-coins"></i> Ingreso Extra (Ventas/Rifas)
+                    </h3>
+                    <form onSubmit={handleRegistrarIngresoExtra} className="space-y-3">
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Concepto / Descripción</label>
+                            <input 
+                                type="text" 
+                                placeholder="Ej: Venta de rifa, completada..."
+                                value={extraTitulo}
+                                onChange={(e) => setExtraTitulo(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Monto Recaudado ($)</label>
+                            <input 
+                                type="number" 
+                                placeholder="0"
+                                value={extraMonto}
+                                onChange={(e) => setExtraMonto(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Fecha del Ingreso</label>
+                            <input 
+                                type="date" 
+                                value={extraFecha}
+                                onChange={(e) => setExtraFecha(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                            />
+                        </div>
+                        <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
+                            Registrar Ingreso
+                        </button>
+                    </form>
+                </div>
+
+                {/* Agregar Apoderado */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
+                        <i className="fa-solid fa-user-plus"></i> Agregar Apoderado
                     </h3>
                     <form onSubmit={handleAgregarApoderado} className="space-y-3">
                         <div>
@@ -322,67 +451,99 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             <label className="text-[11px] text-slate-400 block mb-1">Nombre del Alumno</label>
                             <input 
                                 type="text" 
-                                placeholder="Nombre completo del alumno..."
+                                placeholder="Alumno..."
                                 value={nombreAlumno}
                                 onChange={(e) => setNombreAlumno(e.target.value)}
                                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
                             />
                         </div>
-                        <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
+                        <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
                             Agregar Apoderado
                         </button>
                     </form>
                 </div>
             </div>
 
-            {/* SECCIÓN NUEVA: RESUMEN DE GASTOS REGISTRADOS EN ADMIN */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                        <i className="fa-solid fa-list-check"></i> Relación de Gastos del Curso
-                    </h3>
-                    <span className="text-xs text-slate-300 font-medium">
-                        Total Gastos: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
-                    </span>
+            {/* SECCIÓN 3: TABLAS DE GASTOS E INGRESOS EXTRA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Relación de Gastos */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                            <i className="fa-solid fa-list-check"></i> Relación de Gastos
+                        </h3>
+                        <span className="text-xs text-slate-300 font-medium">
+                            Total: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                        {datos.gastos && datos.gastos.length > 0 ? (
+                            <table className="w-full text-left text-xs text-slate-300">
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                                    <tr>
+                                        <th className="p-2">Fecha</th>
+                                        <th className="p-2">Descripción</th>
+                                        <th className="p-2 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60">
+                                    {datos.gastos.map(g => (
+                                        <tr key={g.id} className="hover:bg-slate-950/40">
+                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
+                                            <td className="p-2 font-semibold text-white">{g.titulo} <span className="text-[10px] text-slate-400">({g.mes})</span></td>
+                                            <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados.</p>
+                        )}
+                    </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    {datos.gastos && datos.gastos.length > 0 ? (
-                        <table className="w-full text-left text-xs text-slate-300">
-                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
-                                <tr>
-                                    <th className="p-3">Fecha</th>
-                                    <th className="p-3">Descripción</th>
-                                    <th className="p-3">Mes Asociado</th>
-                                    <th className="p-3 text-right">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/60">
-                                {datos.gastos.map(gasto => (
-                                    <tr key={gasto.id} className="hover:bg-slate-950/40">
-                                        <td className="p-3 text-slate-400 font-mono text-[11px]">{gasto.fecha || 'N/A'}</td>
-                                        <td className="p-3 font-semibold text-white">{gasto.titulo}</td>
-                                        <td className="p-3 text-slate-300">{gasto.mes}</td>
-                                        <td className="p-3 text-right font-bold text-rose-400">
-                                            ${Number(gasto.monto).toLocaleString('es-CL')}
-                                        </td>
+                {/* Relación de Ingresos Extra */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                            <i className="fa-solid fa-coins"></i> Ingresos Extra (Ventas/Rifas)
+                        </h3>
+                        <span className="text-xs text-slate-300 font-medium">
+                            Total: <strong className="text-emerald-400">${totalIngresosExtra.toLocaleString('es-CL')}</strong>
+                        </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-60 overflow-y-auto">
+                        {datos.ingresos_extra && datos.ingresos_extra.length > 0 ? (
+                            <table className="w-full text-left text-xs text-slate-300">
+                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                                    <tr>
+                                        <th className="p-2">Fecha</th>
+                                        <th className="p-2">Concepto</th>
+                                        <th className="p-2 text-right">Monto</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados todavía en este año.</p>
-                    )}
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/60">
+                                    {datos.ingresos_extra.map(e => (
+                                        <tr key={e.id} className="hover:bg-slate-950/40">
+                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
+                                            <td className="p-2 font-semibold text-white">{e.titulo}</td>
+                                            <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra registrados.</p>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* SECCIÓN 3: GESTIÓN DE PAGOS Y ESTADO DE APODERADOS */}
+            {/* SECCIÓN 4: GESTIÓN DE PAGOS MENSUALES */}
             <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
-                    </h3>
-                </div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
+                </h3>
 
                 <div className="grid grid-cols-1 gap-4">
                     {datos.apoderados.map(apo => (
@@ -410,7 +571,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 </div>
                             </div>
 
-                            {/* Meses, montos abonados y botón de eliminar pago */}
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                 {datos.configuracion.meses.map(mes => {
                                     const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
@@ -479,7 +639,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-bold text-emerald-400"
                                     autoFocus
                                 />
-                                <p className="text-[10px] text-slate-500 mt-1">El sistema distribuirá automáticamente este dinero cubriendo las cuotas mensuales en orden cronológico.</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2">

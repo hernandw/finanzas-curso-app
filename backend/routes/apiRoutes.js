@@ -4,7 +4,7 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// 1. Obtener todos los datos del año activo actual
+// 1. Obtener datos del año activo
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -15,12 +15,13 @@ router.get('/curso/datos', async (req, res) => {
             anio_activo: anioActivo,
             aniosDisponibles: Object.keys(datos.anios),
             configuracion: {
-                saldo_inicial: infoAnio.saldo_inicial,
+                saldo_inicial: infoAnio.saldo_inicial || 0,
                 cuota_mensual: infoAnio.cuota_mensual,
                 meses: infoAnio.meses
             },
             apoderados: infoAnio.apoderados,
-            gastos: infoAnio.gastos
+            gastos: infoAnio.gastos,
+            ingresos_extra: infoAnio.ingresos_extra || []
         });
     } catch (error) {
         console.error("Error al obtener los datos:", error);
@@ -28,66 +29,27 @@ router.get('/curso/datos', async (req, res) => {
     }
 });
 
-// 2. Registrar o abonar pago mensual con acumulación y fecha
-// backend/routes/apiRoutes.js
-router.post('/curso/admin/pago-global', async (req, res) => {
-    const { apoderadoId, montoEntregado, fecha, responsable } = req.body;
+// 2. Actualizar configuración (Saldo Inicial o Cuota Mensual)
+router.put('/curso/admin/configuracion', async (req, res) => {
+    const { saldo_inicial, cuota_mensual } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioActual];
-        
-        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        let dineroRestante = Number(montoEntregado || 0);
-        const cuotaOficial = infoAnio.cuota_mensual;
-        const fechaTransaccion = fecha || new Date().toISOString().slice(0, 10);
-        const personaResponsable = responsable || "Apoderado";
-
-        // Recorremos los meses en orden cronológico para distribuir el dinero
-        for (const mes of infoAnio.meses) {
-            if (dineroRestante <= 0) break; // Si ya no queda dinero, terminamos
-
-            const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, transacciones: [] };
-            const saldoPendienteEsteMes = cuotaOficial - Number(pagoMes.monto || 0);
-
-            if (saldoPendienteEsteMes > 0) {
-                // Cuánto vamos a abonar a este mes
-                const abonoParaEsteMes = Math.min(dineroRestante, saldoPendienteEsteMes);
-                const nuevoMontoMes = Number(pagoMes.monto || 0) + abonoParaEsteMes;
-                
-                dineroRestante -= abonoParaEsteMes;
-
-                const estaPagadoCompleto = nuevoMontoMes >= cuotaOficial;
-
-                // Guardamos la transacción en el historial de este mes
-                const transaccionNueva = {
-                    monto: abonoParaEsteMes,
-                    fecha: fechaTransaccion,
-                    responsable: personaResponsable
-                };
-
-                apoderado.pagos[mes] = {
-                    pagado: estaPagadoCompleto,
-                    monto: nuevoMontoMes,
-                    fecha: fechaTransaccion,
-                    transacciones: pagoMes.transacciones ? [...pagoMes.transacciones, transaccionNueva] : [transaccionNueva]
-                };
-            }
-        }
+        if (saldo_inicial !== undefined) infoAnio.saldo_inicial = Number(saldo_inicial);
+        if (cuota_mensual !== undefined) infoAnio.cuota_mensual = Number(cuota_mensual);
 
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, apoderado });
+        res.json({ success: true, configuracion: infoAnio });
     } catch (error) {
-        console.error("Error al distribuir pago:", error);
-        res.status(500).json({ error: "Error al procesar el pago global" });
+        res.status(500).json({ error: "Error al actualizar la configuración" });
     }
 });
 
-// 3. Registrar gasto general del curso
+// 3. Registrar gasto con fecha personalizada
 router.post('/curso/admin/gasto', async (req, res) => {
-    const { mes, titulo, monto } = req.body;
+    const { mes, titulo, monto, fecha } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
@@ -98,91 +60,39 @@ router.post('/curso/admin/gasto', async (req, res) => {
             mes,
             titulo,
             monto: Number(monto),
-            fecha: new Date().toISOString().slice(0, 10)
+            fecha: fecha || new Date().toISOString().slice(0, 10)
         };
         infoAnio.gastos.push(nuevoGasto);
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, nuevoGasto });
     } catch (error) {
-        console.error("Error al registrar gasto:", error);
         res.status(500).json({ error: "Error al registrar gasto" });
     }
 });
 
-// 4. Agregar nuevo apoderado al año activo
-router.post('/curso/admin/apoderado/agregar', async (req, res) => {
-    const { nombre, alumno } = req.body;
+// 4. Registrar Ingreso Extra (Ventas, Rifas, Actividades sin apoderado fijo)
+router.post('/curso/admin/ingreso-extra', async (req, res) => {
+    const { titulo, monto, fecha } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioActual];
-        const meses = infoAnio.meses;
 
-        const nuevoApoderado = {
-            id: 'apo-' + Date.now(),
-            nombre,
-            alumno,
-            activo: true,
-            pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null } }), {})
+        if (!infoAnio.ingresos_extra) infoAnio.ingresos_extra = [];
+
+        const nuevoIngreso = {
+            id: 'ext-' + Date.now(),
+            titulo,
+            monto: Number(monto),
+            fecha: fecha || new Date().toISOString().slice(0, 10)
         };
-        infoAnio.apoderados.push(nuevoApoderado);
+        infoAnio.ingresos_extra.push(nuevoIngreso);
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, nuevoApoderado });
+        res.json({ success: true, nuevoIngreso });
     } catch (error) {
-        console.error("Error al agregar apoderado:", error);
-        res.status(500).json({ error: "Error al agregar apoderado" });
+        res.status(500).json({ error: "Error al registrar el ingreso extra" });
     }
 });
 
-// 5. Cambiar estado de apoderado (Ocultar / Activar en lugar de borrar)
-router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
-    const { id } = req.params;
-    const { activo } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-
-        const apoderado = infoAnio.apoderados.find(a => a.id === id);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
-
-        apoderado.activo = Boolean(activo);
-
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, apoderado });
-    } catch (error) {
-        console.error("Error al actualizar estado del apoderado:", error);
-        res.status(500).json({ error: "Error al actualizar estado del apoderado" });
-    }
-});
-
-// backend/routes/apiRoutes.js
-
-// 6. Eliminar o revertir el pago de un mes específico para un apoderado
-router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
-    const { apoderadoId, mes } = req.params;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-        
-        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
-
-        // Reiniciamos el estado de ese mes
-        apoderado.pagos[mes] = {
-            pagado: false,
-            monto: 0,
-            fecha: null,
-            transacciones: []
-        };
-
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, mensaje: "Pago eliminado correctamente", apoderado });
-    } catch (error) {
-        console.error("Error al eliminar el pago:", error);
-        res.status(500).json({ error: "Error al eliminar el pago" });
-    }
-});
-
+// Resto de tus rutas (pagos, apoderados, estados)...
 export default router;

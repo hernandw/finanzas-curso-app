@@ -13,22 +13,26 @@ export default function VistaPublica({ datos }) {
     const [busqueda, setBusqueda] = useState('');
 
     const apoderadosFiltrados = datos.apoderados.filter(a => 
-        a.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-        a.alumno.toLowerCase().includes(busqueda.toLowerCase())
+        (a.activo !== false) && (
+            a.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+            a.alumno.toLowerCase().includes(busqueda.toLowerCase())
+        )
     );
 
-    // Calcular total de gastos registrados
+    const cuotaOficial = datos.configuracion?.cuota_mensual || 15000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
 
     return (
         <div className="space-y-6">
-            {/* Cabecera limpia sin repetir tesorería */}
+            {/* Cabecera y Cuota Fija del Año */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <i className="fa-solid fa-clipboard-user text-emerald-400"></i> Estado General de Cuotas y Gastos
                     </h2>
-                    <p className="text-xs text-slate-400">Revisión de mensualidades (Marzo a Diciembre) y egresos del curso</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                        Cuota mensual fija del año: <strong className="text-emerald-400 font-semibold">${Number(cuotaOficial).toLocaleString('es-CL')}</strong>
+                    </p>
                 </div>
                 <div className="w-full sm:w-auto">
                     <input 
@@ -41,7 +45,7 @@ export default function VistaPublica({ datos }) {
                 </div>
             </div>
 
-            {/* SECCIÓN DE GASTOS GENERALES DEL CURSO */}
+            {/* SECCIÓN DE GASTOS GENERALES */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
@@ -71,7 +75,7 @@ export default function VistaPublica({ datos }) {
                 )}
             </div>
 
-            {/* CUADROS / TARJETAS DETALLADAS POR APODERADO */}
+            {/* TARJETAS DETALLADAS POR APODERADO */}
             <div className="space-y-3">
                 <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2 px-1">
                     <i className="fa-solid fa-users"></i> Estado de Pagos por Apoderado ({apoderadosFiltrados.length})
@@ -89,17 +93,25 @@ export default function VistaPublica({ datos }) {
                                         </div>
                                     </div>
 
-                                    {/* Cuadrícula de meses */}
+                                    {/* Cuadrícula de meses con soporte para abonos parciales */}
                                     <div className="grid grid-cols-2 gap-2 pt-1">
                                         {datos.configuracion.meses.map(mes => {
-                                            const estadoPago = apo.pagos[mes] || { pagado: false };
+                                            const pago = apo.pagos[mes] || { pagado: false, monto: 0 };
+                                            const montoAbonado = Number(pago.monto || 0);
+                                            const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
+                                            const esAbono = !esCompleto && (montoAbonado > 0);
+
                                             return (
                                                 <div key={mes} className="bg-slate-950 border border-slate-800/80 p-2 rounded-xl flex flex-col justify-between">
                                                     <span className="text-[11px] font-medium text-slate-400">{mes}</span>
                                                     <div className="mt-1">
-                                                        {estadoPago.pagado ? (
+                                                        {esCompleto ? (
                                                             <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[10px] font-bold">
                                                                 Pagado ✓
+                                                            </span>
+                                                        ) : esAbono ? (
+                                                            <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold" title={`Abonó $${montoAbonado.toLocaleString('es-CL')}`}>
+                                                                Abono (${montoAbonado.toLocaleString('es-CL')})
                                                             </span>
                                                         ) : (
                                                             <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[10px] font-bold">
@@ -116,7 +128,7 @@ export default function VistaPublica({ datos }) {
                         ))
                     ) : (
                         <div className="col-span-full text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
-                            No se encontraron apoderados con ese criterio de búsqueda.
+                            No se encontraron apoderados activos.
                         </div>
                     )}
                 </div>

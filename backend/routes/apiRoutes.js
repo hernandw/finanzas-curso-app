@@ -31,6 +31,7 @@ router.get('/curso/datos', async (req, res) => {
 
 // 2. Actualizar pago mensual de un apoderado
 // backend/routes/apiRoutes.js
+// backend/routes/apiRoutes.js
 router.post('/curso/admin/pago', async (req, res) => {
     const { apoderadoId, mes, pagado, monto } = req.body;
     try {
@@ -41,16 +42,22 @@ router.post('/curso/admin/pago', async (req, res) => {
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        const montoNumerico = Number(monto);
+        const montoNuevo = Number(monto || 0);
         const cuotaOficial = infoAnio.cuota_mensual;
 
-        // Determinamos si está completamente pagado o si es un abono parcial
-        const estaPagadoCompleto = Boolean(pagado) && (montoNumerico >= cuotaOficial);
+        // Recuperamos el pago actual del mes (si ya tenía un abono previo)
+        const pagoExistente = apoderado.pagos[mes] || { monto: 0, pagado: false };
+        
+        // ACUMULAR: Sumamos el monto anterior con el nuevo pago ingresado
+        const montoTotalAcumulado = Number(pagoExistente.monto || 0) + montoNuevo;
+        
+        // Verificamos si con la suma acumulada ya cubre o supera la cuota oficial
+        const estaPagadoCompleto = montoTotalAcumulado >= cuotaOficial;
 
         apoderado.pagos[mes] = {
             pagado: estaPagadoCompleto,
-            monto: montoNumerico,
-            fecha: pagado ? new Date().toISOString().slice(0, 10) : null
+            monto: montoTotalAcumulado, // <--- Aquí guardamos la suma total acumulada
+            fecha: new Date().toISOString().slice(0, 10) // <--- Guardamos la fecha actual del registro
         };
 
         await dbConfig.guardarDatos(datos);

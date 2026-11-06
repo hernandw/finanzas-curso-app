@@ -30,6 +30,7 @@ router.get('/curso/datos', async (req, res) => {
 });
 
 // 2. Actualizar pago mensual de un apoderado
+// backend/routes/apiRoutes.js
 router.post('/curso/admin/pago', async (req, res) => {
     const { apoderadoId, mes, pagado, monto } = req.body;
     try {
@@ -40,10 +41,15 @@ router.post('/curso/admin/pago', async (req, res) => {
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        // Guardamos el estado y el monto exacto (incluso si es un abono parcial)
+        const montoNumerico = Number(monto);
+        const cuotaOficial = infoAnio.cuota_mensual;
+
+        // Determinamos si está completamente pagado o si es un abono parcial
+        const estaPagadoCompleto = Boolean(pagado) && (montoNumerico >= cuotaOficial);
+
         apoderado.pagos[mes] = {
-            pagado: Boolean(pagado),
-            monto: pagado ? Number(monto) : 0, // Aquí se registra la mitad o el monto parcial entregado
+            pagado: estaPagadoCompleto,
+            monto: montoNumerico,
             fecha: pagado ? new Date().toISOString().slice(0, 10) : null
         };
 

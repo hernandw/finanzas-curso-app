@@ -41,16 +41,56 @@
           "alumno": "Sofía Pérez",
           "activo": true,
           "pagos": {
-            "Marzo": { "pagado": false, "monto": 0, "fecha": null },
-            "Abril": { "pagado": false, "monto": 0, "fecha": null },
-            "Mayo": { "pagado": false, "monto": 0, "fecha": null },
-            "Junio": { "pagado": false, "monto": 0, "fecha": null },
-            "Julio": { "pagado": false, "monto": 0, "fecha": null },
-            "Agosto": { "pagado": false, "monto": 0, "fecha": null },
-            "Septiembre": { "pagado": false, "monto": 0, "fecha": null },
-            "Octubre": { "pagado": false, "monto": 0, "fecha": null },
-            "Noviembre": { "pagado": false, "monto": 0, "fecha": null },
-            "Diciembre": { "pagado": false, "monto": 0, "fecha": null }
+            "Marzo": {
+              "pagado": true,
+              "monto": 10000,
+              "fecha": "2026-11-06"
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
           }
         }
       ],

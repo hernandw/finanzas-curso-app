@@ -1,37 +1,4 @@
 // backend/routes/apiRoutes.js
-import express from 'express';
-import { dbConfig } from '../config/db.js';
-
-const router = express.Router();
-
-// Obtener los datos del año activo actual
-router.get('/curso/datos', async (req, res) => {
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActivo = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActivo];
-
-        // Retornamos la estructura que el frontend ya conoce, incluyendo el año activo
-        res.json({
-            anio_activo: anioActivo,
-            aniosDisponibles: Object.keys(datos.anios),
-            configuracion: {
-                saldo_inicial: infoAnio.saldo_inicial,
-                cuota_mensual: infoAnio.cuota_mensual,
-                meses: infoAnio.meses
-            },
-            apoderados: infoAnio.apoderados,
-            gastos: infoAnio.gastos
-        });
-    } catch (error) {
-        console.error("Error al obtener datos:", error);
-        res.status(500).json({ error: "Error al obtener los datos" });
-    }
-});
-
-// 2. Actualizar pago mensual de un apoderado
-// backend/routes/apiRoutes.js
-// backend/routes/apiRoutes.js
 router.post('/curso/admin/pago', async (req, res) => {
     const { apoderadoId, mes, pagado, monto } = req.body;
     try {
@@ -45,19 +12,24 @@ router.post('/curso/admin/pago', async (req, res) => {
         const montoNuevo = Number(monto || 0);
         const cuotaOficial = infoAnio.cuota_mensual;
 
-        // Recuperamos el pago actual del mes (si ya tenía un abono previo)
-        const pagoExistente = apoderado.pagos[mes] || { monto: 0, pagado: false };
+        // Recuperamos el estado actual del mes
+        const pagoExistente = apo.pagos[mes] || { monto: 0, pagado: false, fechas: [] };
         
-        // ACUMULAR: Sumamos el monto anterior con el nuevo pago ingresado
+        // Sumamos el acumulado del mes
         const montoTotalAcumulado = Number(pagoExistente.monto || 0) + montoNuevo;
-        
-        // Verificamos si con la suma acumulada ya cubre o supera la cuota oficial
         const estaPagadoCompleto = montoTotalAcumulado >= cuotaOficial;
+
+        // Formatear la fecha actual (DD/MM/YYYY o YYYY-MM-DD)
+        const fechaActual = new Date().toISOString().slice(0, 10);
+        
+        // Mantenemos un registro de fechas o la última fecha de abono
+        const historialFechas = pagoExistente.fechas ? [...pagoExistente.fechas, fechaActual] : [fechaActual];
 
         apoderado.pagos[mes] = {
             pagado: estaPagadoCompleto,
-            monto: montoTotalAcumulado, // <--- Aquí guardamos la suma total acumulada
-            fecha: new Date().toISOString().slice(0, 10) // <--- Guardamos la fecha actual del registro
+            monto: montoTotalAcumulado,
+            fecha: fechaActual, // Guardamos la última fecha de modificación/pago
+            fechas: historialFechas
         };
 
         await dbConfig.guardarDatos(datos);
@@ -66,77 +38,3 @@ router.post('/curso/admin/pago', async (req, res) => {
         res.status(500).json({ error: "Error al actualizar pago" });
     }
 });
-
-// 3. Registrar gasto del curso
-router.post('/curso/admin/gasto', async (req, res) => {
-    const { mes, titulo, monto } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const nuevoGasto = {
-            id: 'gasto-' + Date.now(),
-            mes,
-            titulo,
-            monto: Number(monto),
-            fecha: new Date().toISOString().slice(0, 10)
-        };
-        datos.gastos.push(nuevoGasto);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, nuevoGasto });
-    } catch (error) {
-        res.status(500).json({ error: "Error al registrar gasto" });
-    }
-});
-
-// 4. Agregar nuevo apoderado
-router.post('/curso/admin/apoderado/agregar', async (req, res) => {
-    const { nombre, alumno } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const meses = datos.configuracion.meses;
-        const nuevoApoderado = {
-            id: 'apo-' + Date.now(),
-            nombre,
-            alumno,
-            pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null } }), {})
-        };
-        datos.apoderados.push(nuevoApoderado);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, nuevoApoderado });
-    } catch (error) {
-        res.status(500).json({ error: "Error al agregar apoderado" });
-    }
-});
-
-// 5. Editar apoderado (Ruta PUT)
-router.put('/curso/admin/apoderado/:id', async (req, res) => {
-    const { id } = req.params;
-    const { nombre, alumno } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const apoderado = datos.apoderados.find(a => a.id === id);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
-
-        if (nombre) apoderado.nombre = nombre;
-        if (alumno) apoderado.alumno = alumno;
-
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, apoderado });
-    } catch (error) {
-        res.status(500).json({ error: "Error al actualizar apoderado" });
-    }
-});
-
-// 6. Eliminar apoderado (Ruta DELETE)
-router.delete('/curso/admin/apoderado/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const datos = await dbConfig.leerDatos();
-        datos.apoderados = datos.apoderados.filter(a => a.id !== id);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: "Error al eliminar apoderado" });
-    }
-});
-
-export default router;

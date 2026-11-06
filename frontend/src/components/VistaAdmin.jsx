@@ -19,7 +19,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
 
-    // 1. Registrar o abonar pago
+    // 1. Registrar o abonar pago con fecha acumulativa
     const handleRegistrarPago = async (apoderadoId, mes, montoActual) => {
         const montoIngresado = prompt(`Ingrese el monto a pagar/abonar para ${mes}:`, cuotaOficial);
         if (montoIngresado === null) return;
@@ -197,7 +197,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO (Gasto y Apoderado) */}
+            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Registrar Gasto */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
@@ -284,7 +284,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
                 <div className="grid grid-cols-1 gap-4">
                     {datos.apoderados.map(apo => (
-                        <div key={apo.id} className={`bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 ${apo.inactive ? 'opacity-60' : ''}`}>
+                        <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
                                 <div>
                                     <h4 className="font-bold text-white text-sm">
@@ -300,10 +300,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 </button>
                             </div>
 
-                            {/* Meses y botones de pago */}
+                            {/* Meses, montos abonados y fechas */}
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                 {datos.configuracion.meses.map(mes => {
-                                    const pago = apo.pagos[mes] || { pagado: false, monto: 0 };
+                                    const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
                                     const montoAbonado = Number(pago.monto || 0);
                                     const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
 
@@ -314,6 +314,11 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                                 <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
                                                     {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
                                                 </span>
+                                                {pago.fecha && (
+                                                    <span className="text-[9px] text-slate-400 block mt-1">
+                                                        📅 {pago.fecha}
+                                                    </span>
+                                                )}
                                             </div>
                                             <button 
                                                 onClick={() => handleRegistrarPago(apo.id, mes, montoAbonado)}

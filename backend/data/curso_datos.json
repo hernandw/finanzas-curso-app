@@ -42,8 +42,8 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 10000,
+              "pagado": true,
+              "monto": 30000,
               "fecha": "2026-11-06"
             },
             "Abril": {

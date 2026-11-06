@@ -51,84 +51,127 @@ export default function VistaPublica({ datos }) {
                     <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                         <i className="fa-solid fa-receipt"></i> Gastos Registrados del Curso
                     </h3>
-                    <span className="text-xs text-slate-400 font-medium">
+                    <span className="text-xs text-slate-300 font-medium">
                         Total Gastos: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
                     </span>
                 </div>
 
-                {datos.gastos && datos.gastos.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {datos.gastos.map(gasto => (
-                            <div key={gasto.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
-                                <div>
-                                    <p className="font-semibold text-white">{gasto.titulo}</p>
-                                    <p className="text-[10px] text-slate-400">Mes: {gasto.mes} • {gasto.fecha}</p>
-                                </div>
-                                <span className="font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg">
-                                    ${Number(gasto.monto).toLocaleString('es-CL')}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-xs text-slate-500 text-center py-4">No hay gastos generales registrados todavía.</p>
-                )}
+                <div className="overflow-x-auto">
+                    {datos.gastos && datos.gastos.length > 0 ? (
+                        <table className="w-full text-left text-xs text-slate-300">
+                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th className="p-3">Fecha</th>
+                                    <th className="p-3">Descripción</th>
+                                    <th className="p-3">Mes Asociado</th>
+                                    <th className="p-3 text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                                {datos.gastos.map(gasto => (
+                                    <tr key={gasto.id} className="hover:bg-slate-950/40">
+                                        <td className="p-3 text-slate-400 font-mono text-[11px]">{gasto.fecha || 'N/A'}</td>
+                                        <td className="p-3 font-semibold text-white">{gasto.titulo}</td>
+                                        <td className="p-3 text-slate-300">{gasto.mes}</td>
+                                        <td className="p-3 text-right font-bold text-rose-400">
+                                            ${Number(gasto.monto).toLocaleString('es-CL')}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p className="text-xs text-slate-500 text-center py-4">No hay gastos generales registrados todavía.</p>
+                    )}
+                </div>
             </div>
 
-            {/* TARJETAS DETALLADAS POR APODERADO */}
-            <div className="space-y-3">
+            {/* DETALLE DE PAGOS POR APODERADO EN FORMATO DE TABLA */}
+            <div className="space-y-4">
                 <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2 px-1">
-                    <i className="fa-solid fa-users"></i> Estado de Pagos por Apoderado ({apoderadosFiltrados.length})
+                    <i className="fa-solid fa-users"></i> Relación de Pagos y Abonos por Alumno ({apoderadosFiltrados.length})
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 gap-5">
                     {apoderadosFiltrados.length > 0 ? (
-                        apoderadosFiltrados.map(apo => (
-                            <div key={apo.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 hover:border-slate-700 transition flex flex-col justify-between">
-                                <div>
-                                    <div className="flex justify-between items-start border-b border-slate-800 pb-3 mb-3">
+                        apoderadosFiltrados.map(apo => {
+                            // Recopilar todos los meses que tienen algún pago o abono registrado
+                            const mesesConPagos = datos.configuracion.meses.filter(mes => {
+                                const p = apo.pagos[mes];
+                                return p && Number(p.monto) > 0;
+                            });
+
+                            let totalPagadoApo = 0;
+                            datos.configuracion.meses.forEach(mes => {
+                                const p = apo.pagos[mes];
+                                if (p && p.monto) totalPagadoApo += Number(p.monto);
+                            });
+
+                            return (
+                                <div key={apo.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
                                         <div>
                                             <h3 className="font-bold text-white text-sm">{apo.nombre}</h3>
                                             <p className="text-xs text-emerald-400 font-semibold mt-0.5">Alumno: {apo.alumno}</p>
                                         </div>
+                                        <div className="text-xs text-slate-300 font-medium">
+                                            Total Abonado: <strong className="text-emerald-400">${totalPagadoApo.toLocaleString('es-CL')}</strong>
+                                        </div>
                                     </div>
 
-                                    {/* Cuadrícula de meses con soporte para abonos parciales */}
-                                    <div className="grid grid-cols-2 gap-2 pt-1">
-                                        {datos.configuracion.meses.map(mes => {
-                                            const pago = apo.pagos[mes] || { pagado: false, monto: 0 };
-                                            const montoAbonado = Number(pago.monto || 0);
-                                            const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
-                                            const esAbono = !esCompleto && (montoAbonado > 0);
+                                    {/* Tabla de pagos tipo relación de gastos */}
+                                    <div className="overflow-x-auto">
+                                        {mesesConPagos.length > 0 ? (
+                                            <table className="w-full text-left text-xs text-slate-300">
+                                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                                                    <tr>
+                                                        <th className="p-3">Fecha de Pago</th>
+                                                        <th className="p-3">Mes Correspondiente</th>
+                                                        <th className="p-3">Estado Cuota</th>
+                                                        <th className="p-3 text-right">Monto Abonado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800/60">
+                                                    {mesesConPagos.map(mes => {
+                                                        const p = apo.pagos[mes];
+                                                        const montoAbonado = Number(p.monto || 0);
+                                                        const esCompleto = p.pagado && (montoAbonado >= cuotaOficial);
 
-                                            return (
-                                                <div key={mes} className="bg-slate-950 border border-slate-800/80 p-2 rounded-xl flex flex-col justify-between">
-                                                    <span className="text-[11px] font-medium text-slate-400">{mes}</span>
-                                                    <div className="mt-1">
-                                                        {esCompleto ? (
-                                                            <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[10px] font-bold">
-                                                                Pagado ✓
-                                                            </span>
-                                                        ) : esAbono ? (
-                                                            <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold" title={`Abonó $${montoAbonado.toLocaleString('es-CL')}`}>
-                                                                Abono (${montoAbonado.toLocaleString('es-CL')})
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[10px] font-bold">
-                                                                Pendiente ✗
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                                        return (
+                                                            <tr key={mes} className="hover:bg-slate-950/40">
+                                                                <td className="p-3 text-slate-400 font-mono text-[11px]">
+                                                                    {p.fecha || 'Sin fecha'}
+                                                                </td>
+                                                                <td className="p-3 font-semibold text-white">{mes}</td>
+                                                                <td className="p-3">
+                                                                    {esCompleto ? (
+                                                                        <span className="inline-block bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                                            Pagado Completo ✓
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-block bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
+                                                                            Abono Parcial
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-3 text-right font-bold text-emerald-400">
+                                                                    ${montoAbonado.toLocaleString('es-CL')}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        ) : (
+                                            <p className="text-xs text-slate-500 text-center py-3">Aún no registra pagos o abonos para este periodo.</p>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <div className="col-span-full text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
-                            No se encontraron apoderados activos.
+                            No se encontraron apoderados activos con ese criterio de búsqueda.
                         </div>
                     )}
                 </div>

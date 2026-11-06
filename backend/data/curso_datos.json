@@ -200,6 +200,13 @@
           "titulo": "Regalo de la Miss",
           "monto": 50000,
           "fecha": "2026-11-06"
+        },
+        {
+          "id": "gasto-1794000817547",
+          "mes": "Abril",
+          "titulo": "Abono Fiesta Antay",
+          "monto": 200000,
+          "fecha": "2026-11-06"
         }
       ]
     }

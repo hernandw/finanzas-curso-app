@@ -47,19 +47,40 @@
               "fecha": "2026-11-06"
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Juan Pérez"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Juan Pérez"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Juan Pérez"
+                }
+              ]
             },
             "Julio": {
               "pagado": false,

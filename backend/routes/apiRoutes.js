@@ -156,4 +156,33 @@ router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
     }
 });
 
+// backend/routes/apiRoutes.js
+
+// 6. Eliminar o revertir el pago de un mes específico para un apoderado
+router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
+    const { apoderadoId, mes } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioActual = datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActual];
+        
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        // Reiniciamos el estado de ese mes
+        apoderado.pagos[mes] = {
+            pagado: false,
+            monto: 0,
+            fecha: null,
+            transacciones: []
+        };
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, mensaje: "Pago eliminado correctamente", apoderado });
+    } catch (error) {
+        console.error("Error al eliminar el pago:", error);
+        res.status(500).json({ error: "Error al eliminar el pago" });
+    }
+});
+
 export default router;

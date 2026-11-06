@@ -66,7 +66,27 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // 2. Agregar nuevo apoderado
+    // 2. Eliminar / Revertir pago de un mes
+    const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
+        if (montoActual <= 0) return;
+        if (confirm(`¿Estás seguro de eliminar el registro de pago de ${mes}?`)) {
+            try {
+                const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    onActualizar();
+                } else {
+                    alert("Error al eliminar el pago.");
+                }
+            } catch (error) {
+                alert("Error de conexión con el servidor.");
+            }
+        }
+    };
+
+    // 3. Agregar nuevo apoderado
     const handleAgregarApoderado = async (e) => {
         e.preventDefault();
         if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
@@ -93,7 +113,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // 3. Registrar gasto general
+    // 4. Registrar gasto general
     const handleRegistrarGasto = async (e) => {
         e.preventDefault();
         if (!gastoTitulo.trim() || !gastoMonto) {
@@ -120,7 +140,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // 4. Cambiar estado (Ocultar / Activar)
+    // 5. Cambiar estado (Ocultar / Activar)
     const handleCambiarEstado = async (id, nombre, activoActual) => {
         const accion = activoActual ? "ocultar" : "activar";
         if (confirm(`¿Estás seguro de ${accion} a ${nombre}? Se mantendrá su historial.`)) {
@@ -292,9 +312,11 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
             {/* SECCIÓN 3: GESTIÓN DE PAGOS Y ESTADO DE APODERADOS */}
             <div className="space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
-                </h3>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
+                    </h3>
+                </div>
 
                 <div className="grid grid-cols-1 gap-4">
                     {datos.apoderados.map(apo => (
@@ -322,7 +344,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 </div>
                             </div>
 
-                            {/* Meses y sus montos abonados */}
+                            {/* Meses, montos abonados y botón de eliminar pago */}
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                 {datos.configuracion.meses.map(mes => {
                                     const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
@@ -330,9 +352,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
 
                                     return (
-                                        <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-1">
+                                        <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-2">
                                             <div>
-                                                <span className="text-xs font-semibold text-slate-300 block">{mes}</span>
+                                                <div className="flex justify-between items-start">
+                                                    <span className="text-xs font-semibold text-slate-300">{mes}</span>
+                                                    {montoAbonado > 0 && (
+                                                        <button 
+                                                            onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)}
+                                                            className="text-slate-500 hover:text-rose-400 transition text-xs"
+                                                            title="Eliminar este pago o abono"
+                                                        >
+                                                            <i className="fa-solid fa-trash-can"></i>
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
                                                     {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
                                                 </span>

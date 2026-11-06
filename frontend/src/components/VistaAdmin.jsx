@@ -25,16 +25,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [responsablePago, setResponsablePago] = useState('');
 
     // Estado para Notificaciones Temporales (Toast)
-    const [notificacion, setNotificacion] = useState(null); // { texto: '...', tipo: 'success' | 'error' }
+    const [notificacion, setNotificacion] = useState(null);
 
     const mostrarAviso = (texto, tipo = 'success') => {
         setNotificacion({ texto, tipo });
         setTimeout(() => {
             setNotificacion(null);
-        }, 3500); // Desaparece a los 3.5 segundos
+        }, 3500);
     };
 
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
+    const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
 
     // Abrir modal de pago
     const abrirModalPago = (apo) => {
@@ -77,24 +78,22 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // Eliminar / Revertir pago de un mes
+    // Eliminar / Revertir pago de un mes (sin confirmaciones molestas)
     const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
         if (montoActual <= 0) return;
-        if (confirm(`¿Estás seguro de eliminar el registro de pago de ${mes}?`)) {
-            try {
-                const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, {
-                    method: 'DELETE'
-                });
+        try {
+            const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, {
+                method: 'DELETE'
+            });
 
-                if (res.ok) {
-                    mostrarAviso(`Se eliminó el registro de ${mes}`);
-                    onActualizar();
-                } else {
-                    mostrarAviso("Error al eliminar el pago.", "error");
-                }
-            } catch (error) {
-                mostrarAviso("Error de conexión con el servidor.", "error");
+            if (res.ok) {
+                mostrarAviso(`Se eliminó el registro de ${mes}`);
+                onActualizar();
+            } else {
+                mostrarAviso("Error al eliminar el pago.", "error");
             }
+        } catch (error) {
+            mostrarAviso("Error de conexión con el servidor.", "error");
         }
     };
 
@@ -154,25 +153,24 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // Cambiar estado (Ocultar / Activar)
+    // Cambiar estado (Ocultar / Activar) DIRECTAMENTE sin ventanas emergentes
     const handleCambiarEstado = async (id, nombre, activoActual) => {
-        const accion = activoActual ? "ocultar" : "activar";
-        if (confirm(`¿Estás seguro de ${accion} a ${nombre}? Se mantendrá su historial.`)) {
-            try {
-                const res = await fetch(`/api/curso/admin/apoderado/estado/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ activo: !activoActual })
-                });
-                if (res.ok) {
-                    mostrarAviso(`Apoderado ${accion}do exitosamente.`);
-                    onActualizar();
-                } else {
-                    mostrarAviso("Error al cambiar el estado.", "error");
-                }
-            } catch (error) {
-                mostrarAviso("Error de conexión.", "error");
+        const nuevoEstado = !activoActual;
+        const accion = nuevoEstado ? "activado" : "ocultado";
+        try {
+            const res = await fetch(`/api/curso/admin/apoderado/estado/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activo: nuevoEstado })
+            });
+            if (res.ok) {
+                mostrarAviso(`Apoderado ${accion} exitosamente.`);
+                onActualizar();
+            } else {
+                mostrarAviso("Error al cambiar el estado.", "error");
             }
+        } catch (error) {
+            mostrarAviso("Error de conexión.", "error");
         }
     };
 
@@ -258,7 +256,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO */}
+            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO Y RESUMEN DE GASTOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Registrar Gasto */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
@@ -334,6 +332,47 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             Agregar Apoderado
                         </button>
                     </form>
+                </div>
+            </div>
+
+            {/* SECCIÓN NUEVA: RESUMEN DE GASTOS REGISTRADOS EN ADMIN */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                        <i className="fa-solid fa-list-check"></i> Relación de Gastos del Curso
+                    </h3>
+                    <span className="text-xs text-slate-300 font-medium">
+                        Total Gastos: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
+                    </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {datos.gastos && datos.gastos.length > 0 ? (
+                        <table className="w-full text-left text-xs text-slate-300">
+                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                                <tr>
+                                    <th className="p-3">Fecha</th>
+                                    <th className="p-3">Descripción</th>
+                                    <th className="p-3">Mes Asociado</th>
+                                    <th className="p-3 text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                                {datos.gastos.map(gasto => (
+                                    <tr key={gasto.id} className="hover:bg-slate-950/40">
+                                        <td className="p-3 text-slate-400 font-mono text-[11px]">{gasto.fecha || 'N/A'}</td>
+                                        <td className="p-3 font-semibold text-white">{gasto.titulo}</td>
+                                        <td className="p-3 text-slate-300">{gasto.mes}</td>
+                                        <td className="p-3 text-right font-bold text-rose-400">
+                                            ${Number(gasto.monto).toLocaleString('es-CL')}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados todavía en este año.</p>
+                    )}
                 </div>
             </div>
 

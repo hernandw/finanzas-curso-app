@@ -39,7 +39,7 @@
           "id": "apo-1",
           "nombre": "Juan Pérez",
           "alumno": "Sofía Pérez",
-          "activo": true,
+          "activo": false,
           "pagos": {
             "Marzo": {
               "pagado": false,
@@ -98,9 +98,110 @@
               "fecha": null
             }
           }
+        },
+        {
+          "id": "apo-1794000458080",
+          "nombre": "Yessenia Ortunio",
+          "alumno": "Fabiana Hernández",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Williams Hernández"
+                }
+              ]
+            },
+            "Abril": {
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Williams Hernández"
+                }
+              ]
+            },
+            "Mayo": {
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Williams Hernández"
+                }
+              ]
+            },
+            "Junio": {
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Williams Hernández"
+                }
+              ]
+            },
+            "Julio": {
+              "pagado": true,
+              "monto": 15000,
+              "fecha": "2026-11-06",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-06",
+                  "responsable": "Williams Hernández"
+                }
+              ]
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
         }
       ],
-      "gastos": []
+      "gastos": [
+        {
+          "id": "gasto-1794000565281",
+          "mes": "Marzo",
+          "titulo": "Regalo de la Miss",
+          "monto": 50000,
+          "fecha": "2026-11-06"
+        }
+      ]
     }
   }
 }

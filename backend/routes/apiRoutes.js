@@ -4,7 +4,7 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// 1. Obtener datos con recálculo automático y redistribución de cuotas según la tarifa oficial vigente
+// 1. Obtener datos con recálculo automático y redistribución de cuotas
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -24,7 +24,7 @@ router.get('/curso/datos', async (req, res) => {
         const infoAnio = datos.anios[anioActivo];
         const cuotaOficial = Number(infoAnio.cuota_mensual || 15000);
 
-        // REDISTRIBUCIÓN AUTOMÁTICA (REBALANCEO DE CUOTAS) AL CAMBIAR LA TARIFA
+        // Redistribución automática de cuotas (rebalanceo)
         (infoAnio.apoderados || []).forEach(apo => {
             let dineroTotalAcumuladoApo = 0;
             
@@ -79,7 +79,7 @@ router.get('/curso/datos', async (req, res) => {
     }
 });
 
-// 2. Cambiar de año activo o crear uno nuevo arrastrando saldos y estudiantes activos
+// 2. Cambiar de año activo o crear uno nuevo
 router.post('/curso/admin/cambiar-anio', async (req, res) => {
     const { nuevoAnio, cuotaMensual } = req.body;
     try {
@@ -130,7 +130,7 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
     }
 });
 
-// 3. Actualizar configuración (Saldo Inicial o Cuota Mensual)
+// 3. Actualizar configuración
 router.put('/curso/admin/configuracion', async (req, res) => {
     const { saldo_inicial, cuota_mensual } = req.body;
     try {
@@ -149,7 +149,7 @@ router.put('/curso/admin/configuracion', async (req, res) => {
     }
 });
 
-// 4. Registrar pago global con distribución automática secuencial
+// 4. Registrar pago global con distribución automática
 router.post('/curso/admin/pago-global', async (req, res) => {
     const { apoderadoId, montoEntregado, fecha, responsable } = req.body;
     try {
@@ -201,7 +201,7 @@ router.post('/curso/admin/pago-global', async (req, res) => {
     }
 });
 
-// 5. Eliminar o revertir el pago de un mes específico
+// 5. Eliminar pago de un mes
 router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     const { apoderadoId, mes } = req.params;
     try {
@@ -227,7 +227,7 @@ router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     }
 });
 
-// 6. Registrar gasto con fecha personalizada
+// 6. Registrar gasto
 router.post('/curso/admin/gasto', async (req, res) => {
     const { mes, titulo, monto, fecha } = req.body;
     try {
@@ -248,6 +248,23 @@ router.post('/curso/admin/gasto', async (req, res) => {
     } catch (error) {
         console.error("Error al registrar gasto:", error);
         res.status(500).json({ error: "Error al registrar gasto" });
+    }
+});
+
+// 6.1 Eliminar Gasto
+router.delete('/curso/admin/gasto/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioActual = datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActual];
+
+        infoAnio.gastos = (infoAnio.gastos || []).filter(g => g.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error al eliminar gasto:", error);
+        res.status(500).json({ error: "Error al eliminar gasto" });
     }
 });
 
@@ -276,7 +293,24 @@ router.post('/curso/admin/ingreso-extra', async (req, res) => {
     }
 });
 
-// 8. Agregar nuevo apoderado al año activo
+// 7.1 Eliminar Ingreso Extra
+router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioActual = datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActual];
+
+        infoAnio.ingresos_extra = (infoAnio.ingresos_extra || []).filter(e => e.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error al eliminar ingreso extra:", error);
+        res.status(500).json({ error: "Error al eliminar ingreso extra" });
+    }
+});
+
+// 8. Agregar apoderado
 router.post('/curso/admin/apoderado/agregar', async (req, res) => {
     const { nombre, alumno } = req.body;
     try {
@@ -301,7 +335,7 @@ router.post('/curso/admin/apoderado/agregar', async (req, res) => {
     }
 });
 
-// 9. Cambiar estado de apoderado (Ocultar / Activar)
+// 9. Cambiar estado apoderado
 router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
     const { id } = req.params;
     const { activo } = req.body;

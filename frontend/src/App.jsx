@@ -1,164 +1,80 @@
+
+
 // src/App.jsx
-/* import React, { useState, useEffect } from 'react';
-import VistaPublica from './components/VistaPublica';
+import React, { useState, useEffect } from 'react';
 import VistaAdmin from './components/VistaAdmin';
+import VistaPublica from './components/VistaPublica';
 
 export default function App() {
     const [datos, setDatos] = useState(null);
-    const [vista, setVista] = useState('publico'); // 'publico' o 'admin'
+    const [vistaActual, setVistaActual] = useState('publica'); // 'publica' o 'admin'
 
-    const cargarDatos = async () => {
+    // Función para obtener los datos frescos desde el backend
+    const obtenerDatosDelBackend = async () => {
         try {
             const res = await fetch('/api/curso/datos');
             const json = await res.json();
             setDatos(json);
-        } catch (e) {
-            console.error("Error al cargar los datos del curso:", e);
+        } catch (error) {
+            console.error("Error al conectar con el backend:", error);
         }
     };
 
     useEffect(() => {
-        cargarDatos();
+        obtenerDatosDelBackend();
     }, []);
 
+    // Pantalla de carga mientras responde el servidor
     if (!datos) {
         return (
-            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center font-sans">
-                <div className="text-center space-y-2">
-                    <i className="fa-solid fa-spinner fa-spin text-emerald-400 text-2xl"></i>
-                    <p className="text-sm text-slate-400">Cargando tesorería del curso...</p>
+            <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-400 text-sm">
+                <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-spinner animate-spin text-emerald-400"></i>
+                    Cargando tesorería del curso...
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
-            <header className="bg-slate-900 border-b border-slate-800 py-4 px-6 flex justify-between items-center shadow-md">
-                <div className="flex items-center gap-3">
-                    <div className="bg-emerald-500 text-slate-950 p-2 rounded-xl font-bold text-sm">
-                        <i className="fa-solid fa-graduation-cap"></i>
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 font-sans">
+            <div className="max-w-6xl mx-auto space-y-6">
+                
+                {/* Cabecera y Navegación entre Vistas */}
+                <header className="flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl gap-4">
+                    <div>
+                        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                            <i className="fa-solid fa-wallet text-emerald-400"></i> Tesorería Curso
+                        </h1>
+                        <p className="text-xs text-slate-400">Control de finanzas, apoderados y mensualidades</p>
                     </div>
-                    <h1 className="text-sm font-bold text-white">Tesorería Curso 2026</h1>
-                </div>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => setVista('publico')} 
-                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${vista === 'publico' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
-                        Vista Pública
-                    </button>
-                    {vista === 'publico' ? (
+
+                    <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
                         <button 
-                            onClick={() => {
-                                const clave = prompt("Ingresa la clave de tesorero:");
-                                if (clave === 'admin123') { // Puedes cambiar tu clave aquí
-                                    setVista('admin');
-                                } else if (clave !== null) {
-                                    alert("Clave incorrecta");
-                                }
-                            }} 
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
-                            Acceso Tesorero 🔒
+                            onClick={() => setVistaActual('publica')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${vistaActual === 'publica' ? 'bg-emerald-500 text-slate-950 font-semibold' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <i className="fa-solid fa-eye mr-1"></i> Vista Pública
                         </button>
-                    ) : (
                         <button 
-                            onClick={() => setVista('publico')} 
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                            Salir de Admin
+                            onClick={() => setVistaActual('admin')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${vistaActual === 'admin' ? 'bg-emerald-500 text-slate-950 font-semibold' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <i className="fa-solid fa-lock mr-1"></i> Administración
                         </button>
-                    )}
-                </div>
-            </header>
-
-            <main className="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6">
-                {vista === 'publico' ? (
-                    <VistaPublica datos={datos} />
-                ) : (
-                    <VistaAdmin datos={datos} onActualizar={cargarDatos} />
-                )}
-            </main>
-        </div>
-    );
-} */
-
-    // src/App.jsx
-import React, { useState, useEffect } from 'react';
-import VistaPublica from './components/VistaPublica';
-import VistaAdmin from './components/VistaAdmin';
-
-export default function App() {
-    // Datos iniciales de prueba para los 18 apoderados y gastos
-    const meses = ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const apoderadosMock = Array.from({ length: 18 }, (_, i) => ({
-        id: `apo-${i + 1}`,
-        nombre: `Apoderado ${i + 1}`,
-        alumno: `Alumno ${i + 1}`,
-        pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: i % 2 === 0, monto: 15000, fecha: '2026-03-01' } }), {})
-    }));
-
-    const [datos, setDatos] = useState({
-        configuracion: { cuota_mensual: 15000, meses },
-        apoderados: apoderadosMock,
-        gastos: [
-            { id: 'g1', mes: 'Marzo', titulo: 'Compra de materiales de aseo', monto: 45000, fecha: '2026-03-05' }
-        ]
-    });
-    
-    const [vista, setVista] = useState('publico');
-
-    // Si prefieres usar la API real cuando el backend esté encendido, puedes dejar el fetch condicional:
-    useEffect(() => {
-        fetch('/api/curso/datos')
-            .then(res => res.json())
-            .then(json => { if (json && json.apoderados) setDatos(json); })
-            .catch(e => console.log("Usando datos locales de respaldo por defecto."));
-    }, []);
-
-    return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased">
-            <header className="bg-slate-900 border-b border-slate-800 py-4 px-6 flex justify-between items-center shadow-md">
-                <div className="flex items-center gap-3">
-                    <div className="bg-emerald-500 text-slate-950 p-2 rounded-xl font-bold text-sm">
-                        <i className="fa-solid fa-graduation-cap"></i>
                     </div>
-                    <h1 className="text-sm font-bold text-white">Tesorería Curso 2026</h1>
-                </div>
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => setVista('publico')} 
-                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${vista === 'publico' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>
-                        Vista Pública
-                    </button>
-                    {vista === 'publico' ? (
-                        <button 
-                            onClick={() => {
-                                const clave = prompt("Ingresa la clave de tesorero:");
-                                if (clave === 'admin123') {
-                                    setVista('admin');
-                                } else if (clave !== null) {
-                                    alert("Clave incorrecta");
-                                }
-                            }} 
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
-                            Acceso Tesorero 🔒
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={() => setVista('publico')} 
-                            className="px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                            Salir de Admin
-                        </button>
-                    )}
-                </div>
-            </header>
+                </header>
 
-            <main className="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6">
-                {vista === 'publico' ? (
-                    <VistaPublica datos={datos} />
-                ) : (
-                    <VistaAdmin datos={datos} onActualizar={() => {}} />
-                )}
-            </main>
+                {/* Renderizado condicional de las vistas principales */}
+                <main>
+                    {vistaActual === 'publica' ? (
+                        <VistaPublica datos={datos} />
+                    ) : (
+                        <VistaAdmin datos={datos} onActualizar={obtenerDatosDelBackend} />
+                    )}
+                </main>
+
+            </div>
         </div>
     );
 }

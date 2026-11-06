@@ -1,7 +1,15 @@
-// frontend/src/components/VistaPublica.jsx
+// src/components/VistaPublica.jsx
 import React, { useState } from 'react';
 
 export default function VistaPublica({ datos }) {
+    if (!datos || !datos.apoderados) {
+        return (
+            <div className="flex items-center justify-center p-8 text-slate-400 text-xs">
+                <i className="fa-solid fa-spinner animate-spin mr-2"></i> Cargando información del curso...
+            </div>
+        );
+    }
+
     const [busqueda, setBusqueda] = useState('');
 
     const apoderadosFiltrados = datos.apoderados.filter(a => 
@@ -9,74 +17,107 @@ export default function VistaPublica({ datos }) {
         a.alumno.toLowerCase().includes(busqueda.toLowerCase())
     );
 
+    // Calcular total de gastos registrados
+    const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
+
     return (
         <div className="space-y-6">
-            {/* Tarjeta de Apoderados (Marzo a Diciembre) */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+            {/* Cabecera limpia sin repetir tesorería */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-users text-emerald-400"></i> Estado de Cuentas - Apoderados (18 en total)
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <i className="fa-solid fa-clipboard-user text-emerald-400"></i> Estado General de Cuotas y Gastos
                     </h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Busca tu nombre o el de tu alumno para revisar los pagos mes a mes (Marzo a Diciembre).</p>
+                    <p className="text-xs text-slate-400">Revisión de mensualidades (Marzo a Diciembre) y egresos del curso</p>
                 </div>
-
-                <input 
-                    type="text" 
-                    placeholder="🔍 Buscar por nombre de apoderado o alumno..." 
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                />
-
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                    {apoderadosFiltrados.length === 0 ? (
-                        <p className="text-xs text-slate-500 italic text-center py-4">No se encontraron apoderados con ese nombre.</p>
-                    ) : (
-                        apoderadosFiltrados.map(apo => (
-                            <div key={apo.id} className="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <h3 className="font-semibold text-white text-sm">{apo.nombre}</h3>
-                                        <span className="text-xs text-slate-400">Alumno: <strong className="text-slate-300">{apo.alumno}</strong></span>
-                                    </div>
-                                    <span className="text-[10px] bg-slate-900 text-emerald-400 px-2 py-1 rounded-lg border border-slate-800 font-medium">
-                                        Cuota: ${datos.configuracion.cuota_mensual.toLocaleString()}
-                                    </span>
-                                </div>
-                                
-                                {/* Cuadrícula de Marzo a Diciembre */}
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                                    {Object.entries(apo.pagos).map(([mes, info]) => (
-                                        <div key={mes} className={`p-2 rounded-xl border text-center text-xs transition ${info.pagado ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-900/60 border-slate-800 text-slate-500'}`}>
-                                            <span className="font-bold block text-[11px] text-slate-300">{mes}</span>
-                                            <span className="text-[10px] font-medium">{info.pagado ? `✓ Pagado` : '• Pendiente'}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))
-                    )}
+                <div className="w-full sm:w-auto">
+                    <input 
+                        type="text"
+                        placeholder="Buscar por apoderado o alumno..."
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        className="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition shadow-inner"
+                    />
                 </div>
             </div>
 
-            {/* Gastos Generales del Curso (Modo Público) */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-3">
-                <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-receipt text-emerald-400"></i> Gastos Generales del Curso
-                </h2>
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {datos.gastos.length === 0 ? (
-                        <p className="text-xs text-slate-500 italic text-center py-3">No hay gastos registrados todavía en el curso.</p>
-                    ) : (
-                        datos.gastos.map(g => (
-                            <div key={g.id} className="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
+            {/* SECCIÓN DE GASTOS GENERALES DEL CURSO */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                        <i className="fa-solid fa-receipt"></i> Gastos Registrados del Curso
+                    </h3>
+                    <span className="text-xs text-slate-400 font-medium">
+                        Total Gastos: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong>
+                    </span>
+                </div>
+
+                {datos.gastos && datos.gastos.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {datos.gastos.map(gasto => (
+                            <div key={gasto.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between items-center text-xs">
                                 <div>
-                                    <span className="font-semibold text-white block">{g.titulo}</span>
-                                    <span className="text-[10px] text-slate-400">Mes asignado: <strong className="text-slate-300">{g.mes}</strong> | Fecha: {g.fecha}</span>
+                                    <p className="font-semibold text-white">{gasto.titulo}</p>
+                                    <p className="text-[10px] text-slate-400">Mes: {gasto.mes} • {gasto.fecha}</p>
                                 </div>
-                                <span className="font-bold text-rose-400 text-sm">-$${g.monto.toLocaleString()}</span>
+                                <span className="font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-lg">
+                                    ${Number(gasto.monto).toLocaleString('es-CL')}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-xs text-slate-500 text-center py-4">No hay gastos generales registrados todavía.</p>
+                )}
+            </div>
+
+            {/* CUADROS / TARJETAS DETALLADAS POR APODERADO */}
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2 px-1">
+                    <i className="fa-solid fa-users"></i> Estado de Pagos por Apoderado ({apoderadosFiltrados.length})
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {apoderadosFiltrados.length > 0 ? (
+                        apoderadosFiltrados.map(apo => (
+                            <div key={apo.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 hover:border-slate-700 transition flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start border-b border-slate-800 pb-3 mb-3">
+                                        <div>
+                                            <h3 className="font-bold text-white text-sm">{apo.nombre}</h3>
+                                            <p className="text-xs text-emerald-400 font-semibold mt-0.5">Alumno: {apo.alumno}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Cuadrícula de meses */}
+                                    <div className="grid grid-cols-2 gap-2 pt-1">
+                                        {datos.configuracion.meses.map(mes => {
+                                            const estadoPago = apo.pagos[mes] || { pagado: false };
+                                            return (
+                                                <div key={mes} className="bg-slate-950 border border-slate-800/80 p-2 rounded-xl flex flex-col justify-between">
+                                                    <span className="text-[11px] font-medium text-slate-400">{mes}</span>
+                                                    <div className="mt-1">
+                                                        {estadoPago.pagado ? (
+                                                            <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[10px] font-bold">
+                                                                Pagado ✓
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[10px] font-bold">
+                                                                Pendiente ✗
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                         ))
+                    ) : (
+                        <div className="col-span-full text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
+                            No se encontraron apoderados con ese criterio de búsqueda.
+                        </div>
                     )}
                 </div>
             </div>

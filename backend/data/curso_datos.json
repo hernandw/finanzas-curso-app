@@ -1,0 +1,60 @@
+{
+  "anio_activo": "2026",
+  "anios": {
+    "2025": {
+      "saldo_inicial": 440772,
+      "cuota_mensual": 15000,
+      "meses": [
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre"
+      ],
+      "apoderados": [],
+      "gastos": []
+    },
+    "2026": {
+      "saldo_inicial": 714474,
+      "cuota_mensual": 15000,
+      "meses": [
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre"
+      ],
+      "apoderados": [
+        {
+          "id": "apo-1",
+          "nombre": "Juan Pérez",
+          "alumno": "Sofía Pérez",
+          "activo": true,
+          "pagos": {
+            "Marzo": { "pagado": false, "monto": 0, "fecha": null },
+            "Abril": { "pagado": false, "monto": 0, "fecha": null },
+            "Mayo": { "pagado": false, "monto": 0, "fecha": null },
+            "Junio": { "pagado": false, "monto": 0, "fecha": null },
+            "Julio": { "pagado": false, "monto": 0, "fecha": null },
+            "Agosto": { "pagado": false, "monto": 0, "fecha": null },
+            "Septiembre": { "pagado": false, "monto": 0, "fecha": null },
+            "Octubre": { "pagado": false, "monto": 0, "fecha": null },
+            "Noviembre": { "pagado": false, "monto": 0, "fecha": null },
+            "Diciembre": { "pagado": false, "monto": 0, "fecha": null }
+          }
+        }
+      ],
+      "gastos": []
+    }
+  }
+}

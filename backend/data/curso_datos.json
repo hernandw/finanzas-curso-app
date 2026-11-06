@@ -216,7 +216,11 @@
           "fecha": "2026-11-06"
         }
       ],
-      "ingresos_extra": []
+      "ingresos_extra": [],
+      "nombre_curso": "8° Básico B",
+      "profesor": "Aylin Chong",
+      "presidente": "Ingrid Brito",
+      "tesorero": "Natalya Zakharova"
     },
     "2027": {
       "saldo_inicial": 589474,

@@ -99,7 +99,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         let currentY = 34;
 
-        // 1. Relación de Ingresos y Egresos con Fecha, Descripción y Saldo
+        // 1. Relación de Ingresos y Egresos
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);

@@ -82,7 +82,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF con diseño optimizado, separación, tarjetas de resumen y colores dinámicos
+    // Exportar a PDF con desglose claro de Ingresos, Egresos y Saldo en Caja
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
@@ -97,12 +97,16 @@ export default function VistaAdmin({ datos, onActualizar }) {
         doc.setTextColor(100, 116, 139);
         doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
 
-        let currentY = 32; // Espacio claro entre el encabezado y las tablas
+        let currentY = 32;
 
-        // --- TARJETAS / TABLAS DE RESUMEN (SALDO INICIAL Y SALDO CAJA ACTUAL) ---
+        // --- RESUMEN FINANCIERO (SALDO INICIAL, INGRESOS, EGRESOS Y SALDO CAJA) ---
+        const totalIngresosGral = totalCuotasRecaudadas + totalIngresosExtra;
+        
         const resumenCajaData = [
-            ['Saldo Inicial', `$${saldoInicial.toLocaleString('es-CL')}`],
-            ['Saldo Caja Actual', `$${saldoRealCaja.toLocaleString('es-CL')}`]
+            ['Saldo Inicial (Año Anterior)', `$${saldoInicial.toLocaleString('es-CL')}`],
+            ['(+) Total Ingresos (Cuotas + Extras)', `+$${totalIngresosGral.toLocaleString('es-CL')}`],
+            ['(-) Total Egresos (Gastos)', `-$${totalGastos.toLocaleString('es-CL')}`],
+            ['(=) Saldo Real en Caja', `$${saldoRealCaja.toLocaleString('es-CL')}`]
         ];
 
         autoTable(doc, {
@@ -110,15 +114,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
             head: [['Concepto Financiero', 'Monto']],
             body: resumenCajaData,
             theme: 'grid',
-            headStyles: { fillColor: [71, 85, 105] }, // Color slate-700 para tarjetas de resumen
+            headStyles: { fillColor: [71, 85, 105] }, // Color slate-700
             styles: { fontSize: 9, fontStyle: 'bold' },
             didParseCell: (data) => {
-                // Colorear el Saldo Caja Actual (Verde si es >= 0, Rojo si es < 0)
-                if (data.section === 'body' && data.row.index === 1 && data.column.index === 1) {
-                    if (saldoRealCaja < 0) {
-                        data.cell.styles.textColor = [225, 29, 72]; // Rojo
-                    } else {
+                // Colorear el Total Ingresos en verde y Egresos en rojo
+                if (data.section === 'body') {
+                    if (data.row.index === 1 && data.column.index === 1) {
                         data.cell.styles.textColor = [16, 185, 129]; // Verde
+                    }
+                    if (data.row.index === 2 && data.column.index === 1) {
+                        data.cell.styles.textColor = [225, 29, 72]; // Rojo
+                    }
+                    // Colorear el Saldo Real en Caja final (Verde si >= 0, Rojo si < 0)
+                    if (data.row.index === 3 && data.column.index === 1) {
+                        data.cell.styles.textColor = saldoRealCaja >= 0 ? [16, 185, 129] : [225, 29, 72];
                     }
                 }
             }
@@ -210,19 +219,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
             styles: { fontSize: 8 },
             didParseCell: (data) => {
                 if (data.section === 'body') {
-                    // Colorear abonos totales en verde si son mayores a 0
                     if (data.column.index === 2) {
                         const textVal = data.cell.raw;
                         if (textVal && textVal !== '$0') {
-                            data.cell.styles.textColor = [16, 185, 129]; // Verde para abonos positivos
+                            data.cell.styles.textColor = [16, 185, 129]; // Verde
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
-                    // Colorear deudas pendientes en rojo si tienen saldo adeudado
                     if (data.column.index === 4) {
                         const textVal = data.cell.raw;
                         if (textVal && textVal !== '$0') {
-                            data.cell.styles.textColor = [225, 29, 72]; // Rojo para deudas
+                            data.cell.styles.textColor = [225, 29, 72]; // Rojo
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
@@ -232,6 +239,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         doc.save(`Relacion_Tesoreria_${anioActual}.pdf`);
     };
+    
 
     const handleDescargarBackup = async () => {
         try {

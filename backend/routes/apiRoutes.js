@@ -4,12 +4,27 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// 1. Obtener todos los datos
+// Obtener los datos del año activo actual
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
-        res.json(datos);
+        const anioActivo = datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActivo];
+
+        // Retornamos la estructura que el frontend ya conoce, incluyendo el año activo
+        res.json({
+            anio_activo: anioActivo,
+            aniosDisponibles: Object.keys(datos.anios),
+            configuracion: {
+                saldo_inicial: infoAnio.saldo_inicial,
+                cuota_mensual: infoAnio.cuota_mensual,
+                meses: infoAnio.meses
+            },
+            apoderados: infoAnio.apoderados,
+            gastos: infoAnio.gastos
+        });
     } catch (error) {
+        console.error("Error al obtener datos:", error);
         res.status(500).json({ error: "Error al obtener los datos" });
     }
 });

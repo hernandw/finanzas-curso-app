@@ -356,5 +356,53 @@ router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
         res.status(500).json({ error: "Error al actualizar estado del apoderado" });
     }
 });
+// Descargar copia de seguridad completa
+router.get('/curso/backup', async (req, res) => {
+    try {
+        const datos = await dbConfig.leerDatos();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=backup_tesoreria.json');
+        res.send(JSON.stringify(datos, null, 2));
+    } catch (error) {
+        res.status(500).json({ error: "Error al generar el backup" });
+    }
+});
+
+// Restaurar copia de seguridad
+router.post('/curso/backup/restaurar', async (req, res) => {
+    const nuevoContenido = req.body;
+    try {
+        if (!nuevoContenido || !nuevoContenido.anios) {
+            return res.status(400).json({ error: "Estructura de backup inválida" });
+        }
+        await dbConfig.guardarDatos(nuevoContenido);
+        res.json({ success: true, mensaje: "Aplicación restaurada con éxito" });
+    } catch (error) {
+        res.status(500).json({ error: "Error al restaurar los datos" });
+    }
+});
+
+// Borrar / Reiniciar la aplicación completa
+router.delete('/curso/reset', async (req, res) => {
+    try {
+        const datosVacia = {
+            anio_activo: "2026",
+            anios: {
+                "2026": {
+                    saldo_inicial: 0,
+                    cuota_mensual: 15000,
+                    meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+                    apoderados: [],
+                    gastos: [],
+                    ingresos_extra: []
+                }
+            }
+        };
+        await dbConfig.guardarDatos(datosVacia);
+        res.json({ success: true, mensaje: "Aplicación reiniciada" });
+    } catch (error) {
+        res.status(500).json({ error: "Error al reiniciar" });
+    }
+});
 
 export default router;

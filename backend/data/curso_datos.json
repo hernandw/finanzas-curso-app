@@ -216,14 +216,7 @@
           "fecha": "2026-11-06"
         }
       ],
-      "ingresos_extra": [
-        {
-          "id": "ext-1794001436006",
-          "titulo": "Venta de Rifa",
-          "monto": 50000,
-          "fecha": "2026-10-06"
-        }
-      ]
+      "ingresos_extra": []
     },
     "2027": {
       "saldo_inicial": 589474,

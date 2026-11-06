@@ -1,5 +1,5 @@
 // src/components/VistaAdmin.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
@@ -19,16 +19,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [gastoMonto, setGastoMonto] = useState('');
     const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().slice(0, 10));
 
-    // Ingreso Extra (Ventas / Rifas)
+    // Ingreso Extra
     const [extraTitulo, setExtraTitulo] = useState('');
     const [extraMonto, setExtraMonto] = useState('');
     const [extraFecha, setExtraFecha] = useState(new Date().toISOString().slice(0, 10));
 
-    // Saldo Inicial Editable
+    // Saldo Inicial y Cuota
     const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
     const [editandoSaldo, setEditandoSaldo] = useState(false);
-
-    // Cuota Mensual Editable
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
 
     useEffect(() => {
@@ -50,6 +48,8 @@ export default function VistaAdmin({ datos, onActualizar }) {
         setTimeout(() => setNotificacion(null), 3500);
     };
 
+    const fileInputRef = useRef(null);
+
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
     const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
@@ -61,6 +61,73 @@ export default function VistaAdmin({ datos, onActualizar }) {
     }, 0);
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
+
+    // Exportar a PDF (Impresión limpia formateada)
+    const handleExportarPDF = () => {
+        window.print();
+    };
+
+    // Descargar Backup (JSON)
+    const handleDescargarBackup = async () => {
+        try {
+            const res = await fetch('/api/curso/backup');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_tesoreria_${datos.anio_activo}_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            mostrarAviso("Copia de seguridad descargada con éxito.");
+        } catch (error) {
+            mostrarAviso("Error al generar el backup.", "error");
+        }
+    };
+
+    // Restaurar Backup
+    const handleRestaurarBackup = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const contenidoJson = JSON.parse(event.target.result);
+                const res = await fetch('/api/curso/backup/restaurar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(contenidoJson)
+                });
+                if (res.ok) {
+                    mostrarAviso("Aplicación restaurada desde el backup correctamente.");
+                    onActualizar();
+                } else {
+                    mostrarAviso("El archivo de backup no es válido.", "error");
+                }
+            } catch (err) {
+                mostrarAviso("Error al leer el archivo JSON.", "error");
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // Borrar / Reiniciar aplicación
+    const handleBorrarAplicacion = async () => {
+        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de borrar todos los datos de la aplicación? Esta acción no se puede deshacer a menos que tengas un backup.")) {
+            if (confirm("Confirma nuevamente para proceder al borrado total de registros:")) {
+                try {
+                    const res = await fetch('/api/curso/reset', { method: 'DELETE' });
+                    if (res.ok) {
+                        mostrarAviso("La aplicación se ha reiniciado de fábrica.");
+                        onActualizar();
+                    } else {
+                        mostrarAviso("Error al reiniciar la aplicación.", "error");
+                    }
+                } catch (error) {
+                    mostrarAviso("Error de conexión.", "error");
+                }
+            }
+        }
+    };
 
     const handleActualizarCuota = async () => {
         const nuevaCuota = Number(cuotaInput);
@@ -304,6 +371,45 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             )}
 
+            {/* BARRA DE HERRAMIENTAS: PDF, BACKUP Y RESTAURACIÓN */}
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleExportarPDF}
+                        className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 shadow"
+                    >
+                        <i className="fa-solid fa-file-pdf text-sm"></i> Exportar Informe a PDF
+                    </button>
+                    <button 
+                        onClick={handleDescargarBackup}
+                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 shadow"
+                    >
+                        <i className="fa-solid fa-download text-sm"></i> Descargar Backup (.json)
+                    </button>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleRestaurarBackup} 
+                        accept=".json" 
+                        className="hidden" 
+                    />
+                    <button 
+                        onClick={() => fileInputRef.current.click()}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 shadow"
+                    >
+                        <i className="fa-solid fa-upload text-sm"></i> Restaurar Backup
+                    </button>
+                </div>
+                <div>
+                    <button 
+                        onClick={handleBorrarAplicacion}
+                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
+                    >
+                        <i className="fa-solid fa-trash-arrow-up"></i> Borrar / Reiniciar App
+                    </button>
+                </div>
+            </div>
+
             {/* CABECERA, AÑO Y CUOTA */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -501,7 +607,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* FORMULARIOS DE REGISTRO CON SELECTORES DE FECHA INTUITIVOS (ÁREA CLICKEABLE COMPLETA) */}
+            {/* FORMULARIOS DE REGISTRO */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Gasto */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
@@ -640,7 +746,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* TABLAS DETALLADAS DE GASTOS E INGRESOS EXTRA (CON BOTÓN DE BORRAR) */}
+            {/* TABLAS DETALLADAS DE GASTOS E INGRESOS EXTRA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Relación de Gastos */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">

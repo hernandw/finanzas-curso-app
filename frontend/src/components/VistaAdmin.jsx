@@ -82,11 +82,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF con colores dinámicos (Verde/Rojo)
+    // Exportar a PDF con diseño optimizado, separación, tarjetas de resumen y colores dinámicos
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
+        const saldoInicial = Number(datos.configuracion.saldo_inicial || 0);
 
+        // --- ENCABEZADO DEL CURSO ---
         doc.setFontSize(14);
         doc.setTextColor(15, 23, 42);
         doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '4° Medio A'} (${anioActual})`, 14, 15);
@@ -94,10 +96,37 @@ export default function VistaAdmin({ datos, onActualizar }) {
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
         doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
-        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Saldo Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')}`, 14, 27);
 
-        let currentY = 34;
+        let currentY = 32; // Espacio claro entre el encabezado y las tablas
 
+        // --- TARJETAS / TABLAS DE RESUMEN (SALDO INICIAL Y SALDO CAJA ACTUAL) ---
+        const resumenCajaData = [
+            ['Saldo Inicial', `$${saldoInicial.toLocaleString('es-CL')}`],
+            ['Saldo Caja Actual', `$${saldoRealCaja.toLocaleString('es-CL')}`]
+        ];
+
+        autoTable(doc, {
+            startY: currentY,
+            head: [['Concepto Financiero', 'Monto']],
+            body: resumenCajaData,
+            theme: 'grid',
+            headStyles: { fillColor: [71, 85, 105] }, // Color slate-700 para tarjetas de resumen
+            styles: { fontSize: 9, fontStyle: 'bold' },
+            didParseCell: (data) => {
+                // Colorear el Saldo Caja Actual (Verde si es >= 0, Rojo si es < 0)
+                if (data.section === 'body' && data.row.index === 1 && data.column.index === 1) {
+                    if (saldoRealCaja < 0) {
+                        data.cell.styles.textColor = [225, 29, 72]; // Rojo
+                    } else {
+                        data.cell.styles.textColor = [16, 185, 129]; // Verde
+                    }
+                }
+            }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+
+        // --- 1. RELACIÓN DE MOVIMIENTOS ---
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
@@ -107,7 +136,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ...(datos.ingresos_extra || []).map(e => ({ fecha: e.fecha || 'N/A', tipo: 'Ingreso Extra', desc: e.titulo, monto: Number(e.monto) }))
         ].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-        let saldoAcumulado = Number(datos.configuracion.saldo_inicial || 0);
+        let saldoAcumulado = saldoInicial;
         const filasMovimientos = movimientos.map(m => {
             saldoAcumulado += m.monto;
             return [
@@ -130,10 +159,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4)) {
                     const textVal = data.cell.raw;
                     if (textVal && textVal.includes('-')) {
-                        data.cell.styles.textColor = [225, 29, 72];
+                        data.cell.styles.textColor = [225, 29, 72]; // Rojo
                         data.cell.styles.fontStyle = 'bold';
                     } else if (textVal && (textVal.includes('+') || (data.column.index === 4 && !textVal.includes('-')))) {
-                        data.cell.styles.textColor = [16, 185, 129];
+                        data.cell.styles.textColor = [16, 185, 129]; // Verde
                         data.cell.styles.fontStyle = 'bold';
                     }
                 }
@@ -142,6 +171,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         currentY = doc.lastAutoTable.finalY + 10;
 
+        // --- 2. ESTADO DE PAGOS Y ABONOS POR APODERADO ---
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('2. Estado de Pagos y Saldos por Apoderado', 14, currentY);
@@ -179,11 +209,22 @@ export default function VistaAdmin({ datos, onActualizar }) {
             headStyles: { fillColor: [59, 130, 246] },
             styles: { fontSize: 8 },
             didParseCell: (data) => {
-                if (data.section === 'body' && data.column.index === 4) {
-                    const textVal = data.cell.raw;
-                    if (textVal && textVal !== '$0') {
-                        data.cell.styles.textColor = [225, 29, 72];
-                        data.cell.styles.fontStyle = 'bold';
+                if (data.section === 'body') {
+                    // Colorear abonos totales en verde si son mayores a 0
+                    if (data.column.index === 2) {
+                        const textVal = data.cell.raw;
+                        if (textVal && textVal !== '$0') {
+                            data.cell.styles.textColor = [16, 185, 129]; // Verde para abonos positivos
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                    // Colorear deudas pendientes en rojo si tienen saldo adeudado
+                    if (data.column.index === 4) {
+                        const textVal = data.cell.raw;
+                        if (textVal && textVal !== '$0') {
+                            data.cell.styles.textColor = [225, 29, 72]; // Rojo para deudas
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
                 }
             }

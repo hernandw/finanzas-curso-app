@@ -17,32 +17,46 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [gastoTitulo, setGastoTitulo] = useState('');
     const [gastoMonto, setGastoMonto] = useState('');
 
+    // Estados para el Modal de Pago Global
+    const [modalAbierto, setModalAbierto] = useState(false);
+    const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
+    const [montoPago, setMontoPago] = useState('');
+    const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
+    const [responsablePago, setResponsablePago] = useState('');
+
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
 
-    // 1. Registrar o abonar pago con fecha acumulativa
-    const handleRegistrarPago = async (apoderadoId, mes, montoActual) => {
-        const montoIngresado = prompt(`Ingrese el monto a pagar/abonar para ${mes}:`, cuotaOficial);
-        if (montoIngresado === null) return;
+    // Abrir modal de pago
+    const abrirModalPago = (apo) => {
+        setApoderadoSeleccionado(apo);
+        setMontoPago('');
+        setFechaPago(new Date().toISOString().slice(0, 10));
+        setResponsablePago(apo.nombre);
+        setModalAbierto(true);
+    };
 
-        const montoNum = Number(montoIngresado);
-        if (isNaN(montoNum) || montoNum <= 0) {
-            alert("Por favor ingrese un monto válido.");
+    // Enviar pago global con distribución automática
+    const handleEnviarPagoGlobal = async (e) => {
+        e.preventDefault();
+        if (!montoPago || Number(montoPago) <= 0) {
+            alert("Ingrese un monto válido.");
             return;
         }
 
         try {
-            const res = await fetch('/api/curso/admin/pago', {
+            const res = await fetch('/api/curso/admin/pago-global', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    apoderadoId,
-                    mes,
-                    pagado: true,
-                    monto: montoNum
+                    apoderadoId: apoderadoSeleccionado.id,
+                    montoEntregado: Number(montoPago),
+                    fecha: fechaPago,
+                    responsable: responsablePago
                 })
             });
 
             if (res.ok) {
+                setModalAbierto(false);
                 onActualizar();
             } else {
                 alert("Error al registrar el pago.");
@@ -106,7 +120,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    // 4. Cambiar estado (Ocultar / Activar en lugar de eliminar)
+    // 4. Cambiar estado (Ocultar / Activar)
     const handleCambiarEstado = async (id, nombre, activoActual) => {
         const accion = activoActual ? "ocultar" : "activar";
         if (confirm(`¿Estás seguro de ${accion} a ${nombre}? Se mantendrá su historial.`)) {
@@ -285,22 +299,30 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 <div className="grid grid-cols-1 gap-4">
                     {datos.apoderados.map(apo => (
                         <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
                                 <div>
                                     <h4 className="font-bold text-white text-sm">
                                         {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
                                     </h4>
                                     <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
                                 </div>
-                                <button 
-                                    onClick={() => handleCambiarEstado(apo.id, apo.nombre, apo.activo !== false)}
-                                    className={`text-xs px-3 py-1.5 rounded-xl border transition ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'}`}
-                                >
-                                    {apo.activo === false ? 'Activar Apoderado' : 'Ocultar / Retirar'}
-                                </button>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                    <button 
+                                        onClick={() => abrirModalPago(apo)}
+                                        className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
+                                    >
+                                        <i className="fa-solid fa-plus"></i> Registrar Pago / Abono
+                                    </button>
+                                    <button 
+                                        onClick={() => handleCambiarEstado(apo.id, apo.nombre, apo.activo !== false)}
+                                        className={`text-xs px-3 py-1.5 rounded-xl border transition ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'}`}
+                                    >
+                                        {apo.activo === false ? 'Activar' : 'Ocultar'}
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Meses, montos abonados y fechas */}
+                            {/* Meses y sus montos abonados */}
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                 {datos.configuracion.meses.map(mes => {
                                     const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
@@ -308,7 +330,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
 
                                     return (
-                                        <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-2">
+                                        <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-1">
                                             <div>
                                                 <span className="text-xs font-semibold text-slate-300 block">{mes}</span>
                                                 <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
@@ -320,12 +342,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                                     </span>
                                                 )}
                                             </div>
-                                            <button 
-                                                onClick={() => handleRegistrarPago(apo.id, mes, montoAbonado)}
-                                                className="w-full bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 py-1 rounded-lg text-[10px] font-medium transition"
-                                            >
-                                                {montoAbonado > 0 ? 'Modificar / Abonar' : 'Registrar Pago'}
-                                            </button>
                                         </div>
                                     );
                                 })}
@@ -334,6 +350,80 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     ))}
                 </div>
             </div>
+
+            {/* MODAL DE REGISTRO DE PAGO / ABONO GLOBAL */}
+            {modalAbierto && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <i className="fa-solid fa-cash-register text-emerald-400"></i> Registrar Pago / Abono
+                            </h3>
+                            <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-white">
+                                <i className="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+
+                        <div className="text-xs text-slate-300">
+                            <p>Apoderado: <strong className="text-white">{apoderadoSeleccionado?.nombre}</strong></p>
+                            <p>Alumno: <strong className="text-emerald-400">{apoderadoSeleccionado?.alumno}</strong></p>
+                        </div>
+
+                        <form onSubmit={handleEnviarPagoGlobal} className="space-y-3">
+                            <div>
+                                <label className="text-[11px] text-slate-400 block mb-1">Monto Entregado ($)</label>
+                                <input 
+                                    type="number" 
+                                    placeholder="Ej: 45000"
+                                    value={montoPago}
+                                    onChange={(e) => setMontoPago(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                                    autoFocus
+                                />
+                                <p className="text-[10px] text-slate-500 mt-1">El sistema distribuirá automáticamente este dinero cubriendo las cuotas mensuales en orden cronológico.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-[11px] text-slate-400 block mb-1">Fecha de Pago</label>
+                                    <input 
+                                        type="date" 
+                                        value={fechaPago}
+                                        onChange={(e) => setFechaPago(e.target.value)}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[11px] text-slate-400 block mb-1">Persona que paga</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Nombre..."
+                                        value={responsablePago}
+                                        onChange={(e) => setResponsablePago(e.target.value)}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-3">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setModalAbierto(false)}
+                                    className="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="w-1/2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition"
+                                >
+                                    Guardar Pago
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -31,7 +31,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [editandoSaldo, setEditandoSaldo] = useState(false);
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
 
-    // Datos del Curso unificados
+    // Datos del Curso
     const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '4° Medio A');
     const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Juan Pérez');
     const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ana Gómez');
@@ -54,7 +54,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Notificaciones locales por sección
+    // Notificaciones por sección (Toast local sobre la tarjeta)
     const [avisosSeccion, setAvisosSeccion] = useState({});
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
@@ -82,13 +82,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF con desglose claro de Ingresos, Egresos y Saldo en Caja
+    // Exportar a PDF optimizado con colores y desglose de caja
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
         const saldoInicial = Number(datos.configuracion.saldo_inicial || 0);
 
-        // --- ENCABEZADO DEL CURSO ---
         doc.setFontSize(14);
         doc.setTextColor(15, 23, 42);
         doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '4° Medio A'} (${anioActual})`, 14, 15);
@@ -99,9 +98,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         let currentY = 32;
 
-        // --- RESUMEN FINANCIERO (SALDO INICIAL, INGRESOS, EGRESOS Y SALDO CAJA) ---
         const totalIngresosGral = totalCuotasRecaudadas + totalIngresosExtra;
-        
         const resumenCajaData = [
             ['Saldo Inicial (Año Anterior)', `$${saldoInicial.toLocaleString('es-CL')}`],
             ['(+) Total Ingresos (Cuotas + Extras)', `+$${totalIngresosGral.toLocaleString('es-CL')}`],
@@ -114,18 +111,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
             head: [['Concepto Financiero', 'Monto']],
             body: resumenCajaData,
             theme: 'grid',
-            headStyles: { fillColor: [71, 85, 105] }, // Color slate-700
+            headStyles: { fillColor: [71, 85, 105] },
             styles: { fontSize: 9, fontStyle: 'bold' },
             didParseCell: (data) => {
-                // Colorear el Total Ingresos en verde y Egresos en rojo
                 if (data.section === 'body') {
-                    if (data.row.index === 1 && data.column.index === 1) {
-                        data.cell.styles.textColor = [16, 185, 129]; // Verde
-                    }
-                    if (data.row.index === 2 && data.column.index === 1) {
-                        data.cell.styles.textColor = [225, 29, 72]; // Rojo
-                    }
-                    // Colorear el Saldo Real en Caja final (Verde si >= 0, Rojo si < 0)
+                    if (data.row.index === 1 && data.column.index === 1) data.cell.styles.textColor = [16, 185, 129];
+                    if (data.row.index === 2 && data.column.index === 1) data.cell.styles.textColor = [225, 29, 72];
                     if (data.row.index === 3 && data.column.index === 1) {
                         data.cell.styles.textColor = saldoRealCaja >= 0 ? [16, 185, 129] : [225, 29, 72];
                     }
@@ -135,7 +126,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         currentY = doc.lastAutoTable.finalY + 10;
 
-        // --- 1. RELACIÓN DE MOVIMIENTOS ---
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
@@ -168,10 +158,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4)) {
                     const textVal = data.cell.raw;
                     if (textVal && textVal.includes('-')) {
-                        data.cell.styles.textColor = [225, 29, 72]; // Rojo
+                        data.cell.styles.textColor = [225, 29, 72];
                         data.cell.styles.fontStyle = 'bold';
                     } else if (textVal && (textVal.includes('+') || (data.column.index === 4 && !textVal.includes('-')))) {
-                        data.cell.styles.textColor = [16, 185, 129]; // Verde
+                        data.cell.styles.textColor = [16, 185, 129];
                         data.cell.styles.fontStyle = 'bold';
                     }
                 }
@@ -180,7 +170,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         currentY = doc.lastAutoTable.finalY + 10;
 
-        // --- 2. ESTADO DE PAGOS Y ABONOS POR APODERADO ---
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('2. Estado de Pagos y Saldos por Apoderado', 14, currentY);
@@ -222,14 +211,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     if (data.column.index === 2) {
                         const textVal = data.cell.raw;
                         if (textVal && textVal !== '$0') {
-                            data.cell.styles.textColor = [16, 185, 129]; // Verde
+                            data.cell.styles.textColor = [16, 185, 129];
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
                     if (data.column.index === 4) {
                         const textVal = data.cell.raw;
                         if (textVal && textVal !== '$0') {
-                            data.cell.styles.textColor = [225, 29, 72]; // Rojo
+                            data.cell.styles.textColor = [225, 29, 72];
                             data.cell.styles.fontStyle = 'bold';
                         }
                     }
@@ -239,7 +228,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         doc.save(`Relacion_Tesoreria_${anioActual}.pdf`);
     };
-    
 
     const handleDescargarBackup = async () => {
         try {
@@ -530,6 +518,22 @@ export default function VistaAdmin({ datos, onActualizar }) {
             }
         } catch (error) {
             mostrarAvisoLocal('apoderado', "Error de conexión.", "error");
+        }
+    };
+
+    const handleEliminarApoderado = async (id, nombreApo) => {
+        if (confirm(`¿Estás seguro de eliminar permanentemente al apoderado ${nombreApo}?`)) {
+            try {
+                const res = await fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    mostrarAvisoLocal('pagos', "Apoderado eliminado correctamente.");
+                    onActualizar();
+                } else {
+                    mostrarAvisoLocal('pagos', "Error al eliminar apoderado.", "error");
+                }
+            } catch (error) {
+                mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            }
         }
     };
 
@@ -1158,6 +1162,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                         className={`text-xs px-3 py-1.5 rounded-xl border transition ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'}`}
                                     >
                                         {apo.activo === false ? 'Activar' : 'Ocultar'}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleEliminarApoderado(apo.id, apo.nombre)}
+                                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-3 py-1.5 rounded-xl transition"
+                                        title="Eliminar apoderado permanentemente"
+                                    >
+                                        <i className="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>
                             </div>

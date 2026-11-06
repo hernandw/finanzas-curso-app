@@ -424,4 +424,21 @@ router.delete('/curso/reset', async (req, res) => {
     }
 });
 
+// Eliminar apoderado por ID
+router.delete('/curso/admin/apoderado/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioActual = datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActual];
+
+        infoAnio.apoderados = (infoAnio.apoderados || []).filter(a => a.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, mensaje: "Apoderado eliminado correctamente" });
+    } catch (error) {
+        console.error("Error al eliminar apoderado:", error);
+        res.status(500).json({ error: "Error al eliminar apoderado" });
+    }
+});
+
 export default router;

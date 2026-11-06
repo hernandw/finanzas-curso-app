@@ -1,7 +1,7 @@
 // src/components/VistaAdmin.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
@@ -55,7 +55,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [responsablePago, setResponsablePago] = useState('');
 
     // Notificaciones por sección (Toast local sobre la tarjeta)
-    const [avisosSeccion, setAvisosSeccion] = useState({}); // { [seccionId]: { texto, tipo } }
+    const [avisosSeccion, setAvisosSeccion] = useState({});
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
         setAvisosSeccion(prev => ({ ...prev, [seccionId]: { texto, tipo } }));
@@ -82,7 +82,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF (Optimizado según requerimiento)
+    // Exportar a PDF corregido con la función autoTable
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
@@ -99,7 +99,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
         let currentY = 34;
 
-        // 1. Relación de Ingresos y Egresos
+        // 1. Relación de Ingresos y Egresos con Fecha, Descripción y Saldo
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
         doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
@@ -120,7 +120,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: currentY + 3,
             head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
             body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos', '-', '-']],
@@ -160,7 +160,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: currentY + 3,
             head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
             body: filasAlumnos,

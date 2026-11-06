@@ -29,8 +29,9 @@ router.get('/curso/datos', async (req, res) => {
 });
 
 // 2. Registrar o abonar pago mensual con acumulación y fecha
-router.post('/curso/admin/pago', async (req, res) => {
-    const { apoderadoId, mes, pagado, monto } = req.body;
+// backend/routes/apiRoutes.js
+router.post('/curso/admin/pago-global', async (req, res) => {
+    const { apoderadoId, montoEntregado, fecha, responsable } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
@@ -39,32 +40,48 @@ router.post('/curso/admin/pago', async (req, res) => {
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        const montoNuevo = Number(monto || 0);
+        let dineroRestante = Number(montoEntregado || 0);
         const cuotaOficial = infoAnio.cuota_mensual;
+        const fechaTransaccion = fecha || new Date().toISOString().slice(0, 10);
+        const personaResponsable = responsable || "Apoderado";
 
-        // Recuperamos el pago actual del mes (si ya tenía un abono previo)
-        const pagoExistente = apo.pagos[mes] || { monto: 0, pagado: false, fechas: [] };
-        
-        // Acumulamos el monto entregado
-        const montoTotalAcumulado = Number(pagoExistente.monto || 0) + montoNuevo;
-        const estaPagadoCompleto = montoTotalAcumulado >= cuotaOficial;
+        // Recorremos los meses en orden cronológico para distribuir el dinero
+        for (const mes of infoAnio.meses) {
+            if (dineroRestante <= 0) break; // Si ya no queda dinero, terminamos
 
-        // Fecha actual de la transacción
-        const fechaActual = new Date().toISOString().slice(0, 10);
-        const historialFechas = pagoExistente.fechas ? [...pagoExistente.fechas, fechaActual] : [fechaActual];
+            const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, transacciones: [] };
+            const saldoPendienteEsteMes = cuotaOficial - Number(pagoMes.monto || 0);
 
-        apoderado.pagos[mes] = {
-            pagado: estaPagadoCompleto,
-            monto: montoTotalAcumulado,
-            fecha: fechaActual,
-            fechas: historialFechas
-        };
+            if (saldoPendienteEsteMes > 0) {
+                // Cuánto vamos a abonar a este mes
+                const abonoParaEsteMes = Math.min(dineroRestante, saldoPendienteEsteMes);
+                const nuevoMontoMes = Number(pagoMes.monto || 0) + abonoParaEsteMes;
+                
+                dineroRestante -= abonoParaEsteMes;
+
+                const estaPagadoCompleto = nuevoMontoMes >= cuotaOficial;
+
+                // Guardamos la transacción en el historial de este mes
+                const transaccionNueva = {
+                    monto: abonoParaEsteMes,
+                    fecha: fechaTransaccion,
+                    responsable: personaResponsable
+                };
+
+                apoderado.pagos[mes] = {
+                    pagado: estaPagadoCompleto,
+                    monto: nuevoMontoMes,
+                    fecha: fechaTransaccion,
+                    transacciones: pagoMes.transacciones ? [...pagoMes.transacciones, transaccionNueva] : [transaccionNueva]
+                };
+            }
+        }
 
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, apoderado });
     } catch (error) {
-        console.error("Error al actualizar pago:", error);
-        res.status(500).json({ error: "Error al actualizar pago" });
+        console.error("Error al distribuir pago:", error);
+        res.status(500).json({ error: "Error al procesar el pago global" });
     }
 });
 

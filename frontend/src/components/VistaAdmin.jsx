@@ -2,306 +2,332 @@
 import React, { useState } from 'react';
 
 export default function VistaAdmin({ datos, onActualizar }) {
-    // 1. Estados para el módulo de pagos
-    const [apoderadoSel, setApoderadoSel] = useState(datos.apoderados[0]?.id || '');
-    const [mesSel, setMesSel] = useState('Marzo');
-    const [pagado, setPagado] = useState(true);
-    const [montoCuota, setMontoCuota] = useState(datos.configuracion.cuota_mensual || 15000);
+    if (!datos || !datos.apoderados || !datos.configuracion) {
+        return (
+            <div className="flex items-center justify-center p-8 text-slate-400 text-xs">
+                <i className="fa-solid fa-spinner animate-spin mr-2"></i> Cargando panel de administración...
+            </div>
+        );
+    }
 
-    // 2. Estados para el módulo de gastos
-    const [tituloGasto, setTituloGasto] = useState('');
-    const [montoGasto, setMontoGasto] = useState('');
-    const [mesGasto, setMesGasto] = useState('Marzo');
-
-    // 3. Estados para gestión de apoderados (Crear / Editar)
-    const [editandoId, setEditandoId] = useState(null);
     const [nombreApoderado, setNombreApoderado] = useState('');
-    const [alumnoApoderado, setAlumnoApoderado] = useState('');
+    const [nombreAlumno, setNombreAlumno] = useState('');
+    
+    const [gastoMes, setGastoMes] = useState(datos.configuracion.meses[0]);
+    const [gastoTitulo, setGastoTitulo] = useState('');
+    const [gastoMonto, setGastoMonto] = useState('');
 
-    // --- ACCIONES DE LA API ---
+    const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
 
-    // Guardar o actualizar pago
-    const handleActualizarPago = async (e) => {
-        e.preventDefault();
+    // 1. Registrar o abonar pago
+    const handleRegistrarPago = async (apoderadoId, mes, montoActual) => {
+        const montoIngresado = prompt(`Ingrese el monto a pagar/abonar para ${mes}:`, cuotaOficial);
+        if (montoIngresado === null) return;
+
+        const montoNum = Number(montoIngresado);
+        if (isNaN(montoNum) || montoNum <= 0) {
+            alert("Por favor ingrese un monto válido.");
+            return;
+        }
+
         try {
             const res = await fetch('/api/curso/admin/pago', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apoderadoId: apoderadoSel, mes: mesSel, pagado, monto: montoCuota })
+                body: JSON.stringify({
+                    apoderadoId,
+                    mes,
+                    pagado: true,
+                    monto: montoNum
+                })
             });
+
             if (res.ok) {
-                alert("¡Pago actualizado correctamente!");
                 onActualizar();
             } else {
-                alert("Error al actualizar el pago.");
+                alert("Error al registrar el pago.");
             }
         } catch (error) {
             alert("Error de conexión con el servidor.");
         }
     };
 
-    // Registrar gasto general
+    // 2. Agregar nuevo apoderado
+    const handleAgregarApoderado = async (e) => {
+        e.preventDefault();
+        if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
+            alert("Complete todos los campos.");
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/curso/admin/apoderado/agregar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nombreApoderado, alumno: nombreAlumno })
+            });
+
+            if (res.ok) {
+                setNombreApoderado('');
+                setNombreAlumno('');
+                onActualizar();
+            } else {
+                alert("Error al agregar apoderado.");
+            }
+        } catch (error) {
+            alert("Error de conexión.");
+        }
+    };
+
+    // 3. Registrar gasto general
     const handleRegistrarGasto = async (e) => {
         e.preventDefault();
-        if (!tituloGasto || !montoGasto) return alert("Completa los campos del gasto.");
+        if (!gastoTitulo.trim() || !gastoMonto) {
+            alert("Complete los campos del gasto.");
+            return;
+        }
 
         try {
             const res = await fetch('/api/curso/admin/gasto', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mes: mesGasto, titulo: tituloGasto, monto: montoGasto })
-            });
-            if (res.ok) {
-                alert("¡Gasto registrado con éxito!");
-                setTituloGasto('');
-                setMontoGasto('');
-                onActualizar();
-            } else {
-                alert("Error al registrar el gasto.");
-            }
-        } catch (error) {
-            alert("Error de conexión con el servidor.");
-        }
-    };
-
-    // Crear o Editar Apoderado (Usa la ruta completa con /api/)
-    const handleGuardarApoderado = async (e) => {
-        e.preventDefault();
-        if (!nombreApoderado || !alumnoApoderado) return alert("Completa nombre y alumno.");
-
-        const url = editandoId 
-            ? `/api/curso/admin/apoderado/${editandoId}` 
-            : '/api/curso/admin/apoderado/agregar';
-        
-        const method = editandoId ? 'PUT' : 'POST';
-
-        try {
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre: nombreApoderado, alumno: alumnoApoderado })
+                body: JSON.stringify({ mes: gastoMes, titulo: gastoTitulo, monto: gastoMonto })
             });
 
             if (res.ok) {
-                alert(editandoId ? "¡Apoderado actualizado con éxito!" : "¡Apoderado agregado con éxito!");
-                setNombreApoderado('');
-                setAlumnoApoderado('');
-                setEditandoId(null);
+                setGastoTitulo('');
+                setGastoMonto('');
                 onActualizar();
             } else {
-                alert("Error al procesar la solicitud del apoderado.");
+                alert("Error al registrar gasto.");
             }
         } catch (error) {
-            alert("Error de conexión con el servidor.");
+            alert("Error de conexión.");
         }
     };
 
-    const iniciarEdicion = (apo) => {
-        setEditandoId(apo.id);
-        setNombreApoderado(apo.nombre);
-        setAlumnoApoderado(apo.alumno);
-    };
-
-    const cancelarEdicion = () => {
-        setEditandoId(null);
-        setNombreApoderado('');
-        setAlumnoApoderado('');
-    };
-
-    const handleEliminarApoderado = async (id, nombre) => {
-        if (confirm(`¿Estás seguro de retirar a ${nombre} del curso?`)) {
+    // 4. Cambiar estado (Ocultar / Activar en lugar de eliminar)
+    const handleCambiarEstado = async (id, nombre, activoActual) => {
+        const accion = activoActual ? "ocultar" : "activar";
+        if (confirm(`¿Estás seguro de ${accion} a ${nombre}? Se mantendrá su historial.`)) {
             try {
-                const res = await fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' });
+                const res = await fetch(`/api/curso/admin/apoderado/estado/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ activo: !activoActual })
+                });
                 if (res.ok) {
-                    alert("Apoderado retirado correctamente.");
-                    onActualizar(); // <--- ¡Esta línea es la que le avisa a React que debe refrescar los datos automáticamente!
+                    onActualizar();
                 } else {
-                    alert("Error al retirar al apoderado.");
+                    alert("Error al cambiar el estado.");
                 }
             } catch (error) {
-                alert("Error de conexión con el servidor.");
+                alert("Error de conexión.");
             }
         }
     };
 
     return (
-        <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-6">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-screwdriver-wrench text-emerald-400"></i> Panel de Administración / Tesorería
-                </h2>
+        <div className="space-y-8">
+            {/* Cabecera Admin */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex justify-between items-center">
+                <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración - Tesorería
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                        Cuota mensual oficial: <strong className="text-emerald-400">${cuotaOficial.toLocaleString('es-CL')}</strong>
+                    </p>
+                </div>
+            </div>
 
-                {/* MODULO 1: REGISTRAR PAGOS DE APODERADOS */}
-                <form onSubmit={handleActualizarPago} className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <h3 className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
-                        <i className="fa-solid fa-money-check-dollar"></i> Registrar Cuota de Apoderado (Marzo - Diciembre)
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Apoderado</label>
-                            <select value={apoderadoSel} onChange={e => setApoderadoSel(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                                {datos.apoderados.map(a => <option key={a.id} value={a.id}>{a.nombre} ({a.alumno})</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Mes</label>
-                            <select value={mesSel} onChange={e => setMesSel(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                                {datos.configuracion.meses.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Estado de Pago</label>
-                            <select value={pagado} onChange={e => setPagado(e.target.value === 'true')} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                                <option value="true">Pagado ✓</option>
-                                <option value="false">Pendiente ✗</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Monto Pagado (CLP)</label>
-                        <input type="number" value={montoCuota} onChange={e => setMontoCuota(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                    </div>
-                    <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold py-2 rounded-xl text-xs transition">
-                        Guardar Estado de Pago
-                    </button>
-                </form>
+            {/* SECCIÓN 1: RESUMEN DE PAGOS Y DEUDAS POR ALUMNO */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
+                    <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno
+                </h3>
+                
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-300">
+                        <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                            <tr>
+                                <th className="p-3">Apoderado / Alumno</th>
+                                <th className="p-3 text-center">Total Recaudado</th>
+                                <th className="p-3 text-center">Meses Pendientes</th>
+                                <th className="p-3 text-right">Deuda Estimada</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                            {datos.apoderados.map(apo => {
+                                let totalPagadoApo = 0;
+                                let mesesDebe = 0;
+                                
+                                datos.configuracion.meses.forEach(mes => {
+                                    const p = apo.pagos[mes];
+                                    if (p && p.monto > 0) {
+                                        totalPagadoApo += Number(p.monto);
+                                        if (!p.pagado) mesesDebe++;
+                                    } else {
+                                        mesesDebe++;
+                                    }
+                                });
 
-                {/* MODULO 2: REGISTRAR GASTOS DEL CURSO */}
-                <form onSubmit={handleRegistrarGasto} className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <h3 className="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                                const deudaTotal = mesesDebe * cuotaOficial;
+
+                                return (
+                                    <tr key={apo.id} className={`hover:bg-slate-950/40 ${apo.activo === false ? 'opacity-50' : ''}`}>
+                                        <td className="p-3">
+                                            <span className="font-semibold text-white block">{apo.nombre} {apo.activo === false && '(Inactivo)'}</span>
+                                            <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
+                                        </td>
+                                        <td className="p-3 text-center font-bold text-emerald-400">
+                                            ${totalPagadoApo.toLocaleString('es-CL')}
+                                        </td>
+                                        <td className="p-3 text-center text-amber-400 font-medium">
+                                            {mesesDebe} meses
+                                        </td>
+                                        <td className="p-3 text-right font-bold text-rose-400">
+                                            ${deudaTotal.toLocaleString('es-CL')}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* SECCIÓN 2: FORMULARIOS DE REGISTRO (Gasto y Apoderado) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Registrar Gasto */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
                         <i className="fa-solid fa-receipt"></i> Registrar Gasto del Curso
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <form onSubmit={handleRegistrarGasto} className="space-y-3">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Título / Descripción del Gasto</label>
-                            <input type="text" placeholder="Ej: Compra de materiales de aseo" value={tituloGasto} onChange={e => setTituloGasto(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
+                            <label className="text-[11px] text-slate-400 block mb-1">Descripción del gasto</label>
+                            <input 
+                                type="text" 
+                                placeholder="Ej: Compra de materiales..."
+                                value={gastoTitulo}
+                                onChange={(e) => setGastoTitulo(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                            />
                         </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Mes Asociado</label>
-                            <select value={mesGasto} onChange={e => setMesGasto(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                                {datos.configuracion.meses.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="text-[11px] text-slate-400 block mb-1">Mes</label>
+                                <select 
+                                    value={gastoMes} 
+                                    onChange={(e) => setGastoMes(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                                >
+                                    {datos.configuracion.meses.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[11px] text-slate-400 block mb-1">Monto ($)</label>
+                                <input 
+                                    type="number" 
+                                    placeholder="0"
+                                    value={gastoMonto}
+                                    onChange={(e) => setGastoMonto(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs text-slate-400 mb-1">Monto del Gasto (CLP)</label>
-                        <input type="number" placeholder="Ej: 45000" value={montoGasto} onChange={e => setMontoGasto(e.target.value)} className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                    </div>
-                    <button type="submit" className="w-full bg-rose-500 hover:bg-rose-400 text-slate-950 font-semibold py-2 rounded-xl text-xs transition">
-                        Registrar Gasto General
-                    </button>
-                </form>
-{/* MODULO NUEVO: RESUMEN FINANCIERO DE CADA ALUMNO */}
-<div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-    <h3 className="text-sm font-semibold text-sky-400 flex items-center gap-2">
-        <i className="fa-solid fa-chart-pie"></i> Resumen de Pagos por Alumno
-    </h3>
-    
-    <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
-                <tr>
-                    <th className="p-2">Apoderado / Alumno</th>
-                    <th className="p-2 text-center">Total Pagado</th>
-                    <th className="p-2 text-center">Meses Pendientes</th>
-                    <th className="p-2 text-right">Saldo Deuda</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-                {datos.apoderados.filter(a => a.activo !== false).map(apo => {
-                    let totalPagadoApo = 0;
-                    let mesesDebe = 0;
-                    
-                    datos.configuracion.meses.forEach(mes => {
-                        const p = apo.pagos[mes];
-                        if (p && p.pagado) {
-                            totalPagadoApo += Number(p.monto || 0);
-                        } else {
-                            // Si dejó un abono parcial, sumamos lo abonado pero cuenta como mes pendiente
-                            if (p && p.monto > 0) totalPagadoApo += Number(p.monto);
-                            mesesDebe++;
-                        }
-                    });
-
-                    const deudaTotal = mesesDebe * datos.configuracion.cuota_mensual;
-
-                    return (
-                        <tr key={apo.id} className="hover:bg-slate-900/50">
-                            <td className="p-2">
-                                <span className="font-semibold text-white block">{apo.nombre}</span>
-                                <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
-                            </td>
-                            <td className="p-2 text-center font-bold text-emerald-400">
-                                ${totalPagadoApo.toLocaleString('es-CL')}
-                            </td>
-                            <td className="p-2 text-center text-amber-400">
-                                {mesesDebe} meses
-                            </td>
-                            <td className="p-2 text-right font-bold text-rose-400">
-                                ${deudaTotal.toLocaleString('es-CL')}
-                            </td>
-                        </tr>
-                    );
-                })}
-            </tbody>
-        </table>
-    </div>
-</div>
-                {/* MODULO 3: GESTIÓN DE APODERADOS (AGREGAR / EDITAR / RETIRAR) */}
-                <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-semibold text-sky-400 flex items-center gap-2">
-                            <i className="fa-solid fa-users-gear"></i> Gestión de Apoderados ({datos.apoderados.length} Registrados)
-                        </h3>
-                        {editandoId && (
-                            <button onClick={cancelarEdicion} className="text-xs text-slate-400 hover:text-white underline">
-                                Cancelar edición
-                            </button>
-                        )}
-                    </div>
-
-                    <form onSubmit={handleGuardarApoderado} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <input 
-                            type="text" 
-                            placeholder="Nombre Apoderado" 
-                            value={nombreApoderado} 
-                            onChange={e => setNombreApoderado(e.target.value)} 
-                            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" 
-                            required 
-                        />
-                        <input 
-                            type="text" 
-                            placeholder="Nombre Alumno" 
-                            value={alumnoApoderado} 
-                            onChange={e => setAlumnoApoderado(e.target.value)} 
-                            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" 
-                            required 
-                        />
-                        <button type="submit" className={`font-semibold py-2 rounded-xl text-xs transition ${editandoId ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-sky-500 hover:bg-sky-400 text-slate-950'}`}>
-                            {editandoId ? '💾 Guardar Cambios' : '+ Agregar Apoderado'}
+                        <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
+                            Registrar Gasto
                         </button>
                     </form>
-
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1 pt-2">
-                        {datos.apoderados.map(apo => (
-                            <div key={apo.id} className="flex justify-between items-center bg-slate-900 px-3 py-2 rounded-lg border border-slate-800 text-xs">
-                                <div>
-                                    <span className="font-medium text-white">{apo.nombre}</span>
-                                    <span className="text-slate-400 ml-2">(Alumno: {apo.alumno})</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => iniciarEdicion(apo)} className="text-amber-400 hover:text-amber-300 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
-                                        <i className="fa-solid fa-pen"></i> Editar
-                                    </button>
-                                    <button onClick={() => handleEliminarApoderado(apo.id, apo.nombre)} className="text-rose-400 hover:text-rose-300 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20">
-                                        <i className="fa-solid fa-trash-can"></i> Retirar
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
                 </div>
 
+                {/* Agregar Apoderado */}
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                        <i className="fa-solid fa-user-plus"></i> Agregar Nuevo Apoderado
+                    </h3>
+                    <form onSubmit={handleAgregarApoderado} className="space-y-3">
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Apoderado</label>
+                            <input 
+                                type="text" 
+                                placeholder="Nombre completo..."
+                                value={nombreApoderado}
+                                onChange={(e) => setNombreApoderado(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Alumno</label>
+                            <input 
+                                type="text" 
+                                placeholder="Nombre completo del alumno..."
+                                value={nombreAlumno}
+                                onChange={(e) => setNombreAlumno(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                            />
+                        </div>
+                        <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
+                            Agregar Apoderado
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {/* SECCIÓN 3: GESTIÓN DE PAGOS Y ESTADO DE APODERADOS */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4">
+                    {datos.apoderados.map(apo => (
+                        <div key={apo.id} className={`bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 ${apo.inactive ? 'opacity-60' : ''}`}>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-800 pb-3">
+                                <div>
+                                    <h4 className="font-bold text-white text-sm">
+                                        {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
+                                    </h4>
+                                    <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
+                                </div>
+                                <button 
+                                    onClick={() => handleCambiarEstado(apo.id, apo.nombre, apo.activo !== false)}
+                                    className={`text-xs px-3 py-1.5 rounded-xl border transition ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'}`}
+                                >
+                                    {apo.activo === false ? 'Activar Apoderado' : 'Ocultar / Retirar'}
+                                </button>
+                            </div>
+
+                            {/* Meses y botones de pago */}
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                {datos.configuracion.meses.map(mes => {
+                                    const pago = apo.pagos[mes] || { pagado: false, monto: 0 };
+                                    const montoAbonado = Number(pago.monto || 0);
+                                    const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
+
+                                    return (
+                                        <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-2">
+                                            <div>
+                                                <span className="text-xs font-semibold text-slate-300 block">{mes}</span>
+                                                <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                                                    {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
+                                                </span>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleRegistrarPago(apo.id, mes, montoAbonado)}
+                                                className="w-full bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 py-1 rounded-lg text-[10px] font-medium transition"
+                                            >
+                                                {montoAbonado > 0 ? 'Modificar / Abonar' : 'Registrar Pago'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

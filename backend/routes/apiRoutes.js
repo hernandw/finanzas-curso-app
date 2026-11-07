@@ -27,15 +27,21 @@ const upload = multer({ storage });
 
 // 1. Transporte con timeouts estrictos para evitar conexiones colgadas
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // SSL directo
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
     },
-    connectionTimeout: 5000, // 5 segundos max para conectar
-    greetingTimeout: 5000,   // 5 segundos max para saludo SMTP
-    socketTimeout: 8000      // 8 segundos max de inactividad
+    tls: {
+        rejectUnauthorized: false // Evita bloqueos por inspección de certificados en proxies
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000
 });
+
 
 // 2. Ruta de envío con respuesta garantizada
 router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {

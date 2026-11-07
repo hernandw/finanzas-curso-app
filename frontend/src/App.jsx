@@ -1,145 +1,70 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, useNavigate, Link } from 'react-router-dom';
 import VistaAdmin from './components/VistaAdmin';
 import VistaPublica from './components/VistaPublica';
 
-function LoginAdmin({ onLogin }) {
-    const [usuario, setUsuario] = useState('');
-    const [clave, setClave] = useState('');
-    const [error, setError] = useState(false);
-    const navigate = useNavigate();
-
-    const handleLogin = (e) => {
-        e.preventDefault();
-        // Credenciales por defecto (puedes cambiarlas aquí)
-        if (usuario === 'admin' && clave === '1234') {
-            onLogin(true);
-            navigate('/admin/panel');
-        } else {
-            setError(true);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm space-y-6">
-                <div className="text-center">
-                    <i className="fa-solid fa-lock text-emerald-400 text-3xl mb-2"></i>
-                    <h2 className="text-lg font-bold text-white">Acceso Administrativo</h2>
-                    <p className="text-xs text-slate-400 mt-1">Ingrese sus credenciales de tesorería</p>
-                </div>
-
-                {error && (
-                    <div className="bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs p-3 rounded-xl text-center">
-                        Usuario o contraseña incorrectos.
-                    </div>
-                )}
-
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                        <label className="text-xs text-slate-400 block mb-1">Usuario</label>
-                        <input 
-                            type="text" 
-                            value={usuario} 
-                            onChange={(e) => setUsuario(e.target.value)}
-                            placeholder="admin"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                            required 
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs text-slate-400 block mb-1">Contraseña</label>
-                        <input 
-                            type="password" 
-                            value={clave} 
-                            onChange={(e) => setClave(e.target.value)}
-                            placeholder="••••"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                            required 
-                        />
-                    </div>
-                    <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition">
-                        Entrar al Panel
-                    </button>
-                </form>
-
-                <div className="text-center pt-2">
-                    <Link to="/" className="text-xs text-slate-500 hover:text-slate-300 transition">
-                        ← Volver a la Vista Pública
-                    </Link>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function MainApp() {
+export default function App() {
     const [datos, setDatos] = useState(null);
-    const [isAdminAutenticado, setIsAdminAutenticado] = useState(false);
+    const [vistaActual, setVistaActual] = useState('publica'); // 'publica' o 'admin'
 
-    const cargarDatos = async () => {
+    const obtenerDatosDelBackend = async (anioDeseado = null) => {
         try {
-            const res = await fetch('/api/curso/datos');
-            const data = await res.json();
-            setDatos(data);
+            const url = anioDeseado ? `/api/curso/datos?anio=${anioDeseado}` : '/api/curso/datos';
+            const res = await fetch(url);
+            const json = await res.json();
+            setDatos(json);
         } catch (error) {
-            console.error("Error al cargar datos:", error);
+            console.error("Error al conectar con el backend:", error);
         }
     };
 
     useEffect(() => {
-        cargarDatos();
+        obtenerDatosDelBackend();
     }, []);
 
+    if (!datos) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-400 text-sm">
+                <i className="fa-solid fa-spinner animate-spin text-emerald-400 mr-2"></i> Cargando tesorería...
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-            {/* Barra de Navegación Superior */}
-            <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex justify-between items-center shadow-md">
-                <div className="flex items-center gap-3">
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-xl text-emerald-400">
-                        <i className="fa-solid fa-vault text-lg"></i>
-                    </div>
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8 font-sans">
+            <div className="max-w-6xl mx-auto space-y-6">
+                <header className="flex flex-col sm:flex-row justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl gap-4">
                     <div>
-                        <h1 className="text-sm font-bold text-white tracking-wide">
-                            Tesorería Escolar {datos?.configuracion?.nombre_curso ? `- ${datos.configuracion.nombre_curso}` : ''}
+                        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                            <i className="fa-solid fa-wallet text-emerald-400"></i> Tesorería Curso
                         </h1>
-                        <p className="text-[10px] text-slate-400">Sistema de Gestión y Transparencia Financiera</p>
+                        <p className="text-xs text-slate-400">Control de finanzas, apoderados y mensualidades</p>
                     </div>
-                </div>
 
-                <nav className="flex items-center gap-3">
-                    <Link to="/" className="bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold transition">
-                        <i className="fa-solid fa-eye mr-1.5 text-emerald-400"></i> Vista Pública
-                    </Link>
-                    <Link to={isAdminAutenticado ? "/admin/panel" : "/admin/login"} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow">
-                        <i className="fa-solid fa-lock mr-1.5"></i> {isAdminAutenticado ? 'Panel Admin' : 'Acceso Admin'}
-                    </Link>
-                </nav>
-            </header>
+                    <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                        <button 
+                            onClick={() => setVistaActual('publica')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${vistaActual === 'publica' ? 'bg-emerald-500 text-slate-950 font-semibold' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <i className="fa-solid fa-eye mr-1"></i> Vista Pública
+                        </button>
+                        <button 
+                            onClick={() => setVistaActual('admin')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${vistaActual === 'admin' ? 'bg-emerald-500 text-slate-950 font-semibold' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <i className="fa-solid fa-lock mr-1"></i> Administración
+                        </button>
+                    </div>
+                </header>
 
-            {/* Contenido Dinámico con Rutas */}
-            <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
-                <Routes>
-                    <Route path="/" element={<VistaPublica datos={datos} />} />
-                    <Route path="/admin/login" element={<LoginAdmin onLogin={setIsAdminAutenticado} />} />
-                    <Route path="/admin/panel" element={
-                        isAdminAutenticado ? (
-                            <VistaAdmin datos={datos} onActualizar={cargarDatos} />
-                        ) : (
-                            <LoginAdmin onLogin={setIsAdminAutenticado} />
-                        )
-                    } />
-                </Routes>
-            </main>
+                <main>
+                    {vistaActual === 'publica' ? (
+                        <VistaPublica datos={datos} onCambiarAnio={obtenerDatosDelBackend} />
+                    ) : (
+                        <VistaAdmin datos={datos} onActualizar={obtenerDatosDelBackend} />
+                    )}
+                </main>
+            </div>
         </div>
-    );
-}
-
-export default function App() {
-    return (
-        <HashRouter>
-            <MainApp />
-        </HashRouter>
     );
 }

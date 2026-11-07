@@ -4,14 +4,14 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// 1. Obtener datos del año activo actual con recálculo dinámico
+// 1. Obtener datos con soporte para parámetro ?anio=XXXX y recálculo dinámico
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActivo = datos.anio_activo || "2026";
+        const anioConsultado = req.query.anio || datos.anio_activo || "2026";
         
-        if (!datos.anios[anioActivo]) {
-            datos.anios[anioActivo] = {
+        if (!datos.anios[anioConsultado]) {
+            datos.anios[anioConsultado] = {
                 cerrado: false,
                 saldo_inicial: 0,
                 cuota_mensual: 15000,
@@ -26,16 +26,16 @@ router.get('/curso/datos', async (req, res) => {
             };
         }
 
-        const infoAnio = datos.anios[anioActivo];
+        const infoAnio = datos.anios[anioConsultado];
         const cuotaOficial = Number(infoAnio.cuota_mensual || 15000);
 
-        // Rebalanceo dinámico de abonos acumulados
+        // Rebalanceo dinámico respetando meses exonerados
         (infoAnio.apoderados || []).forEach(apo => {
             let dineroTotalAcumulado = 0;
             
             infoAnio.meses.forEach(mes => {
                 const p = apo.pagos[mes];
-                if (p) {
+                if (p && !p.exonerado) {
                     if (p.transacciones && p.transacciones.length > 0) {
                         dineroTotalAcumulado += p.transacciones.reduce((acc, t) => acc + Number(t.monto), 0);
                     } else if (p.monto) {
@@ -46,17 +46,31 @@ router.get('/curso/datos', async (req, res) => {
 
             let dineroRestante = dineroTotalAcumulado;
             infoAnio.meses.forEach(mes => {
+                const pPrevio = apo.pagos[mes] || {};
+                if (pPrevio.exonerado) {
+                    apo.pagos[mes] = {
+                        exonerado: true,
+                        pagado: false,
+                        monto: 0,
+                        fecha: null,
+                        transacciones: []
+                    };
+                    return;
+                }
+
                 if (dineroRestante > 0) {
                     const abonoEsteMes = Math.min(dineroRestante, cuotaOficial);
                     dineroRestante -= abonoEsteMes;
                     
                     apo.pagos[mes] = {
-                        ...apo.pagos[mes],
+                        ...pPrevio,
+                        exonerado: false,
                         monto: abonoEsteMes,
                         pagado: abonoEsteMes >= cuotaOficial
                     };
                 } else {
                     apo.pagos[mes] = {
+                        exonerado: false,
                         pagado: false,
                         monto: 0,
                         fecha: null,
@@ -67,8 +81,8 @@ router.get('/curso/datos', async (req, res) => {
         });
 
         res.json({
-            anio_activo: anioActivo,
-            aniosDisponibles: Object.keys(datos.anios),
+            anio_activo: anioConsultado,
+            aniosDisponibles: Object.keys(datos.anios).sort(),
             configuracion: {
                 cerrado: Boolean(infoAnio.cerrado),
                 saldo_inicial: infoAnio.saldo_inicial || 0,
@@ -98,10 +112,8 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
 
         if (!dataAnio) return res.status(404).json({ error: "Año actual no encontrado" });
 
-        // Marcar año actual como cerrado (bloqueado para modificaciones)
         dataAnio.cerrado = true;
 
-        // Calcular saldo final acumulado del año que se cierra
         let totalRecaudado = 0;
         const totalGastos = (dataAnio.gastos || []).reduce((acc, g) => acc + Number(g.monto), 0);
         const totalIngresosExtra = (dataAnio.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto), 0);
@@ -109,13 +121,11 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
         (dataAnio.apoderados || []).forEach(apo => {
             dataAnio.meses.forEach(mes => {
                 const p = apo.pagos[mes];
-                if (p && p.monto) totalRecaudado += Number(p.monto);
+                if (p && p.monto && !p.exonerado) totalRecaudado += Number(p.monto);
             });
         });
 
         const saldoFinalArrastre = Number(dataAnio.saldo_inicial || 0) + totalRecaudado + totalIngresosExtra - totalGastos;
-
-        // Aperturar año siguiente
         const siguienteAnio = String(Number(anioActual) + 1);
         const meses = ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -136,7 +146,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
                         nombre: a.nombre,
                         alumno: a.alumno,
                         activo: true,
-                        pagos: meses.reduce((acc, m) => ({ ...acc, [m]: { pagado: false, monto: 0, fecha: null, transacciones: [] } }), {})
+                        pagos: meses.reduce((acc, m) => ({ ...acc, [m]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
                     })),
                 gastos: [],
                 ingresos_extra: []
@@ -154,7 +164,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
     }
 });
 
-// 3. Cambiar de año activo o crearlo arrastrando datos
+// 3. Cambiar de año activo o aperturar
 router.post('/curso/admin/cambiar-anio', async (req, res) => {
     const { nuevoAnio, cuotaMensual } = req.body;
     try {
@@ -169,7 +179,7 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
         (infoAnioAnt.apoderados || []).forEach(apo => {
             infoAnioAnt.meses.forEach(mes => {
                 const p = apo.pagos[mes];
-                if (p && p.monto) totalRecaudadoAnt += Number(p.monto);
+                if (p && p.monto && !p.exonerado) totalRecaudadoAnt += Number(p.monto);
             });
         });
 
@@ -183,7 +193,7 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
                     nombre: a.nombre,
                     alumno: a.alumno,
                     activo: true,
-                    pagos: infoAnioAnt.meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, transacciones: [] } }), {})
+                    pagos: infoAnioAnt.meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
                 }));
 
             datos.anios[nuevoAnio] = {
@@ -233,7 +243,7 @@ router.put('/curso/admin/configuracion', async (req, res) => {
     }
 });
 
-// 5. Registrar pago global con distribución secuencial progresiva
+// 5. Registrar pago global omitiendo meses exonerados
 router.post('/curso/admin/pago-global', async (req, res) => {
     const { apoderadoId, montoEntregado, fecha, responsable } = req.body;
     try {
@@ -252,7 +262,11 @@ router.post('/curso/admin/pago-global', async (req, res) => {
         for (const mes of infoAnio.meses) {
             if (dineroRestante <= 0) break;
 
-            const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, transacciones: [] };
+            const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, exonerado: false, transacciones: [] };
+            
+            // Omitir mes si está exonerado
+            if (pagoMes.exonerado) continue;
+
             const saldoPendienteEsteMes = cuotaOficial - Number(pagoMes.monto || 0);
 
             if (saldoPendienteEsteMes > 0) {
@@ -269,6 +283,7 @@ router.post('/curso/admin/pago-global', async (req, res) => {
                 };
 
                 apoderado.pagos[mes] = {
+                    exonerado: false,
                     pagado: estaPagadoCompleto,
                     monto: nuevoMontoMes,
                     fecha: fechaTransaccion,
@@ -285,7 +300,38 @@ router.post('/curso/admin/pago-global', async (req, res) => {
     }
 });
 
-// 6. Eliminar o revertir el pago de un mes
+// 6. Exonerar o revertir exoneración de un mes
+router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
+    const { apoderadoId, mes } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioActual = datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActual];
+
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        const pagoMes = apoderado.pagos[mes] || { pagado: false, monto: 0, exonerado: false };
+        const nuevoEstadoExonerado = !pagoMes.exonerado;
+
+        apoderado.pagos[mes] = {
+            ...pagoMes,
+            exonerado: nuevoEstadoExonerado,
+            pagado: nuevoEstadoExonerado ? false : pagoMes.pagado,
+            monto: nuevoEstadoExonerado ? 0 : pagoMes.monto,
+            fecha: nuevoEstadoExonerado ? null : pagoMes.fecha,
+            transacciones: nuevoEstadoExonerado ? [] : (pagoMes.transacciones || [])
+        };
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        console.error("Error al exonerar mes:", error);
+        res.status(500).json({ error: "Error al alternar exoneración" });
+    }
+});
+
+// 7. Eliminar o revertir el pago de un mes
 router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     const { apoderadoId, mes } = req.params;
     try {
@@ -297,6 +343,7 @@ router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
         apoderado.pagos[mes] = {
+            exonerado: false,
             pagado: false,
             monto: 0,
             fecha: null,
@@ -311,7 +358,7 @@ router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     }
 });
 
-// 7. Gastos: Registrar y Eliminar
+// 8. Gastos: Registrar y Eliminar
 router.post('/curso/admin/gasto', async (req, res) => {
     const { mes, titulo, monto, fecha } = req.body;
     try {
@@ -351,7 +398,7 @@ router.delete('/curso/admin/gasto/:id', async (req, res) => {
     }
 });
 
-// 8. Ingresos Extra: Registrar y Eliminar
+// 9. Ingresos Extra: Registrar y Eliminar
 router.post('/curso/admin/ingreso-extra', async (req, res) => {
     const { titulo, monto, fecha } = req.body;
     try {
@@ -372,7 +419,7 @@ router.post('/curso/admin/ingreso-extra', async (req, res) => {
         res.json({ success: true, nuevoIngreso });
     } catch (error) {
         console.error("Error al registrar ingreso extra:", error);
-        res.status(500).json({ error: "Error al registrar el ingreso extra" });
+        res.status(500).json({ error: "Error al registrar ingreso extra" });
     }
 });
 
@@ -392,7 +439,7 @@ router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
     }
 });
 
-// 9. Apoderados: Agregar, Modificar, Cambiar Estado y Eliminar
+// 10. Apoderados: Agregar, Modificar, Cambiar Estado y Eliminar
 router.post('/curso/admin/apoderado/agregar', async (req, res) => {
     const { nombre, alumno } = req.body;
     try {
@@ -406,7 +453,7 @@ router.post('/curso/admin/apoderado/agregar', async (req, res) => {
             nombre: nombre.trim(),
             alumno: alumno.trim(),
             activo: true,
-            pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, transacciones: [] } }), {})
+            pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
         };
         infoAnio.apoderados.push(nuevoApoderado);
         await dbConfig.guardarDatos(datos);
@@ -476,7 +523,7 @@ router.delete('/curso/admin/apoderado/:id', async (req, res) => {
     }
 });
 
-// 10. Backup, Restauración y Reset de Fábrica
+// 11. Backup, Restauración y Reset de Fábrica
 router.get('/curso/backup', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -484,7 +531,7 @@ router.get('/curso/backup', async (req, res) => {
         res.setHeader('Content-Disposition', 'attachment; filename=backup_tesoreria.json');
         res.send(JSON.stringify(datos, null, 2));
     } catch (error) {
-        res.status(500).json({ error: "Error al generar el backup" });
+        res.status(500).json({ error: "Error al generar backup" });
     }
 });
 

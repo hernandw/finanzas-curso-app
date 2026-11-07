@@ -1,6 +1,13 @@
 // src/services/cursoApi.js
 
 export const cursoApi = {
+    // 1. Obtener datos (permite especificar año o usar el activo)
+    obtenerDatos: (anio = null) => {
+        const url = anio ? `/api/curso/datos?anio=${anio}` : '/api/curso/datos';
+        return fetch(url);
+    },
+
+    // 2. Gestión de Años
     cambiarAnio: (nuevoAnio) =>
         fetch('/api/curso/admin/cambiar-anio', {
             method: 'POST',
@@ -21,6 +28,7 @@ export const cursoApi = {
             headers: { 'Content-Type': 'application/json' }
         }),
 
+    // 3. Configuración y Datos del Curso
     actualizarConfiguracion: (config) =>
         fetch('/api/curso/admin/configuracion', {
             method: 'PUT',
@@ -28,6 +36,7 @@ export const cursoApi = {
             body: JSON.stringify(config)
         }),
 
+    // 4. Pagos, Abonos y Exoneración
     registrarPagoGlobal: (pago) =>
         fetch('/api/curso/admin/pago-global', {
             method: 'POST',
@@ -36,8 +45,17 @@ export const cursoApi = {
         }),
 
     eliminarPagoMes: (apoderadoId, mes) =>
-        fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, { method: 'DELETE' }),
+        fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, {
+            method: 'DELETE'
+        }),
 
+    exonerarMes: (apoderadoId, mes) =>
+        fetch(`/api/curso/admin/pago/exonerar/${apoderadoId}/${mes}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+        }),
+
+    // 5. Apoderados y Alumnos
     agregarApoderado: (apoderado) =>
         fetch('/api/curso/admin/apoderado/agregar', {
             method: 'POST',
@@ -52,9 +70,6 @@ export const cursoApi = {
             body: JSON.stringify(apoderado)
         }),
 
-    eliminarApoderado: (id) =>
-        fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' }),
-
     cambiarEstadoApoderado: (id, activo) =>
         fetch(`/api/curso/admin/apoderado/estado/${id}`, {
             method: 'PUT',
@@ -62,6 +77,12 @@ export const cursoApi = {
             body: JSON.stringify({ activo })
         }),
 
+    eliminarApoderado: (id) =>
+        fetch(`/api/curso/admin/apoderado/${id}`, {
+            method: 'DELETE'
+        }),
+
+    // 6. Gastos
     registrarGasto: (gasto) =>
         fetch('/api/curso/admin/gasto', {
             method: 'POST',
@@ -70,8 +91,11 @@ export const cursoApi = {
         }),
 
     eliminarGasto: (id) =>
-        fetch(`/api/curso/admin/gasto/${id}`, { method: 'DELETE' }),
+        fetch(`/api/curso/admin/gasto/${id}`, {
+            method: 'DELETE'
+        }),
 
+    // 7. Ingresos Extra
     registrarIngresoExtra: (ingreso) =>
         fetch('/api/curso/admin/ingreso-extra', {
             method: 'POST',
@@ -80,8 +104,11 @@ export const cursoApi = {
         }),
 
     eliminarIngresoExtra: (id) =>
-        fetch(`/api/curso/admin/ingreso-extra/${id}`, { method: 'DELETE' }),
+        fetch(`/api/curso/admin/ingreso-extra/${id}`, {
+            method: 'DELETE'
+        }),
 
+    // 8. Copias de Seguridad y Reset
     restaurarBackup: (json) =>
         fetch('/api/curso/backup/restaurar', {
             method: 'POST',
@@ -90,5 +117,7 @@ export const cursoApi = {
         }),
 
     resetApp: () =>
-        fetch('/api/curso/reset', { method: 'DELETE' })
+        fetch('/api/curso/reset', {
+            method: 'DELETE'
+        })
 };

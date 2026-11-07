@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function VistaAdmin({ datos, onActualizar, onCerrarSesion }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {

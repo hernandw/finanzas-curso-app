@@ -53,16 +53,19 @@ export default function App() {
         }
     }, [autenticado]);
 
-    const cargarDatos = async (anioDeseado = null) => {
-        try {
-            const url = anioDeseado ? `/api/curso/datos?anio=${anioDeseado}` : '/api/curso/datos';
-            const res = await fetch(url);
-            const json = await res.json();
-            setDatos(json);
-        } catch (error) {
-            console.error("Error al cargar datos:", error);
-        }
-    };
+   const API_BASE = import.meta.env.VITE_API_URL || '';
+
+const cargarDatos = async (anioDeseado = null) => {
+    try {
+        const ruta = anioDeseado ? `/api/curso/datos?anio=${anioDeseado}` : '/api/curso/datos';
+        // Ahora apuntará a https://tu-backend.onrender.com/api/curso/datos
+        const res = await fetch(`${API_BASE}${ruta}`);
+        const json = await res.json();
+        setDatos(json);
+    } catch (error) {
+        console.error("Error al cargar datos:", error);
+    }
+};
 
     useEffect(() => {
         cargarDatos();

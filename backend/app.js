@@ -10,8 +10,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Habilitar CORS para recibir peticiones desde GitHub Pages
+app.use(cors({
+    origin: '*', // O si prefieres específico: 'https://hernandw.github.io'
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Servir uploads de recibos
+app.use('/uploads', express.static('backend/uploads'));
 
 // Montar rutas
 app.use('/api', apiRoutes);

@@ -440,5 +440,26 @@ router.delete('/curso/admin/apoderado/:id', async (req, res) => {
         res.status(500).json({ error: "Error al eliminar apoderado" });
     }
 });
+// Actualizar datos de un apoderado (nombre o alumno)
+router.put('/curso/admin/apoderado/:id', async (req, res) => {
+    const { id } = req.params;
+    const { nombre, alumno } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        // Si tu estructura es multianual, busca en el año activo:
+        const apoderados = datos.anios ? datos.anios[datos.anio_activo].apoderados : datos.apoderados;
+        const apoderado = apoderados.find(a => a.id === id);
+
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        if (nombre) apoderado.nombre = nombre.trim();
+        if (alumno) apoderado.alumno = alumno.trim();
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al actualizar apoderado" });
+    }
+});
 
 export default router;

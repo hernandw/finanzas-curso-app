@@ -1,7 +1,8 @@
 // src/components/VistaAdmin.jsx
+// src/components/VistaAdmin.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
@@ -38,6 +39,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'María González');
     const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
 
+    // Modal Editar Apoderado / Alumno
+    const [modalEditarApo, setModalEditarApo] = useState(false);
+    const [idEditando, setIdEditando] = useState(null);
+    const [editNombreApo, setEditNombreApo] = useState('');
+    const [editNombreAlu, setEditNombreAlu] = useState('');
+
     useEffect(() => {
         setCuotaInput(datos.configuracion.cuota_mensual || 15000);
         setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
@@ -54,7 +61,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Notificaciones por sección (Toast local sobre la tarjeta)
+    // Notificaciones por sección (Toast local)
     const [avisosSeccion, setAvisosSeccion] = useState({});
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
@@ -82,11 +89,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF optimizado con colores y desglose de caja
+    // Exportar a PDF
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
-        const saldoInicial = Number(datos.configuracion.saldo_inicial || 0);
 
         doc.setFontSize(14);
         doc.setTextColor(15, 23, 42);
@@ -95,36 +101,9 @@ export default function VistaAdmin({ datos, onActualizar }) {
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
         doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
+        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Saldo Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')}`, 14, 27);
 
-        let currentY = 32;
-
-        const totalIngresosGral = totalCuotasRecaudadas + totalIngresosExtra;
-        const resumenCajaData = [
-            ['Saldo Inicial (Año Anterior)', `$${saldoInicial.toLocaleString('es-CL')}`],
-            ['(+) Total Ingresos (Cuotas + Extras)', `+$${totalIngresosGral.toLocaleString('es-CL')}`],
-            ['(-) Total Egresos (Gastos)', `-$${totalGastos.toLocaleString('es-CL')}`],
-            ['(=) Saldo Real en Caja', `$${saldoRealCaja.toLocaleString('es-CL')}`]
-        ];
-
-        autoTable(doc, {
-            startY: currentY,
-            head: [['Concepto Financiero', 'Monto']],
-            body: resumenCajaData,
-            theme: 'grid',
-            headStyles: { fillColor: [71, 85, 105] },
-            styles: { fontSize: 9, fontStyle: 'bold' },
-            didParseCell: (data) => {
-                if (data.section === 'body') {
-                    if (data.row.index === 1 && data.column.index === 1) data.cell.styles.textColor = [16, 185, 129];
-                    if (data.row.index === 2 && data.column.index === 1) data.cell.styles.textColor = [225, 29, 72];
-                    if (data.row.index === 3 && data.column.index === 1) {
-                        data.cell.styles.textColor = saldoRealCaja >= 0 ? [16, 185, 129] : [225, 29, 72];
-                    }
-                }
-            }
-        });
-
-        currentY = doc.lastAutoTable.finalY + 10;
+        let currentY = 34;
 
         doc.setFontSize(11);
         doc.setTextColor(15, 23, 42);
@@ -135,43 +114,29 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ...(datos.ingresos_extra || []).map(e => ({ fecha: e.fecha || 'N/A', tipo: 'Ingreso Extra', desc: e.titulo, monto: Number(e.monto) }))
         ].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-        let saldoAcumulado = saldoInicial;
+        let saldoAcumulado = Number(datos.configuracion.saldo_inicial || 0);
         const filasMovimientos = movimientos.map(m => {
             saldoAcumulado += m.monto;
             return [
                 m.fecha,
-                m.tipo,
-                m.desc,
+                `${m.tipo}: ${m.desc}`,
                 m.monto >= 0 ? `+$${m.monto.toLocaleString('es-CL')}` : `-$${Math.abs(m.monto).toLocaleString('es-CL')}`,
                 `$${saldoAcumulado.toLocaleString('es-CL')}`
             ];
         });
 
-        autoTable(doc, {
+        doc.autoTable({
             startY: currentY + 3,
-            head: [['Fecha', 'Tipo', 'Descripción', 'Monto', 'Saldo en Caja']],
-            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', '-', 'No hay movimientos', '-', '-']],
+            head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
+            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos', '-', '-']],
             theme: 'grid',
             headStyles: { fillColor: [16, 185, 129] },
-            styles: { fontSize: 8 },
-            didParseCell: (data) => {
-                if (data.section === 'body' && (data.column.index === 3 || data.column.index === 4)) {
-                    const textVal = data.cell.raw;
-                    if (textVal && textVal.includes('-')) {
-                        data.cell.styles.textColor = [225, 29, 72];
-                        data.cell.styles.fontStyle = 'bold';
-                    } else if (textVal && (textVal.includes('+') || (data.column.index === 4 && !textVal.includes('-')))) {
-                        data.cell.styles.textColor = [16, 185, 129];
-                        data.cell.styles.fontStyle = 'bold';
-                    }
-                }
-            }
+            styles: { fontSize: 8 }
         });
 
         currentY = doc.lastAutoTable.finalY + 10;
 
         doc.setFontSize(11);
-        doc.setTextColor(15, 23, 42);
         doc.text('2. Estado de Pagos y Saldos por Apoderado', 14, currentY);
 
         const filasAlumnos = datos.apoderados.map(apo => {
@@ -199,31 +164,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ];
         });
 
-        autoTable(doc, {
+        doc.autoTable({
             startY: currentY + 3,
-            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo Deuda']],
+            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
             body: filasAlumnos,
             theme: 'grid',
             headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8 },
-            didParseCell: (data) => {
-                if (data.section === 'body') {
-                    if (data.column.index === 2) {
-                        const textVal = data.cell.raw;
-                        if (textVal && textVal !== '$0') {
-                            data.cell.styles.textColor = [16, 185, 129];
-                            data.cell.styles.fontStyle = 'bold';
-                        }
-                    }
-                    if (data.column.index === 4) {
-                        const textVal = data.cell.raw;
-                        if (textVal && textVal !== '$0') {
-                            data.cell.styles.textColor = [225, 29, 72];
-                            data.cell.styles.fontStyle = 'bold';
-                        }
-                    }
-                }
-            }
+            styles: { fontSize: 8 }
         });
 
         doc.save(`Relacion_Tesoreria_${anioActual}.pdf`);
@@ -440,6 +387,40 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
+    // Funciones de Edición de Apoderado / Alumno
+    const abrirModalEdicion = (apo) => {
+        setIdEditando(apo.id);
+        setEditNombreApo(apo.nombre);
+        setEditNombreAlu(apo.alumno);
+        setModalEditarApo(true);
+    };
+
+    const handleGuardarEdicionApo = async (e) => {
+        e.preventDefault();
+        if (!editNombreApo.trim() || !editNombreAlu.trim()) {
+            mostrarAvisoLocal('pagos', "Complete ambos campos.", "error");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/curso/admin/apoderado/${idEditando}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: editNombreApo, alumno: editNombreAlu })
+            });
+
+            if (res.ok) {
+                setModalEditarApo(false);
+                mostrarAvisoLocal('pagos', "Apoderado y alumno actualizados.");
+                onActualizar();
+            } else {
+                mostrarAvisoLocal('pagos', "Error al guardar cambios.", "error");
+            }
+        } catch (error) {
+            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+        }
+    };
+
     const abrirModalPago = (apo) => {
         setApoderadoSeleccionado(apo);
         setMontoPago('');
@@ -521,22 +502,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    const handleEliminarApoderado = async (id, nombreApo) => {
-        if (confirm(`¿Estás seguro de eliminar permanentemente al apoderado ${nombreApo}?`)) {
-            try {
-                const res = await fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    mostrarAvisoLocal('pagos', "Apoderado eliminado correctamente.");
-                    onActualizar();
-                } else {
-                    mostrarAvisoLocal('pagos', "Error al eliminar apoderado.", "error");
-                }
-            } catch (error) {
-                mostrarAvisoLocal('pagos', "Error de conexión.", "error");
-            }
-        }
-    };
-
     const handleCambiarEstado = async (id, nombre, activoActual) => {
         const nuevoEstado = !activoActual;
         const accion = nuevoEstado ? "activado" : "ocultado";
@@ -559,7 +524,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     return (
         <div className="space-y-8 relative">
-            {/* BARRA DE HERRAMIENTAS: PDF, BACKUP Y RESTAURACIÓN */}
+            {/* BARRA DE HERRAMIENTAS */}
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3 relative">
                 {avisosSeccion['acciones'] && (
                     <div className="absolute -top-10 left-0 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs px-3 py-1.5 rounded-xl shadow-lg z-50 animate-bounce">
@@ -723,6 +688,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         </button>
                     </div>
 
+                    {/* SELECTOR CON EL AÑO 2024 AGREGADO */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
                         <span className="text-[10px] text-slate-400">Año:</span>
                         <select 
@@ -738,6 +704,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             }}
                             className="bg-slate-900 text-white font-bold text-xs px-2 py-1 rounded border border-slate-700 cursor-pointer"
                         >
+                            <option value="2024">2024</option>
                             <option value="2025">2025</option>
                             <option value="2026">2026</option>
                             <option value="2027">2027</option>
@@ -1145,9 +1112,19 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
                                 <div>
-                                    <h4 className="font-bold text-white text-sm">
-                                        {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
-                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="font-bold text-white text-sm">
+                                            {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
+                                        </h4>
+                                        {/* Botón para editar apoderado y alumno */}
+                                        <button 
+                                            onClick={() => abrirModalEdicion(apo)}
+                                            className="text-slate-400 hover:text-sky-400 transition text-xs p-1"
+                                            title="Editar apoderado y alumno"
+                                        >
+                                            <i className="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                    </div>
                                     <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
                                 </div>
                                 <div className="flex gap-2 w-full sm:w-auto">
@@ -1162,13 +1139,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                         className={`text-xs px-3 py-1.5 rounded-xl border transition ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'}`}
                                     >
                                         {apo.activo === false ? 'Activar' : 'Ocultar'}
-                                    </button>
-                                    <button 
-                                        onClick={() => handleEliminarApoderado(apo.id, apo.nombre)}
-                                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-3 py-1.5 rounded-xl transition"
-                                        title="Eliminar apoderado permanentemente"
-                                    >
-                                        <i className="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>
                             </div>
@@ -1211,6 +1181,62 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     ))}
                 </div>
             </div>
+
+            {/* MODAL DE EDICIÓN DE APODERADO / ALUMNO */}
+            {modalEditarApo && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <i className="fa-solid fa-user-pen text-sky-400"></i> Modificar Apoderado
+                            </h3>
+                            <button onClick={() => setModalEditarApo(false)} className="text-slate-400 hover:text-white">
+                                <i className="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleGuardarEdicionApo} className="space-y-3">
+                            <div>
+                                <label className="text-[11px] text-slate-400 block mb-1">Nombre del Apoderado</label>
+                                <input 
+                                    type="text" 
+                                    value={editNombreApo}
+                                    onChange={(e) => setEditNombreApo(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[11px] text-slate-400 block mb-1">Nombre del Alumno</label>
+                                <input 
+                                    type="text" 
+                                    value={editNombreAlu}
+                                    onChange={(e) => setEditNombreAlu(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex gap-2 pt-3">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setModalEditarApo(false)}
+                                    className="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="w-1/2 bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition"
+                                >
+                                    Guardar Cambios
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL DE REGISTRO DE PAGO / ABONO GLOBAL */}
             {modalAbierto && (

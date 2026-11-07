@@ -1,13 +1,269 @@
 {
-  "anio_activo": "2026",
+  "anio_activo": "2024",
   "anios": {
+    "2024": {
+      "saldo_inicial": 0,
+      "cuota_mensual": 9000,
+      "nombre_curso": "6° Básico B",
+      "profesor": "José Poma",
+      "presidente": "Ingrid Brito",
+      "tesorero": "Williams Hernández",
+      "meses": [
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre"
+      ],
+      "apoderados": [
+        {
+          "id": "apo-1794062071150",
+          "nombre": "Karina Moreno",
+          "alumno": "Abarza Agustín",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062184330",
+          "nombre": "Ingrid Brito",
+          "alumno": "Campos Nelson",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062216424",
+          "nombre": "Mario Cárdenas",
+          "alumno": "Cardenas Gabriel",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062252011",
+          "nombre": "Carolina Valenzuela",
+          "alumno": "Droguett Cristobal",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        }
+      ],
+      "gastos": [],
+      "ingresos_extra": []
+    },
     "2026": {
       "saldo_inicial": 0,
-      "cuota_mensual": 15000,
-      "nombre_curso": "4° Medio A",
-      "profesor": "Juan Pérez",
-      "presidente": "Ana Gómez",
-      "tesorero": "María González",
+      "cuota_mensual": 11000,
+      "nombre_curso": "8° Básico B",
+      "profesor": "Aylin Chong",
+      "presidente": "Ingrid Brito",
+      "tesorero": "Natalya Zakharova",
       "meses": [
         "Marzo",
         "Abril",

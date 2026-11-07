@@ -1,123 +1,123 @@
-// src/services/cursoApi.js
+// frontend/src/services/cursoApi.js
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const cursoApi = {
-    // 1. Obtener datos (permite especificar año o usar el activo)
     obtenerDatos: (anio = null) => {
-        const url = anio ? `/api/curso/datos?anio=${anio}` : '/api/curso/datos';
+        const url = anio 
+            ? `${API_BASE}/api/curso/datos?anio=${anio}` 
+            : `${API_BASE}/api/curso/datos`;
         return fetch(url);
     },
 
-    // 2. Gestión de Años
-    cambiarAnio: (nuevoAnio) =>
-        fetch('/api/curso/admin/cambiar-anio', {
+    registrarGasto: (formData) =>
+        fetch(`${API_BASE}/api/curso/admin/gasto`, {
+            method: 'POST',
+            body: formData // Envía Multipart FormData directamente con el recibo
+        }),
+
+    eliminarGasto: (id, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/gasto/${id}?anio=${anio}`, {
+            method: 'DELETE'
+        }),
+
+    agregarApoderado: (datos) =>
+        fetch(`${API_BASE}/api/curso/admin/apoderado/agregar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nuevoAnio })
+            body: JSON.stringify(datos)
         }),
 
-    aperturarAnio: (nuevoAnio, cuotaMensual) =>
-        fetch('/api/curso/admin/cambiar-anio', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nuevoAnio, cuotaMensual })
-        }),
-
-    cerrarAnioEscolar: () =>
-        fetch('/api/curso/admin/cerrar-anio', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        }),
-
-    // 3. Configuración y Datos del Curso
-    actualizarConfiguracion: (config) =>
-        fetch('/api/curso/admin/configuracion', {
+    modificarApoderado: (id, datos) =>
+        fetch(`${API_BASE}/api/curso/admin/apoderado/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config)
+            body: JSON.stringify(datos)
         }),
 
-    // 4. Pagos, Abonos y Exoneración
+    cambiarEstadoApoderado: (id, activo, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/apoderado/estado/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activo, anio })
+        }),
+
+    eliminarApoderado: (id, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/apoderado/${id}?anio=${anio}`, {
+            method: 'DELETE'
+        }),
+
     registrarPagoGlobal: (pago) =>
-        fetch('/api/curso/admin/pago-global', {
+        fetch(`${API_BASE}/api/curso/admin/pago-global`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(pago)
         }),
 
-    eliminarPagoMes: (apoderadoId, mes) =>
-        fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, {
+    eliminarPagoMes: (apoderadoId, mes, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/pago/${apoderadoId}/${mes}?anio=${anio}`, {
             method: 'DELETE'
         }),
 
-    exonerarMes: (apoderadoId, mes) =>
-        fetch(`/api/curso/admin/pago/exonerar/${apoderadoId}/${mes}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' }
+    exonerarMes: (apoderadoId, mes, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/pago/exonerar/${apoderadoId}/${mes}?anio=${anio}`, {
+            method: 'PUT'
         }),
 
-    // 5. Apoderados y Alumnos
-    agregarApoderado: (apoderado) =>
-        fetch('/api/curso/admin/apoderado/agregar', {
+    registrarIngresoExtra: (datos) =>
+        fetch(`${API_BASE}/api/curso/admin/ingreso-extra`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(apoderado)
+            body: JSON.stringify(datos)
         }),
 
-    editarApoderado: (id, apoderado) =>
-        fetch(`/api/curso/admin/apoderado/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(apoderado)
+    eliminarIngresoExtra: (id, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/ingreso-extra/${id}?anio=${anio}`, {
+            method: 'DELETE'
         }),
 
-    cambiarEstadoApoderado: (id, activo) =>
-        fetch(`/api/curso/admin/apoderado/estado/${id}`, {
+    actualizarConfiguracion: (datos) =>
+        fetch(`${API_BASE}/api/curso/admin/configuracion`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activo })
+            body: JSON.stringify(datos)
         }),
 
-    eliminarApoderado: (id) =>
-        fetch(`/api/curso/admin/apoderado/${id}`, {
-            method: 'DELETE'
-        }),
-
-    // 6. Gastos
-    registrarGasto: (gasto) =>
-        fetch('/api/curso/admin/gasto', {
+    cambiarAnio: (nuevoAnio) =>
+        fetch(`${API_BASE}/api/curso/admin/cambiar-anio`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(gasto)
+            body: JSON.stringify({ nuevoAnio })
         }),
 
-    eliminarGasto: (id) =>
-        fetch(`/api/curso/admin/gasto/${id}`, {
-            method: 'DELETE'
+    cerrarAnio: () =>
+        fetch(`${API_BASE}/api/curso/admin/cerrar-anio`, {
+            method: 'POST'
         }),
 
-    // 7. Ingresos Extra
-    registrarIngresoExtra: (ingreso) =>
-        fetch('/api/curso/admin/ingreso-extra', {
+    enviarCorreoMorosos: (apoderadoId, anio) =>
+        fetch(`${API_BASE}/api/curso/admin/enviar-correo-morosos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ingreso)
+            body: JSON.stringify({ apoderadoId, anio })
         }),
 
-    eliminarIngresoExtra: (id) =>
-        fetch(`/api/curso/admin/ingreso-extra/${id}`, {
-            method: 'DELETE'
+    enviarPdfCorreo: (formData) =>
+        fetch(`${API_BASE}/api/curso/admin/enviar-pdf-correo`, {
+            method: 'POST',
+            body: formData
         }),
 
-    // 8. Copias de Seguridad y Reset
-    restaurarBackup: (json) =>
-        fetch('/api/curso/backup/restaurar', {
+    backupUrl: () => `${API_BASE}/api/curso/backup`,
+
+    restaurarBackup: (jsonString) =>
+        fetch(`${API_BASE}/api/curso/backup/restaurar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(json)
+            body: jsonString
         }),
 
     resetApp: () =>
-        fetch('/api/curso/reset', {
+        fetch(`${API_BASE}/api/curso/reset`, {
             method: 'DELETE'
         })
 };

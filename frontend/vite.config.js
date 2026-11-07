@@ -2,10 +2,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/finanzas-curso-app/', // <-- Esta línea soluciona el error 404 de los assets
+  base: './', // <-- Usa './' (rutas relativas: nunca falla sin importar el nombre del repositorio)
   server: {
     proxy: {
       '/api': {

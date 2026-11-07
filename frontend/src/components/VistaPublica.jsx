@@ -12,12 +12,28 @@ export default function VistaPublica({ datos }) {
 
     const [busqueda, setBusqueda] = useState('');
 
-    const apoderadosFiltrados = datos.apoderados.filter(a => 
-        (a.activo !== false) && (
-            a.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
-            a.alumno.toLowerCase().includes(busqueda.toLowerCase())
+    // Detección de apellido paterno (índice penúltimo si son 4 palabras o segundo si son 3/2)
+    const obtenerApellidoPaterno = (nombreCompleto = '') => {
+        if (!nombreCompleto) return '';
+        const partes = nombreCompleto.trim().split(/\s+/);
+        if (partes.length === 1) return partes[0].toLowerCase();
+        if (partes.length === 2 || partes.length === 3) return partes[1].toLowerCase();
+        return partes[partes.length - 2].toLowerCase();
+    };
+
+    // Filtra activos y busca por apoderado o alumno, ordenado alfabéticamente por apellido paterno
+    const apoderadosFiltrados = datos.apoderados
+        .filter(a => 
+            (a.activo !== false) && (
+                a.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+                a.alumno.toLowerCase().includes(busqueda.toLowerCase())
+            )
         )
-    );
+        .sort((a, b) => {
+            const apA = obtenerApellidoPaterno(a.alumno);
+            const apB = obtenerApellidoPaterno(b.alumno);
+            return apA.localeCompare(apB, 'es', { sensitivity: 'base', numeric: true });
+        });
 
     const cuotaOficial = datos.configuracion?.cuota_mensual || 15000;
     const saldoInicial = Number(datos.configuracion?.saldo_inicial || 0);
@@ -34,32 +50,48 @@ export default function VistaPublica({ datos }) {
 
     return (
         <div className="space-y-6">
-            {/* CABECERA INFORMATIVA DEL CURSO (SOLO LECTURA) */}
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                        Periodo {datos.anio_activo}
-                    </span>
-                    <h2 className="text-xl font-bold text-white mt-2 flex items-center gap-2">
-                        <i className="fa-solid fa-school text-sky-400"></i> Tesorería Oficial - {datos.configuracion.nombre_curso || '4° Medio A'}
-                    </h2>
-                    <div className="flex flex-wrap gap-3 text-xs text-slate-400 mt-2">
-                        <span><strong className="text-slate-300">Profesor/a:</strong> {datos.configuracion.profesor || 'No asignado'}</span>
-                        <span>•</span>
-                        <span><strong className="text-slate-300">Presidente/a:</strong> {datos.configuracion.presidente || 'No asignado'}</span>
-                        <span>•</span>
-                        <span><strong className="text-slate-300">Tesorero/a:</strong> {datos.configuracion.tesorero || 'No asignado'}</span>
-                        <span>•</span>
-                        <span><strong className="text-emerald-400">Cuota Mensual:</strong> ${Number(cuotaOficial).toLocaleString('es-CL')}</span>
+            {/* INFORMACIÓN DEL CURSO (SOLO LECTURA) */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-3">
+                <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <i className="fa-solid fa-school"></i> Directiva e Información del Curso
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-300">
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Curso:</span>
+                        <span className="font-bold text-white text-sm">{datos.configuracion?.nombre_curso || '4° Medio A'}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Profesor/a Jefe:</span>
+                        <span className="font-bold text-emerald-400 text-sm">{datos.configuracion?.profesor || 'No asignado'}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Presidente/a:</span>
+                        <span className="font-bold text-sky-400 text-sm">{datos.configuracion?.presidente || 'No asignado'}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-500 block">Tesorero/a:</span>
+                        <span className="font-bold text-amber-400 text-sm">{datos.configuracion?.tesorero || 'No asignado'}</span>
                     </div>
                 </div>
-                <div className="w-full md:w-auto">
+            </div>
+
+            {/* CABECERA Y BUSCADOR */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <i className="fa-solid fa-clipboard-user text-emerald-400"></i> Estado General y Transparencia ({datos.anio_activo})
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                        Cuota mensual fija del año: <strong className="text-emerald-400 font-semibold">${Number(cuotaOficial).toLocaleString('es-CL')}</strong>
+                    </p>
+                </div>
+                <div className="w-full sm:w-auto">
                     <input 
                         type="text"
                         placeholder="Buscar por apoderado o alumno..."
                         value={busqueda}
                         onChange={(e) => setBusqueda(e.target.value)}
-                        className="w-full md:w-64 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition shadow-inner"
+                        className="w-full sm:w-64 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition shadow-inner"
                     />
                 </div>
             </div>
@@ -67,7 +99,7 @@ export default function VistaPublica({ datos }) {
             {/* BALANCE GENERAL Y FLUJO DE CAJA */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                    <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja
+                    <i className="fa-solid fa-scale-balanced"></i> Flujo de Caja y Balance General
                 </h3>
 
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
@@ -90,7 +122,7 @@ export default function VistaPublica({ datos }) {
                         </span>
                     </div>
                     <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Total Egresos (Gastos)</span>
+                        <span className="text-[10px] text-slate-400 block">Total Gastos</span>
                         <span className="text-sm font-bold text-rose-400">
                             ${totalGastos.toLocaleString('es-CL')}
                         </span>
@@ -104,12 +136,12 @@ export default function VistaPublica({ datos }) {
                 </div>
             </div>
 
-            {/* SECCIÓN DE GASTOS E INGRESOS EXTRA */}
+            {/* RELACIÓN DE GASTOS E INGRESOS EXTRA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                         <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                            <i className="fa-solid fa-receipt"></i> Relación de Gastos
+                            <i className="fa-solid fa-receipt"></i> Egresos / Gastos
                         </h3>
                         <span className="text-xs text-slate-300 font-medium">Total: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong></span>
                     </div>
@@ -136,7 +168,7 @@ export default function VistaPublica({ datos }) {
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                     <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                         <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                            <i className="fa-solid fa-coins"></i> Ingresos Extra (Ventas / Rifas)
+                            <i className="fa-solid fa-coins"></i> Ingresos Extra (Ventas/Rifas)
                         </h3>
                         <span className="text-xs text-slate-300 font-medium">Total: <strong className="text-emerald-400">${totalIngresosExtra.toLocaleString('es-CL')}</strong></span>
                     </div>
@@ -156,77 +188,71 @@ export default function VistaPublica({ datos }) {
                                     ))}
                                 </tbody>
                             </table>
-                        ) : <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra registrados.</p>}
+                        ) : <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra.</p>}
                     </div>
                 </div>
             </div>
 
-            {/* TARJETAS DETALLADAS POR APODERADO */}
+            {/* TARJETAS DE PAGOS POR APODERADO ORDENADAS POR APELLIDO PATERNO */}
             <div className="space-y-3">
                 <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2 px-1">
-                    <i className="fa-solid fa-users"></i> Estado de Pagos por Apoderado ({apoderadosFiltrados.length})
+                    <i className="fa-solid fa-users"></i> Estado de Pagos por Alumno ({apoderadosFiltrados.length})
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {apoderadosFiltrados.length > 0 ? (
-                        apoderadosFiltrados.map(apo => {
-                            let totalPagadoApo = 0;
-                            datos.configuracion.meses.forEach(mes => {
-                                const p = apo.pagos[mes];
-                                if (p && p.monto) totalPagadoApo += Number(p.monto);
-                            });
+                    {apoderadosFiltrados.map(apo => {
+                        let totalPagadoApo = 0;
+                        datos.configuracion.meses.forEach(mes => {
+                            const p = apo.pagos[mes];
+                            if (p && p.monto) totalPagadoApo += Number(p.monto);
+                        });
 
-                            return (
-                                <div key={apo.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 hover:border-slate-700 transition flex flex-col justify-between">
-                                    <div>
-                                        <div className="flex justify-between items-start border-b border-slate-800 pb-3 mb-3">
-                                            <div>
-                                                <h3 className="font-bold text-white text-sm">{apo.nombre}</h3>
-                                                <p className="text-xs text-emerald-400 font-semibold mt-0.5">Alumno: {apo.alumno}</p>
-                                            </div>
-                                            <span className="text-[10px] bg-slate-950 border border-slate-800 text-slate-300 px-2 py-1 rounded-lg font-medium">
-                                                Total: ${totalPagadoApo.toLocaleString('es-CL')}
-                                            </span>
+                        return (
+                            <div key={apo.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 hover:border-slate-700 transition flex flex-col justify-between">
+                                <div>
+                                    <div className="flex justify-between items-start border-b border-slate-800 pb-3 mb-3">
+                                        <div>
+                                            <h3 className="font-bold text-white text-sm">{apo.nombre}</h3>
+                                            <p className="text-xs text-emerald-400 font-semibold mt-0.5">Alumno: {apo.alumno}</p>
                                         </div>
+                                        <span className="text-[10px] bg-slate-950 border border-slate-800 text-slate-300 px-2 py-1 rounded-lg font-medium">
+                                            Total: ${totalPagadoApo.toLocaleString('es-CL')}
+                                        </span>
+                                    </div>
 
-                                        <div className="grid grid-cols-2 gap-2 pt-1">
-                                            {datos.configuracion.meses.map(mes => {
-                                                const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
-                                                const montoAbonado = Number(pago.monto || 0);
-                                                const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
-                                                const esAbono = !esCompleto && (montoAbonado > 0);
+                                    <div className="grid grid-cols-2 gap-2 pt-1">
+                                        {datos.configuracion.meses.map(mes => {
+                                            const pago = apo.pagos[mes] || { pagado: false, monto: 0 };
+                                            const montoAbonado = Number(pago.monto || 0);
+                                            const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
+                                            const esAbono = !esCompleto && (montoAbonado > 0);
 
-                                                return (
-                                                    <div key={mes} className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-xl flex flex-col justify-between space-y-1">
-                                                        <span className="text-[11px] font-medium text-slate-400">{mes}</span>
-                                                        <div className="mt-1">
-                                                            {esCompleto ? (
-                                                                <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[10px] font-bold">
-                                                                    Pagado ✓
-                                                                </span>
-                                                            ) : esAbono ? (
-                                                                <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold" title={`Abonó $${montoAbonado.toLocaleString('es-CL')}`}>
-                                                                    Abono (${montoAbonado.toLocaleString('es-CL')})
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[10px] font-bold">
-                                                                    Pendiente ✗
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                            return (
+                                                <div key={mes} className="bg-slate-950 border border-slate-800/80 p-2.5 rounded-xl flex flex-col justify-between space-y-1">
+                                                    <span className="text-[11px] font-medium text-slate-400">{mes}</span>
+                                                    <div className="mt-1">
+                                                        {esCompleto ? (
+                                                            <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[10px] font-bold">
+                                                                Pagado ✓
+                                                            </span>
+                                                        ) : esAbono ? (
+                                                            <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[10px] font-bold">
+                                                                Abono (${montoAbonado.toLocaleString('es-CL')})
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[10px] font-bold">
+                                                                Pendiente ✗
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            );
-                        })
-                    ) : (
-                        <div className="col-span-full text-center py-12 text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
-                            No se encontraron apoderados activos.
-                        </div>
-                    )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

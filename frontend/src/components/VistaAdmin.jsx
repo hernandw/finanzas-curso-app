@@ -1,8 +1,7 @@
 // src/components/VistaAdmin.jsx
-// src/components/VistaAdmin.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
@@ -12,6 +11,21 @@ export default function VistaAdmin({ datos, onActualizar }) {
             </div>
         );
     }
+
+    // Extracción inteligente de apellido paterno
+    const obtenerApellidoPaterno = (nombreCompleto = '') => {
+        if (!nombreCompleto) return '';
+        const partes = nombreCompleto.trim().split(/\s+/);
+        if (partes.length === 1) return partes[0].toLowerCase();
+        if (partes.length === 2 || partes.length === 3) return partes[1].toLowerCase();
+        return partes[partes.length - 2].toLowerCase();
+    };
+
+    const ordenarPorApellidoPaterno = (a, b) => {
+        const apA = obtenerApellidoPaterno(a.alumno);
+        const apB = obtenerApellidoPaterno(b.alumno);
+        return apA.localeCompare(apB, 'es', { sensitivity: 'base', numeric: true });
+    };
 
     const [nombreApoderado, setNombreApoderado] = useState('');
     const [nombreAlumno, setNombreAlumno] = useState('');
@@ -27,7 +41,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [extraMonto, setExtraMonto] = useState('');
     const [extraFecha, setExtraFecha] = useState(new Date().toISOString().slice(0, 10));
 
-    // Saldo y Cuota
+    // Saldo Inicial y Cuota
     const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
     const [editandoSaldo, setEditandoSaldo] = useState(false);
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
@@ -39,7 +53,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'María González');
     const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
 
-    // Modal Editar Apoderado / Alumno
+    // Modal Modificar Apoderado / Alumno
     const [modalEditarApo, setModalEditarApo] = useState(false);
     const [idEditando, setIdEditando] = useState(null);
     const [editNombreApo, setEditNombreApo] = useState('');
@@ -61,7 +75,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Notificaciones por sección (Toast local)
+    // Notificaciones locales por sección
     const [avisosSeccion, setAvisosSeccion] = useState({});
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
@@ -89,7 +103,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportar a PDF
+    // Exportación a PDF estructurado y ordenado por apellido paterno
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
@@ -125,10 +139,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: currentY + 3,
             head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
-            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos', '-', '-']],
+            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos registrados', '-', '-']],
             theme: 'grid',
             headStyles: { fillColor: [16, 185, 129] },
             styles: { fontSize: 8 }
@@ -137,9 +151,11 @@ export default function VistaAdmin({ datos, onActualizar }) {
         currentY = doc.lastAutoTable.finalY + 10;
 
         doc.setFontSize(11);
-        doc.text('2. Estado de Pagos y Saldos por Apoderado', 14, currentY);
+        doc.text('2. Estado de Pagos y Saldos por Alumno (Ordenado por Apellido)', 14, currentY);
 
-        const filasAlumnos = datos.apoderados.map(apo => {
+        const apoderadosOrdenados = [...datos.apoderados].sort(ordenarPorApellidoPaterno);
+
+        const filasAlumnos = apoderadosOrdenados.map(apo => {
             let totalAbonadoApo = 0;
             let mesesPendientes = 0;
 
@@ -164,7 +180,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
             ];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
             startY: currentY + 3,
             head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
             body: filasAlumnos,
@@ -211,25 +227,25 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     mostrarAvisoLocal('acciones', "Archivo de backup no válido.", "error");
                 }
             } catch (err) {
-                mostrarAvisoLocal('acciones', "Error al leer JSON.", "error");
+                mostrarAvisoLocal('acciones', "Error al procesar el archivo JSON.", "error");
             }
         };
         reader.readAsText(file);
     };
 
     const handleBorrarAplicacion = async () => {
-        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de borrar todos los datos de la aplicación?")) {
-            if (confirm("Confirma nuevamente para proceder al borrado total:")) {
+        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de reiniciar toda la aplicación de fábrica?")) {
+            if (confirm("Confirma nuevamente para borrar todos los registros y restaurar la base:")) {
                 try {
                     const res = await fetch('/api/curso/reset', { method: 'DELETE' });
                     if (res.ok) {
                         mostrarAvisoLocal('acciones', "Aplicación reiniciada de fábrica.");
                         onActualizar();
                     } else {
-                        mostrarAvisoLocal('acciones', "Error al reiniciar.", "error");
+                        mostrarAvisoLocal('acciones', "Error al reiniciar la aplicación.", "error");
                     }
                 } catch (error) {
-                    mostrarAvisoLocal('acciones', "Error de conexión.", "error");
+                    mostrarAvisoLocal('acciones', "Error de conexión con el servidor.", "error");
                 }
             }
         }
@@ -256,14 +272,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('curso', "Error al guardar datos del curso.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('curso', "Error de conexión.", "error");
+            mostrarAvisoLocal('curso', "Error de conexión con el servidor.", "error");
         }
     };
 
     const handleActualizarCuota = async () => {
         const nuevaCuota = Number(cuotaInput);
         if (isNaN(nuevaCuota) || nuevaCuota <= 0) {
-            mostrarAvisoLocal('config', "Ingrese cuota válida.", "error");
+            mostrarAvisoLocal('config', "Ingrese un valor de cuota válido.", "error");
             return;
         }
 
@@ -274,13 +290,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 body: JSON.stringify({ cuota_mensual: nuevaCuota })
             });
             if (res.ok) {
-                mostrarAvisoLocal('config', "Cuota actualizada y rebalanceada.");
+                mostrarAvisoLocal('config', "Cuota actualizada y mensualidades rebalanceadas.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('config', "Error al actualizar cuota.", "error");
+                mostrarAvisoLocal('config', "Error al actualizar la cuota.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('config', "Error de conexión.", "error");
+            mostrarAvisoLocal('config', "Error de conexión con el servidor.", "error");
         }
     };
 
@@ -296,17 +312,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('config', "Saldo inicial actualizado.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('config', "Error al actualizar saldo.", "error");
+                mostrarAvisoLocal('config', "Error al actualizar saldo inicial.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('config', "Error de conexión.", "error");
+            mostrarAvisoLocal('config', "Error de conexión con el servidor.", "error");
         }
     };
 
     const handleRegistrarGasto = async (e) => {
         e.preventDefault();
         if (!gastoTitulo.trim() || !gastoMonto) {
-            mostrarAvisoLocal('gasto', "Complete los campos del gasto.", "error");
+            mostrarAvisoLocal('gasto', "Complete descripción y monto del gasto.", "error");
             return;
         }
 
@@ -324,10 +340,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('gasto', "Gasto registrado correctamente.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('gasto', "Error al registrar gasto.", "error");
+                mostrarAvisoLocal('gasto', "Error al registrar el gasto.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('gasto', "Error de conexión.", "error");
+            mostrarAvisoLocal('gasto', "Error de conexión con el servidor.", "error");
         }
     };
 
@@ -338,17 +354,17 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('relacionGastos', "Gasto eliminado.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('relacionGastos', "Error al eliminar.", "error");
+                mostrarAvisoLocal('relacionGastos', "Error al eliminar gasto.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('relacionGastos', "Error de conexión.", "error");
+            mostrarAvisoLocal('relacionGastos', "Error de conexión con el servidor.", "error");
         }
     };
 
     const handleRegistrarIngresoExtra = async (e) => {
         e.preventDefault();
         if (!extraTitulo.trim() || !extraMonto) {
-            mostrarAvisoLocal('ingreso', "Complete los campos del ingreso.", "error");
+            mostrarAvisoLocal('ingreso', "Complete concepto y monto del ingreso.", "error");
             return;
         }
 
@@ -366,10 +382,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('ingreso', "Ingreso extra registrado.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('ingreso', "Error al registrar ingreso.", "error");
+                mostrarAvisoLocal('ingreso', "Error al registrar ingreso extra.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('ingreso', "Error de conexión.", "error");
+            mostrarAvisoLocal('ingreso', "Error de conexión con el servidor.", "error");
         }
     };
 
@@ -380,14 +396,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('relacionIngresos', "Ingreso extra eliminado.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('relacionIngresos', "Error al eliminar.", "error");
+                mostrarAvisoLocal('relacionIngresos', "Error al eliminar ingreso extra.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('relacionIngresos', "Error de conexión.", "error");
+            mostrarAvisoLocal('relacionIngresos', "Error de conexión con el servidor.", "error");
         }
     };
 
-    // Funciones de Edición de Apoderado / Alumno
+    // Modal y Modificación de Apoderado / Alumno
     const abrirModalEdicion = (apo) => {
         setIdEditando(apo.id);
         setEditNombreApo(apo.nombre);
@@ -411,13 +427,30 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
             if (res.ok) {
                 setModalEditarApo(false);
-                mostrarAvisoLocal('pagos', "Apoderado y alumno actualizados.");
+                mostrarAvisoLocal('pagos', "Apoderado y alumno modificados correctamente.");
                 onActualizar();
             } else {
-                mostrarAvisoLocal('pagos', "Error al guardar cambios.", "error");
+                mostrarAvisoLocal('pagos', "Error al guardar modificaciones.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
+        }
+    };
+
+    // Eliminación definitiva de apoderado
+    const handleEliminarApoderado = async (id, nombre) => {
+        if (confirm(`¿Estás seguro de eliminar a ${nombre} y a su alumno? Se borrarán todos sus registros de pago del año actual.`)) {
+            try {
+                const res = await fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    mostrarAvisoLocal('pagos', `Apoderado ${nombre} eliminado.`);
+                    onActualizar();
+                } else {
+                    mostrarAvisoLocal('pagos', "Error al eliminar apoderado.", "error");
+                }
+            } catch (error) {
+                mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
+            }
         }
     };
 
@@ -432,7 +465,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const handleEnviarPagoGlobal = async (e) => {
         e.preventDefault();
         if (!montoPago || Number(montoPago) <= 0) {
-            mostrarAvisoLocal('modalPago', "Ingrese monto válido.", "error");
+            mostrarAvisoLocal('modalPago', "Ingrese un monto mayor a cero.", "error");
             return;
         }
 
@@ -450,13 +483,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
             if (res.ok) {
                 setModalAbierto(false);
-                mostrarAvisoLocal('pagos', "Pago registrado y distribuido.");
+                mostrarAvisoLocal('pagos', "Pago registrado y distribuido en las cuotas.");
                 onActualizar();
             } else {
                 mostrarAvisoLocal('modalPago', "Error al registrar pago.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('modalPago', "Error de conexión.", "error");
+            mostrarAvisoLocal('modalPago', "Error de conexión con el servidor.", "error");
         }
     };
 
@@ -465,20 +498,20 @@ export default function VistaAdmin({ datos, onActualizar }) {
         try {
             const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, { method: 'DELETE' });
             if (res.ok) {
-                mostrarAvisoLocal('pagos', `Se eliminó el pago de ${mes}`);
+                mostrarAvisoLocal('pagos', `Se revirtió el pago de ${mes}`);
                 onActualizar();
             } else {
-                mostrarAvisoLocal('pagos', "Error al eliminar pago.", "error");
+                mostrarAvisoLocal('pagos', "Error al revertir pago.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
         }
     };
 
     const handleAgregarApoderado = async (e) => {
         e.preventDefault();
         if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
-            mostrarAvisoLocal('apoderado', "Complete todos los campos.", "error");
+            mostrarAvisoLocal('apoderado', "Complete todos los campos requeridos.", "error");
             return;
         }
 
@@ -498,7 +531,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('apoderado', "Error al agregar apoderado.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('apoderado', "Error de conexión.", "error");
+            mostrarAvisoLocal('apoderado', "Error de conexión con el servidor.", "error");
         }
     };
 
@@ -518,13 +551,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('pagos', "Error al cambiar estado.", "error");
             }
         } catch (error) {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
         }
     };
 
     return (
         <div className="space-y-8 relative">
-            {/* BARRA DE HERRAMIENTAS */}
+            {/* BARRA DE HERRAMIENTAS: EXPORTAR, BACKUP Y RESET */}
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3 relative">
                 {avisosSeccion['acciones'] && (
                     <div className="absolute -top-10 left-0 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs px-3 py-1.5 rounded-xl shadow-lg z-50 animate-bounce">
@@ -568,7 +601,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* CONFIGURACIÓN DE LOS DATOS DEL CURSO */}
+            {/* DATOS DEL CURSO */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
                 {avisosSeccion['curso'] && (
                     <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
@@ -654,7 +687,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 )}
             </div>
 
-            {/* CABECERA, AÑO Y CONFIGURACIÓN */}
+            {/* CABECERA, AÑO ACTIVO Y PARÁMETROS */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
                 {avisosSeccion['config'] && (
                     <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
@@ -666,7 +699,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración ({datos.anio_activo})
                     </h2>
                     <p className="text-xs text-slate-400 mt-1">
-                        Gestión de tesorería, saldos, cuotas e ingresos del curso.
+                        Control general de mensualidades, saldos, gastos y tesorería.
                     </p>
                 </div>
 
@@ -757,7 +790,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* BALANCE GENERAL / FLUJO DE CAJA */}
+            {/* BALANCE GENERAL Y FLUJO DE CAJA */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                     <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja ({datos.anio_activo})
@@ -797,10 +830,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* RESUMEN FINANCIERO POR ALUMNO */}
+            {/* RESUMEN FINANCIERO POR ALUMNO (ORDENADO POR APELLIDO PATERNO) */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
-                    <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno
+                    <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno (Ordenado por Apellido Paterno)
                 </h3>
                 
                 <div className="overflow-x-auto">
@@ -814,40 +847,42 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
-                            {datos.apoderados.map(apo => {
-                                let totalPagadoApo = 0;
-                                let mesesDebe = 0;
-                                
-                                datos.configuracion.meses.forEach(mes => {
-                                    const p = apo.pagos[mes];
-                                    if (p && p.monto > 0) {
-                                        totalPagadoApo += Number(p.monto);
-                                        if (!p.pagado) mesesDebe++;
-                                    } else {
-                                        mesesDebe++;
-                                    }
-                                });
+                            {[...datos.apoderados]
+                                .sort(ordenarPorApellidoPaterno)
+                                .map(apo => {
+                                    let totalPagadoApo = 0;
+                                    let mesesDebe = 0;
+                                    
+                                    datos.configuracion.meses.forEach(mes => {
+                                        const p = apo.pagos[mes];
+                                        if (p && p.monto > 0) {
+                                            totalPagadoApo += Number(p.monto);
+                                            if (!p.pagado) mesesDebe++;
+                                        } else {
+                                            mesesDebe++;
+                                        }
+                                    });
 
-                                const deudaTotal = mesesDebe * cuotaOficial;
+                                    const deudaTotal = mesesDebe * cuotaOficial;
 
-                                return (
-                                    <tr key={apo.id} className={`hover:bg-slate-950/40 ${apo.activo === false ? 'opacity-50' : ''}`}>
-                                        <td className="p-3">
-                                            <span className="font-semibold text-white block">{apo.nombre} {apo.activo === false && '(Inactivo)'}</span>
-                                            <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
-                                        </td>
-                                        <td className="p-3 text-center font-bold text-emerald-400">
-                                            ${totalPagadoApo.toLocaleString('es-CL')}
-                                        </td>
-                                        <td className="p-3 text-center text-amber-400 font-medium">
-                                            {mesesDebe} meses
-                                        </td>
-                                        <td className="p-3 text-right font-bold text-rose-400">
-                                            ${deudaTotal.toLocaleString('es-CL')}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                    return (
+                                        <tr key={apo.id} className={`hover:bg-slate-950/40 ${apo.activo === false ? 'opacity-50' : ''}`}>
+                                            <td className="p-3">
+                                                <span className="font-semibold text-white block">{apo.nombre} {apo.activo === false && '(Inactivo)'}</span>
+                                                <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
+                                            </td>
+                                            <td className="p-3 text-center font-bold text-emerald-400">
+                                                ${totalPagadoApo.toLocaleString('es-CL')}
+                                            </td>
+                                            <td className="p-3 text-center text-amber-400 font-medium">
+                                                {mesesDebe} meses
+                                            </td>
+                                            <td className="p-3 text-right font-bold text-rose-400">
+                                                ${deudaTotal.toLocaleString('es-CL')}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                         </tbody>
                     </table>
                 </div>
@@ -969,7 +1004,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     </form>
                 </div>
 
-                {/* Apoderado */}
+                {/* Agregar Apoderado */}
                 <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
                     {avisosSeccion['apoderado'] && (
                         <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
@@ -1096,7 +1131,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* GESTIÓN DE PAGOS MENSUALES */}
+            {/* GESTIÓN DE PAGOS MENSUALES (ORDENADOS POR APELLIDO PATERNO) */}
             <div className="space-y-4 relative">
                 {avisosSeccion['pagos'] && (
                     <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
@@ -1104,85 +1139,100 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     </div>
                 )}
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado
+                    <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado (Ordenado por Apellido Paterno)
                 </h3>
 
                 <div className="grid grid-cols-1 gap-4">
-                    {datos.apoderados.map(apo => (
-                        <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-bold text-white text-sm">
-                                            {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
-                                        </h4>
-                                        {/* Botón para editar apoderado y alumno */}
+                    {[...datos.apoderados]
+                        .sort(ordenarPorApellidoPaterno)
+                        .map(apo => (
+                            <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-bold text-white text-sm">
+                                                {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
+                                            </h4>
+                                            {/* Modificar apoderado y alumno */}
+                                            <button 
+                                                onClick={() => abrirModalEdicion(apo)}
+                                                className="text-slate-400 hover:text-sky-400 transition text-xs p-1"
+                                                title="Editar apoderado y alumno"
+                                            >
+                                                <i className="fa-solid fa-pen-to-square"></i>
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
+                                    </div>
+                                    <div className="flex gap-2 w-full sm:w-auto items-center">
                                         <button 
-                                            onClick={() => abrirModalEdicion(apo)}
-                                            className="text-slate-400 hover:text-sky-400 transition text-xs p-1"
-                                            title="Editar apoderado y alumno"
+                                            onClick={() => abrirModalPago(apo)}
+                                            className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
                                         >
-                                            <i className="fa-solid fa-pen-to-square"></i>
+                                            <i className="fa-solid fa-plus"></i> Registrar Pago / Abono
+                                        </button>
+                                        <button 
+                                            onClick={() => handleCambiarEstado(apo.id, apo.nombre, apo.activo !== false)}
+                                            className={`text-xs px-3 py-1.5 rounded-xl border transition ${
+                                                apo.activo === false 
+                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
+                                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                                            }`}
+                                            title={apo.activo === false ? "Activar apoderado" : "Ocultar apoderado"}
+                                        >
+                                            {apo.activo === false ? 'Activar' : 'Ocultar'}
+                                        </button>
+                                        {/* Eliminar permanentemente */}
+                                        <button 
+                                            onClick={() => handleEliminarApoderado(apo.id, apo.nombre)}
+                                            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-3 py-1.5 rounded-xl transition flex items-center justify-center"
+                                            title="Eliminar apoderado permanentemente"
+                                        >
+                                            <i className="fa-solid fa-trash-can"></i>
                                         </button>
                                     </div>
-                                    <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
                                 </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <button 
-                                        onClick={() => abrirModalPago(apo)}
-                                        className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
-                                    >
-                                        <i className="fa-solid fa-plus"></i> Registrar Pago / Abono
-                                    </button>
-                                    <button 
-                                        onClick={() => handleCambiarEstado(apo.id, apo.nombre, apo.activo !== false)}
-                                        className={`text-xs px-3 py-1.5 rounded-xl border transition ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20'}`}
-                                    >
-                                        {apo.activo === false ? 'Activar' : 'Ocultar'}
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                                {datos.configuracion.meses.map(mes => {
-                                    const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
-                                    const montoAbonado = Number(pago.monto || 0);
-                                    const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                    {datos.configuracion.meses.map(mes => {
+                                        const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
+                                        const montoAbonado = Number(pago.monto || 0);
+                                        const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
 
-                                    return (
-                                        <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-2">
-                                            <div>
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-xs font-semibold text-slate-300">{mes}</span>
-                                                    {montoAbonado > 0 && (
-                                                        <button 
-                                                            onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)}
-                                                            className="text-slate-500 hover:text-rose-400 transition text-xs"
-                                                            title="Eliminar este pago o abono"
-                                                        >
-                                                            <i className="fa-solid fa-trash-can"></i>
-                                                        </button>
+                                        return (
+                                            <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-2">
+                                                <div>
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="text-xs font-semibold text-slate-300">{mes}</span>
+                                                        {montoAbonado > 0 && (
+                                                            <button 
+                                                                onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)}
+                                                                className="text-slate-500 hover:text-rose-400 transition text-xs"
+                                                                title="Eliminar este pago o abono"
+                                                            >
+                                                                <i className="fa-solid fa-trash-can"></i>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                                                        {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
+                                                    </span>
+                                                    {pago.fecha && (
+                                                        <span className="text-[9px] text-slate-400 block mt-1">
+                                                            📅 {pago.fecha}
+                                                        </span>
                                                     )}
                                                 </div>
-                                                <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                                                    {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
-                                                </span>
-                                                {pago.fecha && (
-                                                    <span className="text-[9px] text-slate-400 block mt-1">
-                                                        📅 {pago.fecha}
-                                                    </span>
-                                                )}
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
             </div>
 
-            {/* MODAL DE EDICIÓN DE APODERADO / ALUMNO */}
+            {/* MODAL MODIFICAR APODERADO / ALUMNO */}
             {modalEditarApo && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">

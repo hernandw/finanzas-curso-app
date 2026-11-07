@@ -4,208 +4,184 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// 1. Obtener datos con recálculo automático y redistribución de cuotas
+// 1. Obtener datos del año activo
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
         const anioActivo = datos.anio_activo || "2026";
         
-        if (!datos.anios[anioActivo]) {
-            datos.anios[anioActivo] = {
-                saldo_inicial: 0,
-                cuota_mensual: 15000,
-                nombre_curso: "4° Medio A",
-                profesor: "Juan Pérez",
-                presidente: "Ana Gómez",
-                tesorero: "María González",
-                meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
-                apoderados: [],
-                gastos: [],
-                ingresos_extra: []
-            };
+        if (!datos.anios || !datos.anios[anioActivo]) {
+            return res.status(404).json({ error: "Año no inicializado" });
         }
 
-        const infoAnio = datos.anios[anioActivo];
-        const cuotaOficial = Number(infoAnio.cuota_mensual || 15000);
-
-        // Redistribución automática de cuotas (rebalanceo)
-        (infoAnio.apoderados || []).forEach(apo => {
-            let dineroTotalAcumuladoApo = 0;
-            
-            infoAnio.meses.forEach(mes => {
-                const p = apo.pagos[mes];
-                if (p) {
-                    if (p.transacciones && p.transacciones.length > 0) {
-                        dineroTotalAcumuladoApo += p.transacciones.reduce((acc, t) => acc + Number(t.monto), 0);
-                    } else if (p.monto) {
-                        dineroTotalAcumuladoApo += Number(p.monto);
-                    }
-                }
-            });
-
-            let dineroRestante = dineroTotalAcumuladoApo;
-            infoAnio.meses.forEach(mes => {
-                if (dineroRestante > 0) {
-                    const abonoEsteMes = Math.min(dineroRestante, cuotaOficial);
-                    dineroRestante -= abonoEsteMes;
-                    
-                    apo.pagos[mes] = {
-                        ...apo.pagos[mes],
-                        monto: abonoEsteMes,
-                        pagado: abonoEsteMes >= cuotaOficial
-                    };
-                } else {
-                    apo.pagos[mes] = {
-                        pagado: false,
-                        monto: 0,
-                        fecha: null,
-                        transacciones: []
-                    };
-                }
-            });
-        });
-
+        const dataAnio = datos.anios[anioActivo];
         res.json({
             anio_activo: anioActivo,
             aniosDisponibles: Object.keys(datos.anios),
             configuracion: {
-                saldo_inicial: infoAnio.saldo_inicial || 0,
-                cuota_mensual: cuotaOficial,
-                nombre_curso: infoAnio.nombre_curso || "4° Medio A",
-                profesor: infoAnio.profesor || "Juan Pérez",
-                presidente: infoAnio.presidente || "Ana Gómez",
-                tesorero: infoAnio.tesorero || "María González",
-                meses: infoAnio.meses
+                cuota_mensual: dataAnio.cuota_mensual || 15000,
+                saldo_inicial: dataAnio.saldo_inicial || 0,
+                meses: dataAnio.meses,
+                nombre_curso: dataAnio.nombre_curso || '4° Medio A',
+                profesor: dataAnio.profesor || 'Juan Pérez',
+                presidente: dataAnio.presidente || 'Ana Gómez',
+                tesorero: dataAnio.tesorero || 'María González'
             },
-            apoderados: infoAnio.apoderados || [],
-            gastos: infoAnio.gastos || [],
-            ingresos_extra: infoAnio.ingresos_extra || []
+            apoderados: dataAnio.apoderados || [],
+            gastos: dataAnio.gastos || [],
+            ingresos_extra: dataAnio.ingresos_extra || []
         });
     } catch (error) {
-        console.error("Error al obtener los datos:", error);
-        res.status(500).json({ error: "Error al obtener los datos" });
+        console.error("Error al obtener datos:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 });
 
-// 2. Cambiar de año activo
+// 2. Cambiar de año o aperturar uno nuevo
 router.post('/curso/admin/cambiar-anio', async (req, res) => {
     const { nuevoAnio, cuotaMensual } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioAnterior = datos.anio_activo || "2026";
-        const infoAnioAnt = datos.anios[anioAnterior];
-
-        let totalRecaudadoAnt = 0;
-        let totalGastosAnt = (infoAnioAnt.gastos || []).reduce((acc, g) => acc + Number(g.monto), 0);
-        let totalIngresosAnt = (infoAnioAnt.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto), 0);
-
-        (infoAnioAnt.apoderados || []).forEach(apo => {
-            infoAnioAnt.meses.forEach(mes => {
-                const p = apo.pagos[mes];
-                if (p && p.monto) totalRecaudadoAnt += Number(p.monto);
-            });
-        });
-
-        const saldoFinalAnterior = Number(infoAnioAnt.saldo_inicial || 0) + totalRecaudadoAnt + totalIngresosAnt - totalGastosAnt;
-
+        
         if (!datos.anios[nuevoAnio]) {
-            const apoderadosActivos = (infoAnioAnt.apoderados || [])
-                .filter(a => a.activo !== false)
-                .map(a => ({
-                    id: 'apo-' + Math.random().toString(36).substr(2, 9),
-                    nombre: a.nombre,
-                    alumno: a.alumno,
-                    activo: true,
-                    pagos: infoAnioAnt.meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null } }), {})
-                }));
+            const anioAnterior = datos.anio_activo;
+            const dataAnterior = datos.anios[anioAnterior] || {};
+            
+            // Calcular saldo de arrastre
+            const cuotasRecaudadas = (dataAnterior.apoderados || []).reduce((acc, a) => {
+                let sub = 0;
+                (dataAnterior.meses || []).forEach(m => { if (a.pagos[m]?.monto) sub += Number(a.pagos[m].monto); });
+                return acc + sub;
+            }, 0);
+            const gastosAnt = (dataAnterior.gastos || []).reduce((acc, g) => acc + Number(g.monto), 0);
+            const extraAnt = (dataAnterior.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto), 0);
+            const saldoArrastre = Number(dataAnterior.saldo_inicial || 0) + cuotasRecaudadas + extraAnt - gastosAnt;
+
+            const meses = ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            
+            // Traspasar apoderados conservando alumnos activos
+            const apoderadosNuevos = (dataAnterior.apoderados || []).map(a => ({
+                id: a.id,
+                nombre: a.nombre,
+                alumno: a.alumno,
+                activo: a.activo !== false,
+                pagos: meses.reduce((acc, m) => ({ ...acc, [m]: { pagado: false, monto: 0, fecha: null, responsable: null } }), {})
+            }));
 
             datos.anios[nuevoAnio] = {
-                saldo_inicial: saldoFinalAnterior,
-                cuota_mensual: Number(cuotaMensual) || infoAnioAnt.cuota_mensual || 15000,
-                nombre_curso: infoAnioAnt.nombre_curso || "4° Medio A",
-                profesor: infoAnioAnt.profesor || "Juan Pérez",
-                presidente: infoAnioAnt.presidente || "Ana Gómez",
-                tesorero: infoAnioAnt.tesorero || "María González",
-                meses: infoAnioAnt.meses,
-                apoderados: apoderadosActivos,
+                saldo_inicial: saldoArrastre,
+                cuota_mensual: Number(cuotaMensual) || 15000,
+                meses: meses,
+                nombre_curso: dataAnterior.nombre_curso || '4° Medio A',
+                profesor: dataAnterior.profesor || 'Juan Pérez',
+                presidente: dataAnterior.presidente || 'Ana Gómez',
+                tesorero: dataAnterior.tesorero || 'María González',
+                apoderados: apoderadosNuevos,
                 gastos: [],
                 ingresos_extra: []
             };
         }
 
-        datos.anio_activo = String(nuevoAnio);
+        datos.anio_activo = nuevoAnio;
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, anio_activo: datos.anio_activo });
+        res.json({ success: true, anio_activo: nuevoAnio });
     } catch (error) {
-        console.error("Error al cambiar de año:", error);
-        res.status(500).json({ error: "Error al cambiar de año" });
+        console.error("Error al cambiar año:", error);
+        res.status(500).json({ error: "Error al cambiar o aperturar año" });
     }
 });
 
-// 3. Actualizar configuración (incluyendo datos del curso, saldo inicial y cuota)
+// 3. Actualizar configuración general y datos del curso (con rebalanceo si cambia la cuota)
 router.put('/curso/admin/configuracion', async (req, res) => {
-    const { saldo_inicial, cuota_mensual, nombre_curso, profesor, presidente, tesorero } = req.body;
+    const { cuota_mensual, saldo_inicial, nombre_curso, profesor, presidente, tesorero } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
+        const dataAnio = datos.anios[datos.anio_activo];
 
-        if (saldo_inicial !== undefined) infoAnio.saldo_inicial = Number(saldo_inicial);
-        if (cuota_mensual !== undefined) infoAnio.cuota_mensual = Number(cuota_mensual);
-        if (nombre_curso !== undefined) infoAnio.nombre_curso = nombre_curso;
-        if (profesor !== undefined) infoAnio.profesor = profesor;
-        if (presidente !== undefined) infoAnio.presidente = presidente;
-        if (tesorero !== undefined) infoAnio.tesorero = tesorero;
+        if (saldo_inicial !== undefined) dataAnio.saldo_inicial = Number(saldo_inicial);
+        if (nombre_curso !== undefined) dataAnio.nombre_curso = nombre_curso.trim();
+        if (profesor !== undefined) dataAnio.profesor = profesor.trim();
+        if (presidente !== undefined) dataAnio.presidente = presidente.trim();
+        if (tesorero !== undefined) dataAnio.tesorero = tesorero.trim();
+
+        // Si cambia el valor de la cuota, redistribuir abonos acumulados
+        if (cuota_mensual !== undefined && Number(cuota_mensual) > 0) {
+            const nuevaCuota = Number(cuota_mensual);
+            dataAnio.cuota_mensual = nuevaCuota;
+
+            dataAnio.apoderados.forEach(apo => {
+                let fondoTotal = 0;
+                let ultimaFecha = null;
+                let ultimoResp = null;
+
+                dataAnio.meses.forEach(m => {
+                    const p = apo.pagos[m];
+                    if (p && p.monto > 0) {
+                        fondoTotal += Number(p.monto);
+                        if (p.fecha) ultimaFecha = p.fecha;
+                        if (p.responsable) ultimoResp = p.responsable;
+                    }
+                });
+
+                dataAnio.meses.forEach(mes => {
+                    if (fondoTotal >= nuevaCuota) {
+                        apo.pagos[mes] = { pagado: true, monto: nuevaCuota, fecha: ultimaFecha, responsable: ultimoResp };
+                        fondoTotal -= nuevaCuota;
+                    } else if (fondoTotal > 0) {
+                        apo.pagos[mes] = { pagado: false, monto: fondoTotal, fecha: ultimaFecha, responsable: ultimoResp };
+                        fondoTotal = 0;
+                    } else {
+                        apo.pagos[mes] = { pagado: false, monto: 0, fecha: null, responsable: null };
+                    }
+                });
+            });
+        }
 
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, configuracion: infoAnio });
+        res.json({ success: true, configuracion: dataAnio });
     } catch (error) {
         console.error("Error al actualizar configuración:", error);
-        res.status(500).json({ error: "Error al actualizar la configuración" });
+        res.status(500).json({ error: "Error al actualizar configuración" });
     }
 });
 
-// 4. Registrar pago global con distribución automática
+// 4. Pago / Abono global distribuido progresivamente
 router.post('/curso/admin/pago-global', async (req, res) => {
     const { apoderadoId, montoEntregado, fecha, responsable } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-        
-        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        const dataAnio = datos.anios[datos.anio_activo];
+        const cuotaOficial = dataAnio.cuota_mensual || 15000;
+        const apoderado = dataAnio.apoderados.find(a => a.id === apoderadoId);
+
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        let dineroRestante = Number(montoEntregado || 0);
-        const cuotaOficial = Number(infoAnio.cuota_mensual);
-        const fechaTransaccion = fecha || new Date().toISOString().slice(0, 10);
-        const personaResponsable = responsable || apoderado.nombre;
+        let montoRestante = Number(montoEntregado);
 
-        for (const mes of infoAnio.meses) {
-            if (dineroRestante <= 0) break;
+        for (const mes of dataAnio.meses) {
+            if (montoRestante <= 0) break;
+            const pagoActual = apoderado.pagos[mes] || { pagado: false, monto: 0 };
+            const abonoPrevio = Number(pagoActual.monto || 0);
 
-            const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, transacciones: [] };
-            const saldoPendienteEsteMes = cuotaOficial - Number(pagoMes.monto || 0);
-
-            if (saldoPendienteEsteMes > 0) {
-                const abonoParaEsteMes = Math.min(dineroRestante, saldoPendienteEsteMes);
-                const nuevoMontoMes = Number(pagoMes.monto || 0) + abonoParaEsteMes;
-                
-                dineroRestante -= abonoParaEsteMes;
-                const estaPagadoCompleto = nuevoMontoMes >= cuotaOficial;
-
-                const transaccionNueva = {
-                    monto: abonoParaEsteMes,
-                    fecha: fechaTransaccion,
-                    responsable: personaResponsable
-                };
-
-                apoderado.pagos[mes] = {
-                    pagado: estaPagadoCompleto,
-                    monto: nuevoMontoMes,
-                    fecha: fechaTransaccion,
-                    transacciones: pagoMes.transacciones ? [...pagoMes.transacciones, transaccionNueva] : [transaccionNueva]
-                };
+            if (abonoPrevio < cuotaOficial) {
+                const faltante = cuotaOficial - abonoPrevio;
+                if (montoRestante >= faltante) {
+                    apoderado.pagos[mes] = {
+                        pagado: true,
+                        monto: cuotaOficial,
+                        fecha: fecha || new Date().toISOString().slice(0, 10),
+                        responsable: responsable || apoderado.nombre
+                    };
+                    montoRestante -= faltante;
+                } else {
+                    apoderado.pagos[mes] = {
+                        pagado: false,
+                        monto: abonoPrevio + montoRestante,
+                        fecha: fecha || new Date().toISOString().slice(0, 10),
+                        responsable: responsable || apoderado.nombre
+                    };
+                    montoRestante = 0;
+                }
             }
         }
 
@@ -213,167 +189,183 @@ router.post('/curso/admin/pago-global', async (req, res) => {
         res.json({ success: true, apoderado });
     } catch (error) {
         console.error("Error al procesar pago global:", error);
-        res.status(500).json({ error: "Error al procesar el pago global" });
+        res.status(500).json({ error: "Error al procesar pago global" });
     }
 });
 
-// 5. Eliminar pago de un mes
+// 5. Eliminar o revertir el pago de un mes
 router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     const { apoderadoId, mes } = req.params;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-        
-        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+        const dataAnio = datos.anios[datos.anio_activo];
+        const apoderado = dataAnio.apoderados.find(a => a.id === apoderadoId);
 
-        apoderado.pagos[mes] = {
-            pagado: false,
-            monto: 0,
-            fecha: null,
-            transacciones: []
-        };
+        if (!apoderado || !apoderado.pagos[mes]) {
+            return res.status(404).json({ error: "Registro no encontrado" });
+        }
 
+        apoderado.pagos[mes] = { pagado: false, monto: 0, fecha: null, responsable: null };
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, apoderado });
     } catch (error) {
-        console.error("Error al eliminar el pago:", error);
-        res.status(500).json({ error: "Error al eliminar el pago" });
+        console.error("Error al eliminar pago:", error);
+        res.status(500).json({ error: "Error al eliminar pago" });
     }
 });
 
-// 6. Registrar gasto
-router.post('/curso/admin/gasto', async (req, res) => {
-    const { mes, titulo, monto, fecha } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-
-        const nuevoGasto = {
-            id: 'gasto-' + Date.now(),
-            mes,
-            titulo,
-            monto: Number(monto),
-            fecha: fecha || new Date().toISOString().slice(0, 10)
-        };
-        infoAnio.gastos.push(nuevoGasto);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, nuevoGasto });
-    } catch (error) {
-        console.error("Error al registrar gasto:", error);
-        res.status(500).json({ error: "Error al registrar gasto" });
-    }
-});
-
-// 6.1 Eliminar Gasto
-router.delete('/curso/admin/gasto/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-
-        infoAnio.gastos = (infoAnio.gastos || []).filter(g => g.id !== id);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error al eliminar gasto:", error);
-        res.status(500).json({ error: "Error al eliminar gasto" });
-    }
-});
-
-// 7. Registrar Ingreso Extra
-router.post('/curso/admin/ingreso-extra', async (req, res) => {
-    const { titulo, monto, fecha } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-
-        if (!infoAnio.ingresos_extra) infoAnio.ingresos_extra = [];
-
-        const nuevoIngreso = {
-            id: 'ext-' + Date.now(),
-            titulo,
-            monto: Number(monto),
-            fecha: fecha || new Date().toISOString().slice(0, 10)
-        };
-        infoAnio.ingresos_extra.push(nuevoIngreso);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, nuevoIngreso });
-    } catch (error) {
-        console.error("Error al registrar ingreso extra:", error);
-        res.status(500).json({ error: "Error al registrar el ingreso extra" });
-    }
-});
-
-// 7.1 Eliminar Ingreso Extra
-router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-
-        infoAnio.ingresos_extra = (infoAnio.ingresos_extra || []).filter(e => e.id !== id);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Error al eliminar ingreso extra:", error);
-        res.status(500).json({ error: "Error al eliminar ingreso extra" });
-    }
-});
-
-// 8. Agregar apoderado
+// 6. Agregar nuevo apoderado
 router.post('/curso/admin/apoderado/agregar', async (req, res) => {
     const { nombre, alumno } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-        const meses = infoAnio.meses;
-
-        const nuevoApoderado = {
-            id: 'apo-' + Date.now(),
-            nombre,
-            alumno,
+        const dataAnio = datos.anios[datos.anio_activo];
+        const nuevoApo = {
+            id: `apo-${Date.now()}`,
+            nombre: nombre.trim(),
+            alumno: alumno.trim(),
             activo: true,
-            pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null } }), {})
+            pagos: dataAnio.meses.reduce((acc, m) => ({ ...acc, [m]: { pagado: false, monto: 0, fecha: null, responsable: null } }), {})
         };
-        infoAnio.apoderados.push(nuevoApoderado);
+
+        dataAnio.apoderados.push(nuevoApo);
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, nuevoApoderado });
+        res.json({ success: true, apoderado: nuevoApo });
     } catch (error) {
         console.error("Error al agregar apoderado:", error);
         res.status(500).json({ error: "Error al agregar apoderado" });
     }
 });
 
-// 9. Cambiar estado apoderado
+// 7. Modificar datos de apoderado y alumno
+router.put('/curso/admin/apoderado/:id', async (req, res) => {
+    const { id } = req.params;
+    const { nombre, alumno } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const dataAnio = datos.anios[datos.anio_activo];
+        const apo = dataAnio.apoderados.find(a => a.id === id);
+
+        if (!apo) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        if (nombre) apo.nombre = nombre.trim();
+        if (alumno) apo.alumno = alumno.trim();
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado: apo });
+    } catch (error) {
+        console.error("Error al modificar apoderado:", error);
+        res.status(500).json({ error: "Error al modificar apoderado" });
+    }
+});
+
+// 8. Cambiar estado activo/oculto de apoderado
 router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
     const { id } = req.params;
     const { activo } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
+        const dataAnio = datos.anios[datos.anio_activo];
+        const apo = dataAnio.apoderados.find(a => a.id === id);
 
-        const apoderado = infoAnio.apoderados.find(a => a.id === id);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+        if (!apo) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        apoderado.activo = Boolean(activo);
-
+        apo.activo = activo;
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, apoderado });
+        res.json({ success: true, apoderado: apo });
     } catch (error) {
-        console.error("Error al actualizar estado del apoderado:", error);
-        res.status(500).json({ error: "Error al actualizar estado del apoderado" });
+        console.error("Error al cambiar estado:", error);
+        res.status(500).json({ error: "Error al cambiar estado" });
     }
 });
 
-// 10. Backup y Restauración
+// 9. Eliminar apoderado permanentemente
+router.delete('/curso/admin/apoderado/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const dataAnio = datos.anios[datos.anio_activo];
+        dataAnio.apoderados = dataAnio.apoderados.filter(a => a.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, mensaje: "Apoderado eliminado" });
+    } catch (error) {
+        console.error("Error al eliminar apoderado:", error);
+        res.status(500).json({ error: "Error al eliminar apoderado" });
+    }
+});
+
+// 10. Gastos: Registrar y Eliminar
+router.post('/curso/admin/gasto', async (req, res) => {
+    const { mes, titulo, monto, fecha } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const dataAnio = datos.anios[datos.anio_activo];
+        const nuevoGasto = {
+            id: `gas-${Date.now()}`,
+            mes,
+            titulo: titulo.trim(),
+            monto: Number(monto),
+            fecha: fecha || new Date().toISOString().slice(0, 10)
+        };
+        dataAnio.gastos.push(nuevoGasto);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, gasto: nuevoGasto });
+    } catch (error) {
+        console.error("Error al registrar gasto:", error);
+        res.status(500).json({ error: "Error al registrar gasto" });
+    }
+});
+
+router.delete('/curso/admin/gasto/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const dataAnio = datos.anios[datos.anio_activo];
+        dataAnio.gastos = dataAnio.gastos.filter(g => g.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, mensaje: "Gasto eliminado" });
+    } catch (error) {
+        console.error("Error al eliminar gasto:", error);
+        res.status(500).json({ error: "Error al eliminar gasto" });
+    }
+});
+
+// 11. Ingresos Extra: Registrar y Eliminar
+router.post('/curso/admin/ingreso-extra', async (req, res) => {
+    const { titulo, monto, fecha } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const dataAnio = datos.anios[datos.anio_activo];
+        const nuevoIngreso = {
+            id: `ext-${Date.now()}`,
+            titulo: titulo.trim(),
+            monto: Number(monto),
+            fecha: fecha || new Date().toISOString().slice(0, 10)
+        };
+        dataAnio.ingresos_extra.push(nuevoIngreso);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, ingreso_extra: nuevoIngreso });
+    } catch (error) {
+        console.error("Error al registrar ingreso extra:", error);
+        res.status(500).json({ error: "Error al registrar ingreso extra" });
+    }
+});
+
+router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const dataAnio = datos.anios[datos.anio_activo];
+        dataAnio.ingresos_extra = dataAnio.ingresos_extra.filter(e => e.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, mensaje: "Ingreso extra eliminado" });
+    } catch (error) {
+        console.error("Error al eliminar ingreso extra:", error);
+        res.status(500).json({ error: "Error al eliminar ingreso extra" });
+    }
+});
+
+// 12. Backup, Restauración y Reset de Fábrica
 router.get('/curso/backup', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -381,20 +373,20 @@ router.get('/curso/backup', async (req, res) => {
         res.setHeader('Content-Disposition', 'attachment; filename=backup_tesoreria.json');
         res.send(JSON.stringify(datos, null, 2));
     } catch (error) {
-        res.status(500).json({ error: "Error al generar el backup" });
+        res.status(500).json({ error: "Error al generar backup" });
     }
 });
 
 router.post('/curso/backup/restaurar', async (req, res) => {
-    const nuevoContenido = req.body;
     try {
+        const nuevoContenido = req.body;
         if (!nuevoContenido || !nuevoContenido.anios) {
-            return res.status(400).json({ error: "Estructura de backup inválida" });
+            return res.status(400).json({ error: "Backup inválido" });
         }
         await dbConfig.guardarDatos(nuevoContenido);
-        res.json({ success: true, mensaje: "Aplicación restaurada con éxito" });
+        res.json({ success: true, mensaje: "Restauración exitosa" });
     } catch (error) {
-        res.status(500).json({ error: "Error al restaurar los datos" });
+        res.status(500).json({ error: "Error al restaurar backup" });
     }
 });
 
@@ -406,11 +398,11 @@ router.delete('/curso/reset', async (req, res) => {
                 "2026": {
                     saldo_inicial: 0,
                     cuota_mensual: 15000,
-                    nombre_curso: "4° Medio A",
-                    profesor: "Juan Pérez",
-                    presidente: "Ana Gómez",
-                    tesorero: "María González",
                     meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+                    nombre_curso: '4° Medio A',
+                    profesor: 'Juan Pérez',
+                    presidente: 'Ana Gómez',
+                    tesorero: 'María González',
                     apoderados: [],
                     gastos: [],
                     ingresos_extra: []
@@ -418,47 +410,9 @@ router.delete('/curso/reset', async (req, res) => {
             }
         };
         await dbConfig.guardarDatos(datosVacia);
-        res.json({ success: true, mensaje: "Aplicación reiniciada" });
+        res.json({ success: true, mensaje: "Sistema reiniciado" });
     } catch (error) {
         res.status(500).json({ error: "Error al reiniciar" });
-    }
-});
-
-// Eliminar apoderado por ID
-router.delete('/curso/admin/apoderado/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-
-        infoAnio.apoderados = (infoAnio.apoderados || []).filter(a => a.id !== id);
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, mensaje: "Apoderado eliminado correctamente" });
-    } catch (error) {
-        console.error("Error al eliminar apoderado:", error);
-        res.status(500).json({ error: "Error al eliminar apoderado" });
-    }
-});
-// Actualizar datos de un apoderado (nombre o alumno)
-router.put('/curso/admin/apoderado/:id', async (req, res) => {
-    const { id } = req.params;
-    const { nombre, alumno } = req.body;
-    try {
-        const datos = await dbConfig.leerDatos();
-        // Si tu estructura es multianual, busca en el año activo:
-        const apoderados = datos.anios ? datos.anios[datos.anio_activo].apoderados : datos.apoderados;
-        const apoderado = apoderados.find(a => a.id === id);
-
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
-
-        if (nombre) apoderado.nombre = nombre.trim();
-        if (alumno) apoderado.alumno = alumno.trim();
-
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, apoderado });
-    } catch (error) {
-        res.status(500).json({ error: "Error al actualizar apoderado" });
     }
 });
 

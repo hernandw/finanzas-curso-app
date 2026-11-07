@@ -23,8 +23,8 @@
       "apoderados": [
         {
           "id": "apo-1794062071150",
-          "nombre": "Karina Moreno",
-          "alumno": "Abarza Agustín",
+          "nombre": "Karina Zenteno",
+          "alumno": "Agustín Berríos Zenteno",
           "activo": true,
           "pagos": {
             "Marzo": {
@@ -82,7 +82,7 @@
         {
           "id": "apo-1794062184330",
           "nombre": "Ingrid Brito",
-          "alumno": "Campos Nelson",
+          "alumno": "Nelson Campos Brito",
           "activo": true,
           "pagos": {
             "Marzo": {
@@ -140,7 +140,7 @@
         {
           "id": "apo-1794062216424",
           "nombre": "Mario Cárdenas",
-          "alumno": "Cardenas Gabriel",
+          "alumno": "Gabriel Cárdenas Tejerina",
           "activo": true,
           "pagos": {
             "Marzo": {
@@ -198,7 +198,1051 @@
         {
           "id": "apo-1794062252011",
           "nombre": "Carolina Valenzuela",
-          "alumno": "Droguett Cristobal",
+          "alumno": "Cristobal Droguett Valenzuela",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062696671",
+          "nombre": "Alejandra Valdes",
+          "alumno": "Maximiliano Espinoza Valdes",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062730511",
+          "nombre": "Andrea Asencio",
+          "alumno": "Facundo Gallardo Asencio",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062773177",
+          "nombre": "Ana Paula Sepúlveda",
+          "alumno": "Monserrat Gómez Sepúlveda",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062795861",
+          "nombre": "Karen Díaz",
+          "alumno": "Gaspar Gutierrez Díaz",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062817465",
+          "nombre": "Yessenia Ortunio",
+          "alumno": "Fabiana Hernández Ortunio",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062837296",
+          "nombre": "Gloria Olivares",
+          "alumno": "Josefa Lee Olivares",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062870496",
+          "nombre": "Silvvia Huilca",
+          "alumno": "Sarahí Ocaña Huilca",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794062901216",
+          "nombre": "Rodrigo Palza",
+          "alumno": "Mia Palza Tapia",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063051663",
+          "nombre": "Arlette Hormazabal",
+          "alumno": "Emilia Moraga Hormazabal",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063105358",
+          "nombre": "Gissel",
+          "alumno": "Vergara Javiera",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063132021",
+          "nombre": "Natalya Zakharova",
+          "alumno": "Michelle Ramos Zakharova",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063176119",
+          "nombre": "Laura",
+          "alumno": "Sovero Martín",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063288071",
+          "nombre": "Francia",
+          "alumno": "Guajardo Isabella",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063319845",
+          "nombre": "Karla Gómez",
+          "alumno": "Julietta Zeballos Gómez",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063395795",
+          "nombre": "Mamá de Belén",
+          "alumno": "Belén Bueno Barría",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063418907",
+          "nombre": "Mamá de Emilio",
+          "alumno": "Rámirez Emilio",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063452964",
+          "nombre": "Daniela Barahona",
+          "alumno": "Sofia Riquelme Barahona",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null
+            }
+          }
+        },
+        {
+          "id": "apo-1794063475353",
+          "nombre": "Mamá de Aarón",
+          "alumno": "Aarón Szwerdszarf  Indoitu",
           "activo": true,
           "pagos": {
             "Marzo": {

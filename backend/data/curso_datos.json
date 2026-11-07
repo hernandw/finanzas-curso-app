@@ -1240,7 +1240,7 @@
         },
         {
           "id": "apo-1794062870496",
-          "nombre": "Silvvia Huilca",
+          "nombre": "Silvia Huilca",
           "alumno": "Sarahí Ocaña Huilca",
           "activo": true,
           "pagos": {
@@ -1252,7 +1252,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1264,7 +1264,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1276,7 +1276,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1288,7 +1288,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1300,7 +1300,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1312,7 +1312,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1324,7 +1324,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1336,7 +1336,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1348,7 +1348,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -1360,7 +1360,7 @@
                 {
                   "monto": 9000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             }
@@ -3832,7 +3832,7 @@
         },
         {
           "id": "apo-wo13bgqfq",
-          "nombre": "Silvvia Huilca",
+          "nombre": "Silvia Huilca",
           "alumno": "Sarahí Ocaña Huilca",
           "activo": true,
           "pagos": {
@@ -3845,7 +3845,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3858,7 +3858,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3871,7 +3871,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3884,7 +3884,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3897,7 +3897,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3910,7 +3910,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3923,7 +3923,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3936,7 +3936,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3949,7 +3949,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -3962,7 +3962,7 @@
                 {
                   "monto": 11000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             }
@@ -5358,59 +5358,59 @@
               ]
             },
             "Mayo": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Junio": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Julio": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Agosto": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Septiembre": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Octubre": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Noviembre": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             },
             "Diciembre": {
+              "exonerado": false,
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "exonerado": false,
               "transacciones": []
             }
           }
@@ -6300,7 +6300,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6313,7 +6313,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6326,7 +6326,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6339,7 +6339,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6352,7 +6352,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6365,7 +6365,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6378,7 +6378,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6391,7 +6391,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6404,7 +6404,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             },
@@ -6417,7 +6417,7 @@
                 {
                   "monto": 21000,
                   "fecha": "2026-11-07",
-                  "responsable": "Silvvia Huilca"
+                  "responsable": "Silvia Huilca"
                 }
               ]
             }

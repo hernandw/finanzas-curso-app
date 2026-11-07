@@ -4,7 +4,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // Reemplaza por tu URL exacta de Render si VITE_API_URL no está definida
-const BACKEND_RENDER_URL = 'https://tu-servicio-backend.onrender.com';
+const BACKEND_RENDER_URL = 'https://finanzas-curso-app.onrender.com';
 const API_BASE = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') 
     ? import.meta.env.VITE_API_URL.replace(/\/$/, '') 
     : BACKEND_RENDER_URL;

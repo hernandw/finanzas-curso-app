@@ -4,6 +4,11 @@ import VistaPublica from './components/VistaPublica';
 import VistaAdmin from './components/VistaAdmin';
 import LoginAdmin from './components/LoginAdmin';
 
+const BACKEND_RENDER_URL = 'https://finanzas-curso-app.onrender.com'; // Pon tu URL real de Render
+const API_BASE = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') 
+    ? import.meta.env.VITE_API_URL.replace(/\/$/, '') 
+    : BACKEND_RENDER_URL;
+
 export default function App() {
     const [datos, setDatos] = useState(null);
     const [vistaActual, setVistaActual] = useState('publica'); // 'publica', 'login', 'admin'
@@ -53,12 +58,12 @@ export default function App() {
         }
     }, [autenticado]);
 
-   const API_BASE = import.meta.env.VITE_API_URL || '';
+
 
 const cargarDatos = async (anioDeseado = null) => {
     try {
         const ruta = anioDeseado ? `/api/curso/datos?anio=${anioDeseado}` : '/api/curso/datos';
-        // Ahora apuntará a https://tu-backend.onrender.com/api/curso/datos
+        // Anteponer API_BASE para traer los datos reales de Render
         const res = await fetch(`${API_BASE}${ruta}`);
         const json = await res.json();
         setDatos(json);

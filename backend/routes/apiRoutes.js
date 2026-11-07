@@ -24,18 +24,110 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// 1. Configuración de Nodemailer con timeout para evitar que quede (pending)
+
+// 1. Transporte con timeouts estrictos para evitar conexiones colgadas
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
     },
-    pool: true,              // Reutiliza la conexión
-    maxConnections: 1,
-    connectionTimeout: 8000, // Máximo 8 segundos de espera
-    greetingTimeout: 5000,
-    socketTimeout: 10000
+    connectionTimeout: 5000, // 5 segundos max para conectar
+    greetingTimeout: 5000,   // 5 segundos max para saludo SMTP
+    socketTimeout: 8000      // 8 segundos max de inactividad
+});
+
+// 2. Ruta de envío con respuesta garantizada
+router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
+    const { apoderadoId, anio } = req.body;
+    console.log('[DEBUG] Petición recibida en enviar-correo-morosos:', { apoderadoId, anio });
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.error('[ERROR] Faltan variables SMTP_USER o SMTP_PASS');
+        return res.status(500).json({ error: 'Variables SMTP_USER o SMTP_PASS no configuradas en el entorno.' });
+    }
+
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
+
+        if (!infoAnio) {
+            return res.status(404).json({ error: `No existen registros para el año ${anioSel}` });
+        }
+
+        const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
+
+        let apoderadosNotificar = [];
+        if (apoderadoId) {
+            const individual = (infoAnio.apoderados || []).find(a => a.id === apoderadoId);
+            if (individual) apoderadosNotificar.push(individual);
+        } else {
+            apoderadosNotificar = (infoAnio.apoderados || []).filter(a => a.activo !== false);
+        }
+
+        let enviados = 0;
+        let errores = [];
+
+        for (const apo of apoderadosNotificar) {
+            if (!apo.email || apo.email.trim() === '') continue;
+
+            let deudaTotal = 0;
+            let mesesDebe = [];
+
+            (infoAnio.meses || []).forEach(m => {
+                const p = apo.pagos ? apo.pagos[m] : null;
+                if (p?.exonerado) return;
+                const abono = Number(p?.monto || 0);
+                if (!p?.pagado) {
+                    deudaTotal += (cuotaOficial - abono);
+                    mesesDebe.push(m);
+                }
+            });
+
+            if (deudaTotal > 0) {
+                try {
+                    console.log(`[DEBUG] Intentando enviar a: ${apo.email}...`);
+                    await transporter.sendMail({
+                        from: `"Tesorería - ${infoAnio.nombre_curso || 'Curso'}" <${process.env.SMTP_USER}>`,
+                        to: apo.email.trim(),
+                        subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 500px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                                <h2 style="color: #0f172a;">Estado de Cuenta - ${infoAnio.nombre_curso || 'Tesorería'}</h2>
+                                <p>Estimado/a <strong>${apo.nombre}</strong>,</p>
+                                <p>Le informamos el estado de cuotas de su pupilo <strong>${apo.alumno}</strong> para el periodo ${anioSel}:</p>
+                                <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 15px 0;">
+                                    <p style="margin: 0; color: #991b1b; font-weight: bold;">Monto total pendiente: $${deudaTotal.toLocaleString('es-CL')}</p>
+                                    <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 13px;">Meses con saldo: ${mesesDebe.join(', ')}</p>
+                                </div>
+                                <p style="font-size: 12px; color: #64748b;">Favor regularizar a la brevedad con la directiva de tesorería.</p>
+                            </div>
+                        `
+                    });
+                    console.log(`[DEBUG] Enviado con éxito a: ${apo.email}`);
+                    enviados++;
+                } catch (mailErr) {
+                    console.error(`[ERROR] Falló envío a ${apo.email}:`, mailErr.message);
+                    errores.push(`${apo.email}: ${mailErr.message}`);
+                }
+            }
+        }
+
+        if (enviados === 0 && errores.length > 0) {
+            return res.status(500).json({ error: `Fallo al enviar correo: ${errores.join(' | ')}` });
+        }
+
+        return res.json({
+            success: true,
+            correosEnviados: enviados,
+            mensaje: enviados > 0 ? 'Notificaciones procesadas exitosamente.' : 'No se encontraron destinatarios con deuda y correo válido.'
+        });
+
+    } catch (error) {
+        console.error('[ERROR] Error interno en enviar-correo-morosos:', error);
+        return res.status(500).json({ error: 'Error interno del servidor al procesar el envío.' });
+    }
 });
 
 // 1. Obtener datos generales por año (?anio=YYYY)
@@ -511,100 +603,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
     }
 });
 
-// 16. Enviar avisos de cobranza por correo (Individual o Masivo)
-router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
-    const { apoderadoId, anio } = req.body;
-    console.log("--> Petición recibida en /enviar-correo-morosos:", { apoderadoId, anio });
 
-    // Validar que las credenciales existan antes de empezar
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.error("Faltan variables SMTP_USER o SMTP_PASS en el servidor");
-        return res.status(500).json({ error: "Servidor sin credenciales SMTP configuradas (SMTP_USER / SMTP_PASS)." });
-    }
-
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioSel = anio || datos.anio_activo || "2026";
-        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
-
-        if (!infoAnio) {
-            return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
-        }
-
-        const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
-
-        let apoderadosNotificar = [];
-        if (apoderadoId) {
-            const encontrado = (infoAnio.apoderados || []).find(a => a.id === apoderadoId);
-            if (encontrado) apoderadosNotificar.push(encontrado);
-        } else {
-            apoderadosNotificar = (infoAnio.apoderados || []).filter(a => a.activo !== false);
-        }
-
-        let enviados = 0;
-        let errores = [];
-
-        for (const apo of apoderadosNotificar) {
-            if (!apo.email || apo.email.trim() === '') continue;
-
-            let deudaTotal = 0;
-            let mesesDebe = [];
-
-            (infoAnio.meses || []).forEach(m => {
-                const p = apo.pagos ? apo.pagos[m] : null;
-                if (p?.exonerado) return;
-                const montoAbonado = Number(p?.monto || 0);
-                if (!p?.pagado) {
-                    deudaTotal += (cuotaOficial - montoAbonado);
-                    mesesDebe.push(m);
-                }
-            });
-
-            if (deudaTotal > 0) {
-                try {
-                    console.log(`Enviando correo a: ${apo.email}...`);
-                    await transporter.sendMail({
-                        from: `"Tesorería - ${infoAnio.nombre_curso || 'Curso'}" <${process.env.SMTP_USER}>`,
-                        to: apo.email.trim(),
-                        subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`,
-                        html: `
-                            <div style="font-family: Arial, sans-serif; max-width: 500px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                                <h2 style="color: #0f172a;">Estado de Cuenta - ${infoAnio.nombre_curso || 'Tesorería'}</h2>
-                                <p>Estimado/a <strong>${apo.nombre}</strong>,</p>
-                                <p>Le informamos el estado de cuotas de su pupilo <strong>${apo.alumno}</strong> para el periodo ${anioSel}:</p>
-                                <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 15px 0;">
-                                    <p style="margin: 0; color: #991b1b; font-weight: bold;">Monto total pendiente: $${deudaTotal.toLocaleString('es-CL')}</p>
-                                    <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 13px;">Meses con saldo: ${mesesDebe.join(', ')}</p>
-                                </div>
-                                <p style="font-size: 12px; color: #64748b;">Favor regularizar a la brevedad con la directiva de tesorería.</p>
-                            </div>
-                        `
-                    });
-                    console.log(`✓ Enviado a: ${apo.email}`);
-                    enviados++;
-                } catch (mailErr) {
-                    console.error(`Error enviando a ${apo.email}:`, mailErr.message);
-                    errores.push(`${apo.email}: ${mailErr.message}`);
-                }
-            }
-        }
-
-        // Siempre responder al cliente para que no se quede en (pending)
-        if (enviados === 0 && errores.length > 0) {
-            return res.status(500).json({ error: `Fallo de envío: ${errores.join(' | ')}` });
-        }
-
-        return res.json({ 
-            success: true, 
-            correosEnviados: enviados,
-            mensaje: enviados > 0 ? "Correos enviados exitosamente." : "No se encontraron apoderados con deuda y correo asignado."
-        });
-
-    } catch (error) {
-        console.error("Error general en cobranza:", error);
-        return res.status(500).json({ error: "Error interno del servidor al procesar la cobranza." });
-    }
-});
 
 // 17. Enviar PDF por correo a los apoderados
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {

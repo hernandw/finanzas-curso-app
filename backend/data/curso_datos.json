@@ -1,5 +1,5 @@
 {
-  "anio_activo": "2025",
+  "anio_activo": "2026",
   "anios": {
     "2024": {
       "saldo_inicial": 440772,
@@ -2628,7 +2628,7 @@
       "cerrado": true
     },
     "2025": {
-      "cerrado": false,
+      "cerrado": true,
       "saldo_inicial": 714474,
       "cuota_mensual": 11000,
       "nombre_curso": "7° Básico B",
@@ -3423,64 +3423,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
             }
           }
         },
@@ -3491,64 +3561,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
             }
           }
         },
@@ -3559,64 +3699,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
             }
           }
         },
@@ -3627,64 +3837,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
             }
           }
         },
@@ -3695,64 +3975,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
             }
           }
         },
@@ -3763,64 +4113,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
             }
           }
         },
@@ -3831,64 +4251,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
             }
           }
         },
@@ -3899,64 +4389,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
             }
           }
         },
@@ -4095,64 +4655,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
             }
           }
         },
@@ -4163,64 +4793,134 @@
           "activo": true,
           "pagos": {
             "Marzo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Abril": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Mayo": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Junio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Julio": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
             }
           }
         },
@@ -4234,71 +4934,302 @@
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "transacciones": []
+              "transacciones": [],
+              "exonerado": true
             },
             "Abril": {
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "transacciones": []
+              "transacciones": [],
+              "exonerado": true
             },
             "Mayo": {
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "transacciones": []
+              "transacciones": [],
+              "exonerado": true
             },
             "Junio": {
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "transacciones": []
+              "transacciones": [],
+              "exonerado": true
             },
             "Julio": {
               "pagado": false,
               "monto": 0,
               "fecha": null,
-              "transacciones": []
+              "transacciones": [],
+              "exonerado": true
             },
             "Agosto": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
             },
             "Septiembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
             },
             "Octubre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
             },
             "Noviembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
             },
             "Diciembre": {
-              "pagado": false,
-              "monto": 0,
-              "fecha": null,
-              "transacciones": []
+              "exonerado": false,
+              "pagado": true,
+              "monto": 11000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 11000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
             }
           }
         }
       ],
-      "gastos": [],
-      "ingresos_extra": []
+      "gastos": [
+        {
+          "id": "gas-2025-01",
+          "mes": "Abril",
+          "titulo": "HUEVOS DE PASCUA",
+          "monto": 13980,
+          "fecha": "2025-04-18"
+        },
+        {
+          "id": "gas-2025-02",
+          "mes": "Junio",
+          "titulo": "18 colaciones machaq mara x4.500",
+          "monto": 81000,
+          "fecha": "2025-06-20"
+        },
+        {
+          "id": "gas-2025-03",
+          "mes": "Octubre",
+          "titulo": "participacion aniversario 17 alumnos x2.000",
+          "monto": 34000,
+          "fecha": "2025-10-15"
+        },
+        {
+          "id": "gas-2025-04",
+          "mes": "Junio",
+          "titulo": "toldo 06-06-2025",
+          "monto": 38000,
+          "fecha": "2025-06-06"
+        },
+        {
+          "id": "gas-2025-05",
+          "mes": "Mayo",
+          "titulo": "torta Miss aylin cumpleaños",
+          "monto": 32000,
+          "fecha": "2025-05-12"
+        },
+        {
+          "id": "gas-2025-06",
+          "mes": "Mayo",
+          "titulo": "flores Miss cumpleaños",
+          "monto": 8000,
+          "fecha": "2025-05-12"
+        },
+        {
+          "id": "gas-2025-07",
+          "mes": "Septiembre",
+          "titulo": "colacion 18 de septiembre 17 x 4.500",
+          "monto": 76500,
+          "fecha": "2025-09-12"
+        },
+        {
+          "id": "gas-2025-08",
+          "mes": "Mayo",
+          "titulo": "ramo frutilla Miss Aylin",
+          "monto": 20000,
+          "fecha": "2025-05-12"
+        },
+        {
+          "id": "gas-2025-09",
+          "mes": "Octubre",
+          "titulo": "10 cajitas regalo dia de profe",
+          "monto": 30000,
+          "fecha": "2025-10-16"
+        },
+        {
+          "id": "gas-2025-10",
+          "mes": "Julio",
+          "titulo": "corona de condolensias ( mama Ingrid ) depositado a Arlette",
+          "monto": 34750,
+          "fecha": "2025-07-05"
+        },
+        {
+          "id": "gas-2025-11",
+          "mes": "Diciembre",
+          "titulo": "regalo fin de año Miss ( Head Spa)",
+          "monto": 38000,
+          "fecha": "2025-12-05"
+        },
+        {
+          "id": "gas-2025-12",
+          "mes": "Diciembre",
+          "titulo": "LIDER (papa frita,doritos, café , te , endulzante , servilletas,nova)",
+          "monto": 37230,
+          "fecha": "2025-12-08"
+        },
+        {
+          "id": "gas-2025-13",
+          "mes": "Noviembre",
+          "titulo": "2 botellas regalo de despedida ( Cristobal y Isa )",
+          "monto": 17000,
+          "fecha": "2025-11-28"
+        },
+        {
+          "id": "gas-2025-14",
+          "mes": "Diciembre",
+          "titulo": "2 tortas paseo de curso 36.500 y 32-500",
+          "monto": 69000,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-15",
+          "mes": "Diciembre",
+          "titulo": "helados paseo de curso 3 cajas",
+          "monto": 29100,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-16",
+          "mes": "Diciembre",
+          "titulo": "100 dulces",
+          "monto": 38000,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-17",
+          "mes": "Diciembre",
+          "titulo": "canape",
+          "monto": 45000,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-18",
+          "mes": "Junio",
+          "titulo": "sopaipillas con pebre",
+          "monto": 23000,
+          "fecha": "2025-06-20"
+        },
+        {
+          "id": "gas-2025-19",
+          "mes": "Diciembre",
+          "titulo": "300 sushi paseo x28.000",
+          "monto": 84000,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-20",
+          "mes": "Diciembre",
+          "titulo": "8 pizzas",
+          "monto": 63540,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-21",
+          "mes": "Diciembre",
+          "titulo": "aseo casa Ale paseo de curso",
+          "monto": 30000,
+          "fecha": "2025-12-11"
+        },
+        {
+          "id": "gas-2025-22",
+          "mes": "Diciembre",
+          "titulo": "fruta paseo",
+          "monto": 15400,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-23",
+          "mes": "Diciembre",
+          "titulo": "200 vasos plas paseo",
+          "monto": 20000,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-24",
+          "mes": "Diciembre",
+          "titulo": "20 pollos",
+          "monto": 224000,
+          "fecha": "2025-12-10"
+        },
+        {
+          "id": "gas-2025-25",
+          "mes": "Diciembre",
+          "titulo": "gomitas encendido de arbol",
+          "monto": 3870,
+          "fecha": "2025-12-01"
+        },
+        {
+          "id": "gas-2025-26",
+          "mes": "Diciembre",
+          "titulo": "cucharas, vasos café y platos",
+          "monto": 13350,
+          "fecha": "2025-12-10"
+        }
+      ],
+      "ingresos_extra": [
+        {
+          "id": "ext-1794069600472",
+          "titulo": "Ingreso Pollo Extra 21 * 6500",
+          "monto": 136500,
+          "fecha": "2026-11-07"
+        }
+      ]
     },
     "2026": {
-      "saldo_inicial": 0,
-      "cuota_mensual": 11000,
+      "cerrado": false,
+      "saldo_inicial": 1657254,
+      "cuota_mensual": 21000,
       "nombre_curso": "8° Básico B",
       "profesor": "Aylin Chong",
       "presidente": "Ingrid Brito",
@@ -4315,8 +5246,2233 @@
         "Noviembre",
         "Diciembre"
       ],
-      "apoderados": [],
-      "gastos": [],
+      "apoderados": [
+        {
+          "id": "apo-2026-01",
+          "nombre": "Karina Zenteno",
+          "alumno": "Agustín Berríos Zenteno",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-02",
+          "nombre": "Ingrid Brito",
+          "alumno": "Nelson Campos Brito",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ingrid Brito"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ingrid Brito"
+                }
+              ]
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-03",
+          "nombre": "Mario Cárdenas",
+          "alumno": "Gabriel Cárdenas Tejerina",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mario Cárdenas"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-04",
+          "nombre": "Alejandra Valdes",
+          "alumno": "Maximiliano Espinoza Valdes",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Alejandra Valdes"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Alejandra Valdes"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Alejandra Valdes"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Alejandra Valdes"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 16000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 16000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Alejandra Valdes"
+                }
+              ]
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-05",
+          "nombre": "Andrea Asencio",
+          "alumno": "Facundo Gallardo Asencio",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Andrea Asencio"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Andrea Asencio"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Andrea Asencio"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Andrea Asencio"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 16000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 16000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Andrea Asencio"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-06",
+          "nombre": "Ana Paula Sepúlveda",
+          "alumno": "Monserrat Gómez Sepúlveda",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Ana Paula Sepúlveda"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-07",
+          "nombre": "Karen Díaz",
+          "alumno": "Gaspar Gutierrez Díaz",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karen Díaz"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-08",
+          "nombre": "Yessenia Ortunio",
+          "alumno": "Fabiana Hernández Ortunio",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Yessenia Ortunio"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-09",
+          "nombre": "Gloria Olivares",
+          "alumno": "Josefa Lee Olivares",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": false,
+              "monto": 3000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 3000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gloria Olivares"
+                }
+              ]
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-10",
+          "nombre": "Silvia Huilca",
+          "alumno": "Sarahí Ocaña Huilca",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Silvvia Huilca"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-11",
+          "nombre": "Rodrigo Palza",
+          "alumno": "Mia Palza Tapia",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Rodrigo Palza"
+                }
+              ]
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-12",
+          "nombre": "Natalya Zakharova",
+          "alumno": "Michelle Ramos Zakharova",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Natalya Zakharova"
+                }
+              ]
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-13",
+          "nombre": "Karla Gómez",
+          "alumno": "Julietta Zeballos Gómez",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Karla Gómez"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-14",
+          "nombre": "Arlette Hormazabal",
+          "alumno": "Emilia Moraga Hormazabal",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Arlette Hormazabal"
+                }
+              ]
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-16",
+          "nombre": "Gissel Mardones",
+          "alumno": "Javiera Vergara Mardones",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Gissel Mardones"
+                }
+              ]
+            },
+            "Abril": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Mayo": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Junio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Julio": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Agosto": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Septiembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Noviembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 0,
+              "fecha": null,
+              "exonerado": false,
+              "transacciones": []
+            }
+          }
+        },
+        {
+          "id": "apo-2026-17",
+          "nombre": "Laura",
+          "alumno": "Martín Sovero",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Laura"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-2026-18",
+          "nombre": "Francia",
+          "alumno": "Isabella Guajardo",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Francia"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "apo-1794070693158",
+          "nombre": "Mamá de Tomás",
+          "alumno": "Tomás Jofre",
+          "activo": true,
+          "pagos": {
+            "Marzo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Abril": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Mayo": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Junio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Julio": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Agosto": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Septiembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Octubre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Noviembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            },
+            "Diciembre": {
+              "exonerado": false,
+              "pagado": true,
+              "monto": 21000,
+              "fecha": "2026-11-07",
+              "transacciones": [
+                {
+                  "monto": 21000,
+                  "fecha": "2026-11-07",
+                  "responsable": "Mamá de Tomás"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "gastos": [
+        {
+          "id": "gas-2026-01",
+          "mes": "Marzo",
+          "titulo": "abono hotel antay graduacion",
+          "monto": 300000,
+          "fecha": "2026-03-20"
+        },
+        {
+          "id": "gas-2026-02",
+          "mes": "Abril",
+          "titulo": "huevitos de pascua ( Ingrid , sin boleta)",
+          "monto": 13000,
+          "fecha": "2026-04-05"
+        },
+        {
+          "id": "gas-2026-03",
+          "mes": "Mayo",
+          "titulo": "torta cumpleaños Miss aylin",
+          "monto": 32000,
+          "fecha": "2026-05-12"
+        },
+        {
+          "id": "gas-2026-04",
+          "mes": "Mayo",
+          "titulo": "regalo cumple( Miss ) ingrid )",
+          "monto": 9000,
+          "fecha": "2026-05-12"
+        },
+        {
+          "id": "gas-2026-05",
+          "mes": "Junio",
+          "titulo": "abono fotografo",
+          "monto": 100000,
+          "fecha": "2026-06-10"
+        },
+        {
+          "id": "gas-2026-06",
+          "mes": "Junio",
+          "titulo": "cajita Miss Aylin machaq mara",
+          "monto": 4500,
+          "fecha": "2026-06-22"
+        },
+        {
+          "id": "gas-2026-07",
+          "mes": "Agosto",
+          "titulo": "paletas y papel dia de niño( Ingrid)",
+          "monto": 8600,
+          "fecha": "2026-08-09"
+        },
+        {
+          "id": "gas-2026-08",
+          "mes": "Octubre",
+          "titulo": "regalo Miss Aylin dia de profe",
+          "monto": 45000,
+          "fecha": "2026-10-16"
+        },
+        {
+          "id": "gas-2026-09",
+          "mes": "Noviembre",
+          "titulo": "2do abono Antay fiesta",
+          "monto": 1250000,
+          "fecha": "2026-11-20"
+        }
+      ],
       "ingresos_extra": []
     }
   }

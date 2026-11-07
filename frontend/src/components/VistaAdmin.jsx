@@ -45,39 +45,38 @@ export default function VistaAdmin({ datos, onActualizar }) {
     // Saldo Inicial y Cuota
     const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
     const [editandoSaldo, setEditandoSaldo] = useState(false);
-    const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
+    const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 11000);
 
     // Datos del Curso
-    const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '4° Medio A');
-    const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Juan Pérez');
-    const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ana Gómez');
-    const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'María González');
+    const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '8° Básico B');
+    const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Aylin Chong');
+    const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ingrid Brito');
+    const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'Natalya Zakharova');
     const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
 
-    // Modal Modificar Apoderado / Alumno
+    // Modales
     const [modalEditarApo, setModalEditarApo] = useState(false);
     const [idEditando, setIdEditando] = useState(null);
     const [editNombreApo, setEditNombreApo] = useState('');
     const [editNombreAlu, setEditNombreAlu] = useState('');
 
-    useEffect(() => {
-        setCuotaInput(datos.configuracion.cuota_mensual || 15000);
-        setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
-        setNombreCurso(datos.configuracion.nombre_curso || '4° Medio A');
-        setProfesorCurso(datos.configuracion.profesor || 'Juan Pérez');
-        setPresidenteCurso(datos.configuracion.presidente || 'Ana Gómez');
-        setTesoreroCurso(datos.configuracion.tesorero || 'María González');
-    }, [datos]);
-
-    // Modal de Pago Global
     const [modalAbierto, setModalAbierto] = useState(false);
     const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
     const [montoPago, setMontoPago] = useState('');
     const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
     const [responsablePago, setResponsablePago] = useState('');
 
-    // Notificaciones por sección
     const [avisosSeccion, setAvisosSeccion] = useState({});
+    const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        setCuotaInput(datos.configuracion.cuota_mensual || 11000);
+        setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
+        setNombreCurso(datos.configuracion.nombre_curso || '8° Básico B');
+        setProfesorCurso(datos.configuracion.profesor || 'Aylin Chong');
+        setPresidenteCurso(datos.configuracion.presidente || 'Ingrid Brito');
+        setTesoreroCurso(datos.configuracion.tesorero || 'Natalya Zakharova');
+    }, [datos]);
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
         setAvisosSeccion(prev => ({ ...prev, [seccionId]: { texto, tipo } }));
@@ -90,35 +89,43 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }, 3500);
     };
 
-    const fileInputRef = useRef(null);
-
-    const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
+    const cuotaOficial = datos.configuracion.cuota_mensual || 11000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
     const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
     
-    const totalCuotasRecaudadas = datos.apoderados.reduce((acc, apo) => {
-        let sub = 0;
-        datos.configuracion.meses.forEach(m => { 
-            if (apo.pagos[m]?.monto && !apo.pagos[m]?.exonerado) sub += Number(apo.pagos[m].monto); 
+    // Cálculo global de recaudación y deuda por recoger
+    let totalCuotasRecaudadas = 0;
+    let totalDeudaPorRecoger = 0;
+    let totalMesesPendientesCurso = 0;
+
+    datos.apoderados.forEach(apo => {
+        if (apo.activo === false) return;
+        datos.configuracion.meses.forEach(m => {
+            const p = apo.pagos[m];
+            if (p?.exonerado) return;
+            const monto = Number(p?.monto || 0);
+            totalCuotasRecaudadas += monto;
+            if (!p?.pagado) {
+                totalMesesPendientesCurso++;
+                totalDeudaPorRecoger += (cuotaOficial - monto);
+            }
         });
-        return acc + sub;
-    }, 0);
+    });
 
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportación a PDF estructurado, coloreado y ordenado
     const handleExportarPDF = () => {
         const doc = new jsPDF();
         const anioActual = datos.anio_activo;
 
         doc.setFontSize(14);
         doc.setTextColor(15, 23, 42);
-        doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '4° Medio A'} (${anioActual})`, 14, 15);
+        doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '8° Básico B'} (${anioActual})`, 14, 15);
         
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
         doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
-        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Saldo Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')}`, 14, 27);
+        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')} | Deuda por Recoger: $${totalDeudaPorRecoger.toLocaleString('es-CL')}`, 14, 27);
 
         let currentY = 34;
 
@@ -161,32 +168,40 @@ export default function VistaAdmin({ datos, onActualizar }) {
         const filasAlumnos = apoderadosOrdenados.map(apo => {
             let totalAbonadoApo = 0;
             let mesesPendientes = 0;
+            let deudaApo = 0;
 
             datos.configuracion.meses.forEach(mes => {
                 const p = apo.pagos[mes];
-                if (p?.exonerado) return; // Omitir exonerado del cálculo de deuda
-                if (p && p.monto) {
-                    totalAbonadoApo += Number(p.monto);
-                    if (!p.pagado) mesesPendientes++;
-                } else {
+                if (p?.exonerado) return;
+                const m = Number(p?.monto || 0);
+                totalAbonadoApo += m;
+                if (!p?.pagado) {
                     mesesPendientes++;
+                    deudaApo += (cuotaOficial - m);
                 }
             });
 
-            const deudaEstimada = mesesPendientes * cuotaOficial;
-
             return [
-                apo.nombre,
                 apo.alumno,
+                apo.nombre,
                 `$${totalAbonadoApo.toLocaleString('es-CL')}`,
                 `${mesesPendientes} meses`,
-                `$${deudaEstimada.toLocaleString('es-CL')}`
+                `$${deudaApo.toLocaleString('es-CL')}`
             ];
         });
 
+        // Fila final de totales
+        filasAlumnos.push([
+            'TOTAL GENERAL',
+            '-',
+            `$${totalCuotasRecaudadas.toLocaleString('es-CL')}`,
+            `${totalMesesPendientesCurso} meses`,
+            `$${totalDeudaPorRecoger.toLocaleString('es-CL')}`
+        ]);
+
         autoTable(doc, {
             startY: currentY + 3,
-            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
+            head: [['Alumno (Estudiante)', 'Apoderado', 'Total Abonos', 'Meses Pendientes', 'Deuda Estimada']],
             body: filasAlumnos,
             theme: 'grid',
             headStyles: { fillColor: [59, 130, 246] },
@@ -209,7 +224,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('acciones', `Año ${datos.anio_activo} cerrado con éxito.`);
                 onActualizar();
             } else {
-                mostrarAvisoLocal('acciones', "Error al cerrar el año escolar.", "error");
+                mostrarAvisoLocal('acciones', "Error al cerrar año escolar.", "error");
             }
         } catch {
             mostrarAvisoLocal('acciones', "Error de conexión.", "error");
@@ -218,7 +233,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const handleExonerarMes = async (apoderadoId, mes) => {
         try {
-            const res = await fetch(`/api/curso/admin/pago/exonerar/${apoderadoId}/${mes}`, {
+            const res = await fetch(`/api/curso/admin/pago/exonerar/${apoderadoId}/${mes}?anio=${datos.anio_activo}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -236,7 +251,10 @@ export default function VistaAdmin({ datos, onActualizar }) {
     const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
         if (montoActual <= 0) return;
         try {
-            const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, { method: 'DELETE' });
+            const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}?anio=${datos.anio_activo}`, { 
+                method: 'DELETE' 
+            });
+
             if (res.ok) {
                 mostrarAvisoLocal('pagos', `Se revirtió el pago de ${mes}`);
                 onActualizar();
@@ -244,12 +262,12 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 mostrarAvisoLocal('pagos', "Error al revertir pago.", "error");
             }
         } catch {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
         }
     };
 
     const handleEliminarApoderado = async (id, nombre) => {
-        if (confirm(`¿Estás seguro de eliminar a ${nombre} y a su alumno? Se borrarán todos sus registros de pago del año actual.`)) {
+        if (confirm(`¿Estás seguro de eliminar a ${nombre} y a su alumno? Se borrarán todos sus registros del año actual.`)) {
             try {
                 const res = await fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' });
                 if (res.ok) {
@@ -259,7 +277,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     mostrarAvisoLocal('pagos', "Error al eliminar apoderado.", "error");
                 }
             } catch {
-                mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+                mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
             }
         }
     };
@@ -280,13 +298,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
             if (res.ok) {
                 setModalEditarApo(false);
-                mostrarAvisoLocal('pagos', "Apoderado y alumno modificados correctamente.");
+                mostrarAvisoLocal('pagos', "Datos modificados correctamente.");
                 onActualizar();
             } else {
                 mostrarAvisoLocal('pagos', "Error al guardar modificaciones.", "error");
             }
         } catch {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
         }
     };
 
@@ -550,25 +568,57 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* BALANCE GENERAL */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Saldo Anterior</span><span className="text-sm font-bold text-slate-200">${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Cuotas</span><span className="text-sm font-bold text-emerald-400">${totalCuotasRecaudadas.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Ingresos Extra</span><span className="text-sm font-bold text-sky-400">${totalIngresosExtra.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Gastos</span><span className="text-sm font-bold text-rose-400">${totalGastos.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl col-span-2 sm:col-span-1 bg-emerald-950/10"><span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real</span><span className="text-sm font-extrabold text-emerald-400">${saldoRealCaja.toLocaleString('es-CL')}</span></div>
+            {/* BALANCE GENERAL CON TARJETA DE DEUDA POR RECOGER */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                    <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja ({datos.anio_activo})
+                </h3>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Saldo Anterior</span>
+                        <span className="text-sm font-bold text-slate-200">${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Cuotas</span>
+                        <span className="text-sm font-bold text-emerald-400">${totalCuotasRecaudadas.toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Ingresos Extra</span>
+                        <span className="text-sm font-bold text-sky-400">${totalIngresosExtra.toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 block">Gastos</span>
+                        <span className="text-sm font-bold text-rose-400">${totalGastos.toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl bg-emerald-950/10">
+                        <span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real</span>
+                        <span className="text-sm font-extrabold text-emerald-400">${saldoRealCaja.toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="bg-slate-950 border border-amber-500/30 p-3 rounded-xl bg-amber-950/10">
+                        <span className="text-[10px] text-amber-400 block font-semibold">Deuda por Recoger</span>
+                        <span className="text-sm font-extrabold text-amber-400">${totalDeudaPorRecoger.toLocaleString('es-CL')}</span>
+                    </div>
                 </div>
             </div>
 
-            {/* RESUMEN FINANCIERO POR ALUMNO */}
+            {/* RESUMEN FINANCIERO POR ALUMNO CON TOTALES AL PIE */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2"><i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno (Ordenado por Apellido Paterno)</h3>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
+                        <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Estudiante (Ordenado por Apellido Paterno)
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                        Total Deuda por Recoger: <strong className="text-amber-400 font-bold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</strong>
+                    </span>
+                </div>
+                
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-slate-300">
                         <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
                             <tr>
-                                <th className="p-3">Apoderado / Alumno</th>
+                                <th className="p-3">Estudiante (Alumno)</th>
+                                <th className="p-3">Apoderado</th>
                                 <th className="p-3 text-center">Total Recaudado</th>
                                 <th className="p-3 text-center">Meses Pendientes</th>
                                 <th className="p-3 text-right">Deuda Estimada</th>
@@ -580,29 +630,43 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 .map(apo => {
                                     let totalAbonado = 0;
                                     let mesesPendientes = 0;
+                                    let deudaApo = 0;
+
                                     datos.configuracion.meses.forEach(m => {
                                         const p = apo.pagos[m];
                                         if (p?.exonerado) return;
-                                        if (p && p.monto > 0) {
-                                            totalAbonado += Number(p.monto);
-                                            if (!p.pagado) mesesPendientes++;
-                                        } else {
+                                        const monto = Number(p?.monto || 0);
+                                        totalAbonado += monto;
+                                        if (!p?.pagado) {
                                             mesesPendientes++;
+                                            deudaApo += (cuotaOficial - monto);
                                         }
                                     });
+
                                     return (
                                         <tr key={apo.id} className={`hover:bg-slate-950/40 ${apo.activo === false ? 'opacity-50' : ''}`}>
                                             <td className="p-3">
-                                                <span className="font-semibold text-white block">{apo.nombre} {apo.activo === false && '(Inactivo)'}</span>
-                                                <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
+                                                <span className="font-extrabold text-white block text-sm">{apo.alumno}</span>
+                                            </td>
+                                            <td className="p-3 text-slate-400">
+                                                {apo.nombre} {apo.activo === false && '(Inactivo)'}
                                             </td>
                                             <td className="p-3 text-center font-bold text-emerald-400">${totalAbonado.toLocaleString('es-CL')}</td>
                                             <td className="p-3 text-center text-amber-400 font-medium">{mesesPendientes} meses</td>
-                                            <td className="p-3 text-right font-bold text-rose-400">${(mesesPendientes * cuotaOficial).toLocaleString('es-CL')}</td>
+                                            <td className="p-3 text-right font-bold text-rose-400">${deudaApo.toLocaleString('es-CL')}</td>
                                         </tr>
                                     );
                                 })}
                         </tbody>
+                        <tfoot className="bg-slate-950 text-white font-bold border-t-2 border-slate-700">
+                            <tr>
+                                <td className="p-3 text-sky-400 uppercase tracking-wider font-extrabold">TOTAL GENERAL</td>
+                                <td className="p-3 text-slate-500">-</td>
+                                <td className="p-3 text-center text-emerald-400 text-sm">${totalCuotasRecaudadas.toLocaleString('es-CL')}</td>
+                                <td className="p-3 text-center text-amber-400 text-sm">{totalMesesPendientesCurso} meses</td>
+                                <td className="p-3 text-right text-rose-400 text-sm font-extrabold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -628,7 +692,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                 <select value={gastoMes} onChange={(e) => setGastoMes(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                                     {datos.configuracion.meses.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
-                                <input type="number" placeholder="Monto" value={gastoMonto} onChange={(e) => setGastoMonto(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                                <input type="number" placeholder="Monto" value={gastoMonto} onChange={(e) => setGastoMonto(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
                             </div>
                             <input type="date" value={gastoFecha} onChange={(e) => setGastoFecha(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
                             <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Registrar Gasto</button>
@@ -657,7 +721,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
                     {/* Agregar Apoderado */}
                     <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                        <h3 className="text-sm font-bold text-sky-400"><i className="fa-solid fa-user-plus mr-1"></i> Agregar Apoderado</h3>
+                        <h3 className="text-sm font-bold text-sky-400"><i className="fa-solid fa-user-plus mr-1"></i> Agregar Estudiante / Apoderado</h3>
                         <form onSubmit={async (e) => {
                             e.preventDefault();
                             if (!nombreApoderado.trim() || !nombreAlumno.trim()) return;
@@ -668,8 +732,8 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             });
                             setNombreApoderado(''); setNombreAlumno(''); onActualizar();
                         }} className="space-y-3">
+                            <input type="text" placeholder="Nombre Alumno (Estudiante)..." value={nombreAlumno} onChange={(e) => setNombreAlumno(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold" />
                             <input type="text" placeholder="Nombre Apoderado..." value={nombreApoderado} onChange={(e) => setNombreApoderado(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                            <input type="text" placeholder="Nombre Alumno..." value={nombreAlumno} onChange={(e) => setNombreAlumno(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
                             <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs mt-6">Agregar</button>
                         </form>
                     </div>
@@ -735,34 +799,46 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* GESTIÓN DE PAGOS MENSUALES */}
+            {/* GESTIÓN DE PAGOS MENSUALES: UNA CARD POR ALUMNO A LO ANCHO */}
             <div className="space-y-4">
-                <h3 className="text-sm font-bold text-white"><i className="fa-solid fa-money-check-dollar mr-2"></i> Gestión de Pagos Mensuales</h3>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="flex justify-between items-center px-1">
+                    <h3 className="text-sm font-bold text-white"><i className="fa-solid fa-money-check-dollar mr-2"></i> Gestión de Pagos Mensuales por Estudiante</h3>
+                    <span className="text-xs text-slate-400">Total por Recoger: <strong className="text-amber-400 font-bold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</strong></span>
+                </div>
+                
+                <div className="flex flex-col gap-4">
                     {[...datos.apoderados]
                         .sort(ordenarPorApellidoPaterno)
                         .map(apo => (
-                            <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
+                            <div key={apo.id} className="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+                                {/* DATOS DEL ALUMNO (RESALTADO) Y APODERADO */}
+                                <div className="xl:w-1/4 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-slate-800 pb-3 xl:pb-0 xl:pr-4 flex flex-col justify-between">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-white text-sm">{apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}</h4>
+                                            <h4 className="font-extrabold text-white text-base tracking-wide flex items-center gap-1.5">
+                                                <i className="fa-solid fa-user-graduate text-sky-400 text-sm"></i>
+                                                {apo.alumno} {apo.activo === false && <span className="text-rose-400 text-xs font-normal">(Inactivo)</span>}
+                                            </h4>
                                             {!estaCerrado && (
                                                 <button 
                                                     onClick={() => { setIdEditando(apo.id); setEditNombreApo(apo.nombre); setEditNombreAlu(apo.alumno); setModalEditarApo(true); }}
                                                     className="text-slate-400 hover:text-sky-400 text-xs p-1"
+                                                    title="Editar Estudiante o Apoderado"
                                                 >
                                                     <i className="fa-solid fa-pen-to-square"></i>
                                                 </button>
                                             )}
                                         </div>
-                                        <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
+                                        <p className="text-xs text-slate-400 mt-0.5">
+                                            Apoderado: <span className="text-slate-200 font-medium">{apo.nombre}</span>
+                                        </p>
                                     </div>
+
                                     {!estaCerrado && (
-                                        <div className="flex gap-2 w-full sm:w-auto items-center">
+                                        <div className="flex gap-2 w-full mt-3 items-center">
                                             <button 
                                                 onClick={() => { setApoderadoSeleccionado(apo); setMontoPago(''); setResponsablePago(apo.nombre); setModalAbierto(true); }}
-                                                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs"
+                                                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition"
                                             >
                                                 Registrar Pago
                                             </button>
@@ -775,13 +851,15 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                                     });
                                                     onActualizar();
                                                 }}
-                                                className={`text-xs px-3 py-1.5 rounded-xl border ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                                                className={`text-xs px-2.5 py-1.5 rounded-xl border ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                                                title="Activar u Ocultar"
                                             >
                                                 {apo.activo === false ? 'Activar' : 'Ocultar'}
                                             </button>
                                             <button 
                                                 onClick={() => handleEliminarApoderado(apo.id, apo.nombre)}
-                                                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-3 py-1.5 rounded-xl"
+                                                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-2.5 py-1.5 rounded-xl"
+                                                title="Eliminar registro"
                                             >
                                                 <i className="fa-solid fa-trash-can"></i>
                                             </button>
@@ -789,45 +867,58 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                {/* TIRA COMPLETA DE 10 MESES A LO ANCHO */}
+                                <div className="flex-1 grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
                                     {datos.configuracion.meses.map(mes => {
                                         const pago = apo.pagos[mes] || { pagado: false, monto: 0, exonerado: false, fecha: null };
                                         const montoAbonado = Number(pago.monto || 0);
                                         const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
 
                                         return (
-                                            <div key={mes} className={`border p-2.5 rounded-xl flex flex-col justify-between ${pago.exonerado ? 'bg-slate-950/40 border-slate-800/40 opacity-75' : 'bg-slate-950 border-slate-800'}`}>
-                                                <div className="flex justify-between items-start">
-                                                    <span className="text-xs font-semibold text-slate-300">{mes}</span>
+                                            <div key={mes} className={`border p-2 rounded-xl flex flex-col justify-between text-center min-h-[72px] ${pago.exonerado ? 'bg-slate-950/40 border-slate-800/40 opacity-70' : 'bg-slate-950 border-slate-800'}`}>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{mes.slice(0, 3)}</span>
                                                     <div className="flex items-center gap-1">
                                                         {!estaCerrado && montoAbonado === 0 && (
                                                             <button
                                                                 onClick={() => handleExonerarMes(apo.id, mes)}
-                                                                className={`text-[10px] px-1.5 py-0.5 rounded transition ${pago.exonerado ? 'bg-sky-500/20 text-sky-400' : 'text-slate-500 hover:text-slate-300'}`}
-                                                                title={pago.exonerado ? "Quitar exoneración" : "Exonerar este mes"}
+                                                                className={`text-[9px] px-1 py-0.2 rounded transition ${pago.exonerado ? 'bg-sky-500/20 text-sky-400' : 'text-slate-600 hover:text-slate-300'}`}
+                                                                title={pago.exonerado ? "Quitar exoneración" : "Exonerar mes"}
                                                             >
                                                                 <i className="fa-solid fa-ban"></i>
                                                             </button>
                                                         )}
                                                         {!estaCerrado && montoAbonado > 0 && (
-                                                            <button onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)} className="text-slate-500 hover:text-rose-400 text-xs">
+                                                            <button onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)} className="text-slate-600 hover:text-rose-400 text-[10px]">
                                                                 <i className="fa-solid fa-trash-can"></i>
                                                             </button>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <span className={`text-[10px] font-medium mt-1 ${
-                                                    pago.exonerado
-                                                        ? 'text-sky-400 font-semibold'
-                                                        : esCompleto
-                                                        ? 'text-emerald-400'
-                                                        : montoAbonado > 0
-                                                        ? 'text-amber-400'
-                                                        : 'text-slate-500'
-                                                }`}>
-                                                    {pago.exonerado ? 'Exonerado -' : esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
+
+                                                <div className="my-1">
+                                                    {pago.exonerado ? (
+                                                        <span className="inline-block w-full text-center bg-sky-500/10 text-sky-400 border border-sky-500/20 py-0.5 rounded text-[9px] font-bold">
+                                                            Exonerado
+                                                        </span>
+                                                    ) : esCompleto ? (
+                                                        <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[9px] font-bold">
+                                                            ✓ Pagado
+                                                        </span>
+                                                    ) : montoAbonado > 0 ? (
+                                                        <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[9px] font-bold">
+                                                            ${(montoAbonado / 1000).toFixed(0)}k
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[9px] font-bold">
+                                                            Pendiente
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <span className="text-[8px] text-slate-500 font-mono truncate">
+                                                    {pago.fecha ? pago.fecha.slice(5) : '-'}
                                                 </span>
-                                                {pago.fecha && !pago.exonerado && <span className="text-[9px] text-slate-400 mt-0.5">📅 {pago.fecha}</span>}
                                             </div>
                                         );
                                     })}
@@ -841,11 +932,19 @@ export default function VistaAdmin({ datos, onActualizar }) {
             {modalEditarApo && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <form onSubmit={handleGuardarEdicionApo} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm space-y-4">
-                        <h3 className="text-sm font-bold text-white">Modificar Apoderado</h3>
-                        <input type="text" value={editNombreApo} onChange={(e) => setEditNombreApo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                        <input type="text" value={editNombreAlu} onChange={(e) => setEditNombreAlu(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                        <div className="flex gap-2">
-                            <button type="button" onClick={() => setModalEditarApo(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300">Cancelar</button>
+                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                            <i className="fa-solid fa-user-pen text-sky-400"></i> Modificar Estudiante / Apoderado
+                        </h3>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Estudiante (Alumno)</label>
+                            <input type="text" value={editNombreAlu} onChange={(e) => setEditNombreAlu(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold" required autoFocus />
+                        </div>
+                        <div>
+                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Apoderado</label>
+                            <input type="text" value={editNombreApo} onChange={(e) => setEditNombreApo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                            <button type="button" onClick={() => setModalEditarApo(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300 font-bold">Cancelar</button>
                             <button type="submit" className="w-1/2 bg-sky-500 py-2 rounded-xl text-xs text-slate-950 font-bold">Guardar</button>
                         </div>
                     </form>
@@ -855,15 +954,25 @@ export default function VistaAdmin({ datos, onActualizar }) {
             {modalAbierto && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <form onSubmit={handleEnviarPagoGlobal} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-4">
-                        <h3 className="text-sm font-bold text-white">Registrar Pago</h3>
-                        <p className="text-xs text-slate-300">{apoderadoSeleccionado?.nombre} ({apoderadoSeleccionado?.alumno})</p>
-                        <input type="number" placeholder="Monto" value={montoPago} onChange={(e) => setMontoPago(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required autoFocus />
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                <i className="fa-solid fa-cash-register text-emerald-400"></i> Registrar Pago / Abono
+                            </h3>
+                            <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-white">
+                                <i className="fa-solid fa-xmark text-lg"></i>
+                            </button>
+                        </div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs space-y-1">
+                            <p className="text-white">Estudiante: <strong className="text-sky-400 text-sm">{apoderadoSeleccionado?.alumno}</strong></p>
+                            <p className="text-slate-400">Apoderado: {apoderadoSeleccionado?.nombre}</p>
+                        </div>
+                        <input type="number" placeholder="Monto entregado ($)" value={montoPago} onChange={(e) => setMontoPago(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold text-emerald-400" required autoFocus />
                         <div className="grid grid-cols-2 gap-2">
                             <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                            <input type="text" placeholder="Responsable" value={responsablePago} onChange={(e) => setResponsablePago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <input type="text" placeholder="Responsable del pago" value={responsablePago} onChange={(e) => setResponsablePago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
                         </div>
-                        <div className="flex gap-2">
-                            <button type="button" onClick={() => setModalAbierto(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300">Cancelar</button>
+                        <div className="flex gap-2 pt-2">
+                            <button type="button" onClick={() => setModalAbierto(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300 font-bold">Cancelar</button>
                             <button type="submit" className="w-1/2 bg-emerald-500 py-2 rounded-xl text-xs text-slate-950 font-bold">Guardar Pago</button>
                         </div>
                     </form>

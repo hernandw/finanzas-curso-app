@@ -4,7 +4,7 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// 1. Obtener datos con soporte para parámetro ?anio=XXXX y recálculo dinámico
+// 1. Obtener datos con recálculo dinámico y parámetro de consulta ?anio=
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -14,11 +14,11 @@ router.get('/curso/datos', async (req, res) => {
             datos.anios[anioConsultado] = {
                 cerrado: false,
                 saldo_inicial: 0,
-                cuota_mensual: 15000,
-                nombre_curso: "4° Medio A",
-                profesor: "Juan Pérez",
-                presidente: "Ana Gómez",
-                tesorero: "María González",
+                cuota_mensual: 11000,
+                nombre_curso: "8° Básico B",
+                profesor: "Aylin Chong",
+                presidente: "Ingrid Brito",
+                tesorero: "Natalya Zakharova",
                 meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
                 apoderados: [],
                 gastos: [],
@@ -27,7 +27,7 @@ router.get('/curso/datos', async (req, res) => {
         }
 
         const infoAnio = datos.anios[anioConsultado];
-        const cuotaOficial = Number(infoAnio.cuota_mensual || 15000);
+        const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
 
         // Rebalanceo dinámico respetando meses exonerados
         (infoAnio.apoderados || []).forEach(apo => {
@@ -87,10 +87,10 @@ router.get('/curso/datos', async (req, res) => {
                 cerrado: Boolean(infoAnio.cerrado),
                 saldo_inicial: infoAnio.saldo_inicial || 0,
                 cuota_mensual: cuotaOficial,
-                nombre_curso: infoAnio.nombre_curso || "4° Medio A",
-                profesor: infoAnio.profesor || "Juan Pérez",
-                presidente: infoAnio.presidente || "Ana Gómez",
-                tesorero: infoAnio.tesorero || "María González",
+                nombre_curso: infoAnio.nombre_curso || "8° Básico B",
+                profesor: infoAnio.profesor || "Aylin Chong",
+                presidente: infoAnio.presidente || "Ingrid Brito",
+                tesorero: infoAnio.tesorero || "Natalya Zakharova",
                 meses: infoAnio.meses
             },
             apoderados: infoAnio.apoderados || [],
@@ -98,19 +98,19 @@ router.get('/curso/datos', async (req, res) => {
             ingresos_extra: infoAnio.ingresos_extra || []
         });
     } catch (error) {
-        console.error("Error al obtener los datos:", error);
+        console.error("Error al obtener datos:", error);
         res.status(500).json({ error: "Error al obtener los datos" });
     }
 });
 
-// 2. Cerrar año escolar actual y habilitar el siguiente arrastrando saldos
+// 2. Cerrar año escolar actual y traspasar apoderados y saldo al siguiente año
 router.post('/curso/admin/cerrar-anio', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
         const dataAnio = datos.anios[anioActual];
 
-        if (!dataAnio) return res.status(404).json({ error: "Año actual no encontrado" });
+        if (!dataAnio) return res.status(404).json({ error: "Año no encontrado" });
 
         dataAnio.cerrado = true;
 
@@ -129,55 +129,63 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
         const siguienteAnio = String(Number(anioActual) + 1);
         const meses = ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
+        const apoderadosNuevos = (dataAnio.apoderados || [])
+            .filter(a => a.activo !== false)
+            .map(a => ({
+                id: 'apo-' + Math.random().toString(36).substr(2, 9),
+                nombre: a.nombre,
+                alumno: a.alumno,
+                activo: true,
+                pagos: meses.reduce((acc, m) => ({
+                    ...acc,
+                    [m]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] }
+                }), {})
+            }));
+
         if (!datos.anios[siguienteAnio]) {
             datos.anios[siguienteAnio] = {
                 cerrado: false,
                 saldo_inicial: saldoFinalArrastre,
-                cuota_mensual: Number(dataAnio.cuota_mensual) || 15000,
-                nombre_curso: dataAnio.nombre_curso || "4° Medio A",
-                profesor: dataAnio.profesor || "Juan Pérez",
-                presidente: dataAnio.presidente || "Ana Gómez",
-                tesorero: dataAnio.tesorero || "María González",
+                cuota_mensual: Number(dataAnio.cuota_mensual) || 11000,
+                nombre_curso: dataAnio.nombre_curso || "Curso",
+                profesor: dataAnio.profesor || "Profesor Jefe",
+                presidente: dataAnio.presidente || "Presidente",
+                tesorero: dataAnio.tesorero || "Tesorero",
                 meses: meses,
-                apoderados: (dataAnio.apoderados || [])
-                    .filter(a => a.activo !== false)
-                    .map(a => ({
-                        id: 'apo-' + Math.random().toString(36).substr(2, 9),
-                        nombre: a.nombre,
-                        alumno: a.alumno,
-                        activo: true,
-                        pagos: meses.reduce((acc, m) => ({ ...acc, [m]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
-                    })),
+                apoderados: apoderadosNuevos,
                 gastos: [],
                 ingresos_extra: []
             };
         } else {
             datos.anios[siguienteAnio].saldo_inicial = saldoFinalArrastre;
+            if (!datos.anios[siguienteAnio].apoderados || datos.anios[siguienteAnio].apoderados.length === 0) {
+                datos.anios[siguienteAnio].apoderados = apoderadosNuevos;
+            }
         }
 
         datos.anio_activo = siguienteAnio;
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, anio_activo: siguienteAnio, saldo_inicial: saldoFinalArrastre });
     } catch (error) {
-        console.error("Error al cerrar año escolar:", error);
+        console.error("Error al cerrar año:", error);
         res.status(500).json({ error: "Error al cerrar año escolar" });
     }
 });
 
-// 3. Cambiar de año activo o aperturar
+// 3. Cambiar año activo o crearlo
 router.post('/curso/admin/cambiar-anio', async (req, res) => {
     const { nuevoAnio, cuotaMensual } = req.body;
     try {
         const datos = await dbConfig.leerDatos();
         const anioAnterior = datos.anio_activo || "2026";
-        const infoAnioAnt = datos.anios[anioAnterior];
+        const infoAnioAnt = datos.anios[anioAnterior] || {};
 
         let totalRecaudadoAnt = 0;
         let totalGastosAnt = (infoAnioAnt.gastos || []).reduce((acc, g) => acc + Number(g.monto), 0);
         let totalIngresosAnt = (infoAnioAnt.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto), 0);
 
         (infoAnioAnt.apoderados || []).forEach(apo => {
-            infoAnioAnt.meses.forEach(mes => {
+            (infoAnioAnt.meses || []).forEach(mes => {
                 const p = apo.pagos[mes];
                 if (p && p.monto && !p.exonerado) totalRecaudadoAnt += Number(p.monto);
             });
@@ -193,18 +201,21 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
                     nombre: a.nombre,
                     alumno: a.alumno,
                     activo: true,
-                    pagos: infoAnioAnt.meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
+                    pagos: (infoAnioAnt.meses || ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]).reduce((acc, mes) => ({
+                        ...acc,
+                        [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] }
+                    }), {})
                 }));
 
             datos.anios[nuevoAnio] = {
                 cerrado: false,
                 saldo_inicial: saldoFinalAnterior,
-                cuota_mensual: Number(cuotaMensual) || infoAnioAnt.cuota_mensual || 15000,
-                nombre_curso: infoAnioAnt.nombre_curso || "4° Medio A",
-                profesor: infoAnioAnt.profesor || "Juan Pérez",
-                presidente: infoAnioAnt.presidente || "Ana Gómez",
-                tesorero: infoAnioAnt.tesorero || "María González",
-                meses: infoAnioAnt.meses,
+                cuota_mensual: Number(cuotaMensual) || infoAnioAnt.cuota_mensual || 11000,
+                nombre_curso: infoAnioAnt.nombre_curso || "Curso",
+                profesor: infoAnioAnt.profesor || "Profesor Jefe",
+                presidente: infoAnioAnt.presidente || "Presidente",
+                tesorero: infoAnioAnt.tesorero || "Tesorero",
+                meses: infoAnioAnt.meses || ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
                 apoderados: apoderadosActivos,
                 gastos: [],
                 ingresos_extra: []
@@ -215,12 +226,12 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, anio_activo: datos.anio_activo });
     } catch (error) {
-        console.error("Error al cambiar de año:", error);
-        res.status(500).json({ error: "Error al cambiar de año" });
+        console.error("Error al cambiar año:", error);
+        res.status(500).json({ error: "Error al cambiar año" });
     }
 });
 
-// 4. Actualizar configuración general del curso y mensualidad
+// 4. Actualizar configuración general del curso
 router.put('/curso/admin/configuracion', async (req, res) => {
     const { saldo_inicial, cuota_mensual, nombre_curso, profesor, presidente, tesorero } = req.body;
     try {
@@ -239,7 +250,7 @@ router.put('/curso/admin/configuracion', async (req, res) => {
         res.json({ success: true, configuracion: infoAnio });
     } catch (error) {
         console.error("Error al actualizar configuración:", error);
-        res.status(500).json({ error: "Error al actualizar la configuración" });
+        res.status(500).json({ error: "Error al actualizar configuración" });
     }
 });
 
@@ -263,8 +274,6 @@ router.post('/curso/admin/pago-global', async (req, res) => {
             if (dineroRestante <= 0) break;
 
             const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, exonerado: false, transacciones: [] };
-            
-            // Omitir mes si está exonerado
             if (pagoMes.exonerado) continue;
 
             const saldoPendienteEsteMes = cuotaOficial - Number(pagoMes.monto || 0);
@@ -296,16 +305,83 @@ router.post('/curso/admin/pago-global', async (req, res) => {
         res.json({ success: true, apoderado });
     } catch (error) {
         console.error("Error al procesar pago global:", error);
-        res.status(500).json({ error: "Error al procesar el pago global" });
+        res.status(500).json({ error: "Error al procesar pago global" });
     }
 });
 
-// 6. Exonerar o revertir exoneración de un mes
-router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
+// 6. Eliminar pago de un mes SIN que el rebalanceo reviva el primer mes
+router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     const { apoderadoId, mes } = req.params;
+    const anioConsulta = req.query.anio;
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
+        const anioActual = anioConsulta || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioActual];
+        
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        // 1. Vaciar completamente el mes objetivo (monto, fecha y transacciones)
+        apoderado.pagos[mes] = {
+            exonerado: false,
+            pagado: false,
+            monto: 0,
+            fecha: null,
+            transacciones: []
+        };
+
+        // 2. Sumar el dinero real remanente del alumno
+        const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
+        let dineroTotal = 0;
+        infoAnio.meses.forEach(m => {
+            const p = apoderado.pagos[m];
+            if (p && !p.exonerado && p.monto) {
+                dineroTotal += Number(p.monto);
+            }
+        });
+
+        // 3. Redistribuir exactamente el dinero restante
+        let remanente = dineroTotal;
+        infoAnio.meses.forEach(m => {
+            const p = apoderado.pagos[m] || {};
+            if (p.exonerado) return;
+
+            if (remanente > 0) {
+                const asignar = Math.min(remanente, cuotaOficial);
+                remanente -= asignar;
+                apoderado.pagos[m] = {
+                    ...p,
+                    monto: asignar,
+                    pagado: asignar >= cuotaOficial
+                };
+            } else {
+                apoderado.pagos[m] = {
+                    exonerado: false,
+                    pagado: false,
+                    monto: 0,
+                    fecha: null,
+                    transacciones: []
+                };
+            }
+        });
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        console.error("Error al eliminar pago:", error);
+        res.status(500).json({ error: "Error al eliminar pago" });
+    }
+});
+
+// 7. Exonerar o des-exonerar mes
+router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
+    const { apoderadoId, mes } = req.params;
+    const anioConsulta = req.query.anio;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioActual = anioConsulta || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioActual];
 
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
@@ -327,34 +403,7 @@ router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
         res.json({ success: true, apoderado });
     } catch (error) {
         console.error("Error al exonerar mes:", error);
-        res.status(500).json({ error: "Error al alternar exoneración" });
-    }
-});
-
-// 7. Eliminar o revertir el pago de un mes
-router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
-    const { apoderadoId, mes } = req.params;
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioActual];
-        
-        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
-        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
-
-        apoderado.pagos[mes] = {
-            exonerado: false,
-            pagado: false,
-            monto: 0,
-            fecha: null,
-            transacciones: []
-        };
-
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, apoderado });
-    } catch (error) {
-        console.error("Error al eliminar el pago:", error);
-        res.status(500).json({ error: "Error al eliminar el pago" });
+        res.status(500).json({ error: "Error al actualizar exoneración" });
     }
 });
 
@@ -446,14 +495,16 @@ router.post('/curso/admin/apoderado/agregar', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioActual = datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioActual];
-        const meses = infoAnio.meses;
 
         const nuevoApoderado = {
             id: 'apo-' + Date.now(),
             nombre: nombre.trim(),
             alumno: alumno.trim(),
             activo: true,
-            pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
+            pagos: infoAnio.meses.reduce((acc, mes) => ({
+                ...acc,
+                [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] }
+            }), {})
         };
         infoAnio.apoderados.push(nuevoApoderado);
         await dbConfig.guardarDatos(datos);
@@ -502,8 +553,8 @@ router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, apoderado });
     } catch (error) {
-        console.error("Error al actualizar estado del apoderado:", error);
-        res.status(500).json({ error: "Error al actualizar estado del apoderado" });
+        console.error("Error al cambiar estado:", error);
+        res.status(500).json({ error: "Error al cambiar estado" });
     }
 });
 
@@ -523,7 +574,7 @@ router.delete('/curso/admin/apoderado/:id', async (req, res) => {
     }
 });
 
-// 11. Backup, Restauración y Reset de Fábrica
+// 11. Backup, Restaurar y Reset
 router.get('/curso/backup', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -539,12 +590,12 @@ router.post('/curso/backup/restaurar', async (req, res) => {
     const nuevoContenido = req.body;
     try {
         if (!nuevoContenido || !nuevoContenido.anios) {
-            return res.status(400).json({ error: "Estructura de backup inválida" });
+            return res.status(400).json({ error: "Estructura inválida" });
         }
         await dbConfig.guardarDatos(nuevoContenido);
-        res.json({ success: true, mensaje: "Aplicación restaurada con éxito" });
+        res.json({ success: true, mensaje: "Restaurado con éxito" });
     } catch (error) {
-        res.status(500).json({ error: "Error al restaurar los datos" });
+        res.status(500).json({ error: "Error al restaurar" });
     }
 });
 
@@ -556,11 +607,11 @@ router.delete('/curso/reset', async (req, res) => {
                 "2026": {
                     cerrado: false,
                     saldo_inicial: 0,
-                    cuota_mensual: 15000,
-                    nombre_curso: "4° Medio A",
-                    profesor: "Juan Pérez",
-                    presidente: "Ana Gómez",
-                    tesorero: "María González",
+                    cuota_mensual: 11000,
+                    nombre_curso: "8° Básico B",
+                    profesor: "Aylin Chong",
+                    presidente: "Ingrid Brito",
+                    tesorero: "Natalya Zakharova",
                     meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
                     apoderados: [],
                     gastos: [],

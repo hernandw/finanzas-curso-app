@@ -19,7 +19,7 @@ app.use(cors({
 app.use(express.json());
 
 // Servir uploads de recibos
-app.use('/uploads', express.static('backend/uploads'));
+app.use('/uploads', express.static('assets/uploads'));
 
 // Montar rutas
 app.use('/api', apiRoutes);

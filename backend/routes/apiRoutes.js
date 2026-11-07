@@ -8,7 +8,7 @@ import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// Configuración de subida de recibos con Multer
+// Configuración de almacenamiento local para comprobantes/recibos
 const uploadDir = path.resolve('backend/uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -24,19 +24,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Configuración de transporte de correo (SMTP)
-// Puedes configurar tus credenciales en el archivo .env o usar valores por defecto
+// Configuración de transporte SMTP con servicio nativo de Gmail
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
+    service: 'gmail',
     auth: {
         user: process.env.SMTP_USER || '',
         pass: process.env.SMTP_PASS || ''
     }
 });
 
-// 1. Obtener datos con parámetro ?anio=
+// 1. Obtener datos generales por año (?anio=YYYY)
 router.get('/curso/datos', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -113,7 +110,7 @@ router.get('/curso/datos', async (req, res) => {
     }
 });
 
-// 2. Registrar gasto con recibo opcional adjunto
+// 2. Registrar gasto con recibo opcional
 router.post('/curso/admin/gasto', upload.single('recibo'), async (req, res) => {
     const { mes, titulo, monto, fecha, anio } = req.body;
     try {
@@ -138,7 +135,7 @@ router.post('/curso/admin/gasto', upload.single('recibo'), async (req, res) => {
     }
 });
 
-// 3. Eliminar gasto
+// 3. Eliminar gasto y su archivo físico
 router.delete('/curso/admin/gasto/:id', async (req, res) => {
     const { id } = req.params;
     const anioActual = req.query.anio;
@@ -163,7 +160,7 @@ router.delete('/curso/admin/gasto/:id', async (req, res) => {
     }
 });
 
-// 4. Agregar Apoderado con Correo
+// 4. Agregar Apoderado / Estudiante con correo
 router.post('/curso/admin/apoderado/agregar', async (req, res) => {
     const { nombre, alumno, email, anio } = req.body;
     try {
@@ -190,7 +187,7 @@ router.post('/curso/admin/apoderado/agregar', async (req, res) => {
     }
 });
 
-// 5. Modificar Apoderado (Nombre, Alumno, Email)
+// 5. Modificar datos de apoderado/alumno/correo
 router.put('/curso/admin/apoderado/:id', async (req, res) => {
     const { id } = req.params;
     const { nombre, alumno, email, anio } = req.body;
@@ -230,7 +227,7 @@ router.delete('/curso/admin/apoderado/:id', async (req, res) => {
     }
 });
 
-// 7. Cambiar estado activo/oculto
+// 7. Cambiar estado activo/oculto de apoderado
 router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
     const { id } = req.params;
     const { activo, anio } = req.body;
@@ -250,7 +247,7 @@ router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
     }
 });
 
-// 8. Pago global
+// 8. Pago global acumulativo con distribución automática en meses
 router.post('/curso/admin/pago-global', async (req, res) => {
     const { apoderadoId, montoEntregado, fecha, responsable, anio } = req.body;
     try {
@@ -296,7 +293,7 @@ router.post('/curso/admin/pago-global', async (req, res) => {
     }
 });
 
-// 9. Revertir pago de un mes
+// 9. Revertir pago de un mes y recalcular remanente
 router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     const { apoderadoId, mes } = req.params;
     const anioConsulta = req.query.anio;
@@ -337,7 +334,7 @@ router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
     }
 });
 
-// 10. Exonerar mes
+// 10. Exonerar o des-exonerar mes
 router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
     const { apoderadoId, mes } = req.params;
     const anioConsulta = req.query.anio;
@@ -368,7 +365,7 @@ router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
     }
 });
 
-// 11. Ingresos Extra
+// 11. Registrar ingreso extra
 router.post('/curso/admin/ingreso-extra', async (req, res) => {
     const { titulo, monto, fecha, anio } = req.body;
     try {
@@ -390,6 +387,7 @@ router.post('/curso/admin/ingreso-extra', async (req, res) => {
     }
 });
 
+// 12. Eliminar ingreso extra
 router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
     const { id } = req.params;
     const anioActual = req.query.anio;
@@ -406,7 +404,7 @@ router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
     }
 });
 
-// 12. Actualizar configuración general
+// 13. Actualizar configuración (cuota, saldo inicial, directiva)
 router.put('/curso/admin/configuracion', async (req, res) => {
     const { saldo_inicial, cuota_mensual, nombre_curso, profesor, presidente, tesorero, anio } = req.body;
     try {
@@ -428,7 +426,7 @@ router.put('/curso/admin/configuracion', async (req, res) => {
     }
 });
 
-// 13. Cambiar de año activo
+// 14. Cambiar año activo
 router.post('/curso/admin/cambiar-anio', async (req, res) => {
     const { nuevoAnio } = req.body;
     try {
@@ -441,7 +439,7 @@ router.post('/curso/admin/cambiar-anio', async (req, res) => {
     }
 });
 
-// 14. Cerrar año escolar
+// 15. Cerrar año escolar y arrastrar saldo final de caja
 router.post('/curso/admin/cerrar-anio', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -508,7 +506,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
     }
 });
 
-// 15. Enviar Recordatorio de Cobranza (Manual o Masivo a Morosos)
+// 16. Enviar avisos de cobranza por correo (Individual o Masivo)
 router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     const { apoderadoId, anio } = req.body;
     try {
@@ -526,8 +524,11 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
         }
 
         let enviados = 0;
+        let errores = [];
+
         for (const apo of apoderadosNotificar) {
-            if (!apo.email) continue;
+            if (!apo.email || apo.email.trim() === '') continue;
+
             let deudaTotal = 0;
             let mesesDebe = [];
 
@@ -542,70 +543,100 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
             });
 
             if (deudaTotal > 0) {
-                await transporter.sendMail({
-                    from: `"Tesorería - ${infoAnio.nombre_curso}" <${process.env.SMTP_USER || 'noreply@curso.cl'}>`,
-                    to: apo.email,
-                    subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`,
-                    html: `
-                        <div style="font-family: sans-serif; max-width: 500px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                            <h2 style="color: #0f172a;">Estado de Cuenta - ${infoAnio.nombre_curso}</h2>
-                            <p>Estimado/a <strong>${apo.nombre}</strong>,</p>
-                            <p>Le informamos el estado de cuotas de su pupilo <strong>${apo.alumno}</strong> para el periodo ${anioSel}:</p>
-                            <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 15px 0;">
-                                <p style="margin: 0; color: #991b1b; font-weight: bold;">Monto total pendiente: $${deudaTotal.toLocaleString('es-CL')}</p>
-                                <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 13px;">Meses con saldo: ${mesesDebe.join(', ')}</p>
+                try {
+                    await transporter.sendMail({
+                        from: `"Tesorería - ${infoAnio.nombre_curso}" <${process.env.SMTP_USER}>`,
+                        to: apo.email,
+                        subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 25px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                                <h2 style="color: #0f172a; margin-top: 0;">Estado de Cuenta Oficial</h2>
+                                <p style="color: #334155; font-size: 14px;">Estimado/a <strong>${apo.nombre}</strong>,</p>
+                                <p style="color: #475569; font-size: 14px; line-height: 1.5;">
+                                    Le informamos el estado actual de las mensualidades correspondientes al alumno <strong>${apo.alumno}</strong> en el curso <strong>${infoAnio.nombre_curso}</strong> para el periodo escolar <strong>${anioSel}</strong>:
+                                </p>
+                                <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 14px 18px; margin: 20px 0; border-radius: 6px;">
+                                    <p style="margin: 0; color: #991b1b; font-size: 16px; font-weight: bold;">
+                                        Monto total pendiente: $${deudaTotal.toLocaleString('es-CL')}
+                                    </p>
+                                    <p style="margin: 6px 0 0 0; color: #7f1d1d; font-size: 13px;">
+                                        Meses con saldo: <strong>${mesesDebe.join(', ')}</strong>
+                                    </p>
+                                </div>
+                                <p style="font-size: 12px; color: #64748b; line-height: 1.4;">
+                                    Por favor regularice este saldo a la brevedad con la directiva de tesorería del curso. Si ya realizó el pago recientemente, desestime este recordatorio.
+                                </p>
+                                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                                <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
+                                    Mensaje generado automáticamente por el sistema de tesorería del curso.
+                                </p>
                             </div>
-                            <p style="font-size: 12px; color: #64748b;">Favor regularizar a la brevedad con la directiva de tesorería.</p>
-                        </div>
-                    `
-                }).catch(err => console.error("Error al enviar email a:", apo.email, err.message));
-                enviados++;
+                        `
+                    });
+                    enviados++;
+                } catch (mailErr) {
+                    console.error(`Fallo envío a ${apo.email}:`, mailErr.message);
+                    errores.push(`${apo.email}: ${mailErr.message}`);
+                }
             }
+        }
+
+        if (enviados === 0 && errores.length > 0) {
+            return res.status(500).json({ error: `Fallo al enviar correo: ${errores[0]}` });
+        }
+
+        if (enviados === 0) {
+            return res.json({ 
+                success: true, 
+                correosEnviados: 0, 
+                mensaje: "No hay apoderados con correo registrado que presenten saldo pendiente." 
+            });
         }
 
         res.json({ success: true, correosEnviados: enviados });
     } catch (error) {
-        res.status(500).json({ error: "Error al procesar envío de correos" });
+        res.status(500).json({ error: "Error en el servidor al procesar la cobranza." });
     }
 });
 
-// 16. Enviar Informe PDF adjunto por Correo
+// 17. Enviar PDF por correo a los apoderados
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
     const { anio } = req.body;
     try {
-        if (!req.file) return res.status(400).json({ error: "No se adjuntó el archivo PDF" });
+        if (!req.file) return res.status(400).json({ error: "No se recibió el archivo PDF" });
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
 
         const correos = (infoAnio.apoderados || [])
-            .filter(a => a.activo !== false && a.email)
+            .filter(a => a.activo !== false && a.email && a.email.trim() !== '')
             .map(a => a.email);
 
         if (correos.length === 0) {
-            return res.status(400).json({ error: "No hay apoderados con correo registrado" });
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: "No hay apoderados con correo registrado para recibir el informe" });
         }
 
         await transporter.sendMail({
-            from: `"Tesorería - ${infoAnio.nombre_curso}" <${process.env.SMTP_USER || 'noreply@curso.cl'}>`,
+            from: `"Tesorería - ${infoAnio.nombre_curso}" <${process.env.SMTP_USER}>`,
             to: correos,
             subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`,
-            text: `Adjunto encontrará el informe financiero oficial y balance general del curso.`,
+            text: `Estimados apoderados, adjunto encontrarán el informe financiero detallado y balance del curso correspondiente al periodo escolar ${anioSel}.`,
             attachments: [{
                 filename: `Informe_Tesoreria_${anioSel}.pdf`,
                 path: req.file.path
             }]
         });
 
-        // Eliminar temporal
-        fs.unlinkSync(req.file.path);
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         res.json({ success: true, destinatarios: correos.length });
     } catch (error) {
-        res.status(500).json({ error: "Error al enviar el PDF por correo" });
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        res.status(500).json({ error: error.message || "Error al enviar el PDF por correo" });
     }
 });
 
-// 17. Backup y Reset
+// 18. Copia de seguridad y restauración
 router.get('/curso/backup', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -626,6 +657,7 @@ router.post('/curso/backup/restaurar', async (req, res) => {
     }
 });
 
+// 19. Reset de fábrica
 router.delete('/curso/reset', async (req, res) => {
     try {
         const datosVacia = {

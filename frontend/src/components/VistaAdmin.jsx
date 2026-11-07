@@ -1,63 +1,53 @@
 // src/components/VistaAdmin.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { cursoApi } from '../services/cursoApi';
+import { generarPdfFinanciero, obtenerApellidoPaterno } from '../utils/exportarPdf';
 
 export default function VistaAdmin({ datos, onActualizar }) {
     if (!datos || !datos.apoderados || !datos.configuracion) {
         return (
             <div className="flex items-center justify-center p-8 text-slate-400 text-xs">
-                <i className="fa-solid fa-spinner animate-spin mr-2"></i> Cargando panel de administración...
+                <i className="fa-solid fa-spinner animate-spin mr-2"></i> Cargando panel...
             </div>
         );
     }
 
-    // Extracción inteligente de apellido paterno
-    const obtenerApellidoPaterno = (nombreCompleto = '') => {
-        if (!nombreCompleto) return '';
-        const partes = nombreCompleto.trim().split(/\s+/);
-        if (partes.length === 1) return partes[0].toLowerCase();
-        if (partes.length === 2 || partes.length === 3) return partes[1].toLowerCase();
-        return partes[partes.length - 2].toLowerCase();
-    };
+    const estaCerrado = Boolean(datos.configuracion.cerrado);
 
-    const ordenarPorApellidoPaterno = (a, b) => {
-        const apA = obtenerApellidoPaterno(a.alumno);
-        const apB = obtenerApellidoPaterno(b.alumno);
-        return apA.localeCompare(apB, 'es', { sensitivity: 'base', numeric: true });
-    };
-
+    // Form inputs
     const [nombreApoderado, setNombreApoderado] = useState('');
     const [nombreAlumno, setNombreAlumno] = useState('');
-    
-    // Gasto
     const [gastoMes, setGastoMes] = useState(datos.configuracion.meses[0]);
     const [gastoTitulo, setGastoTitulo] = useState('');
     const [gastoMonto, setGastoMonto] = useState('');
     const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().slice(0, 10));
-
-    // Ingreso Extra
     const [extraTitulo, setExtraTitulo] = useState('');
     const [extraMonto, setExtraMonto] = useState('');
     const [extraFecha, setExtraFecha] = useState(new Date().toISOString().slice(0, 10));
 
-    // Saldo Inicial y Cuota
+    // Configuración y datos del curso
     const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
     const [editandoSaldo, setEditandoSaldo] = useState(false);
     const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 15000);
-
-    // Datos del Curso
     const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '4° Medio A');
     const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Juan Pérez');
     const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ana Gómez');
     const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'María González');
     const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
 
-    // Modal Modificar Apoderado / Alumno
+    // Modales
     const [modalEditarApo, setModalEditarApo] = useState(false);
     const [idEditando, setIdEditando] = useState(null);
     const [editNombreApo, setEditNombreApo] = useState('');
     const [editNombreAlu, setEditNombreAlu] = useState('');
+    const [modalAbierto, setModalAbierto] = useState(false);
+    const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
+    const [montoPago, setMontoPago] = useState('');
+    const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
+    const [responsablePago, setResponsablePago] = useState('');
+
+    const [avisosSeccion, setAvisosSeccion] = useState({});
+    const fileInputRef = useRef(null);
 
     useEffect(() => {
         setCuotaInput(datos.configuracion.cuota_mensual || 15000);
@@ -67,16 +57,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
         setPresidenteCurso(datos.configuracion.presidente || 'Ana Gómez');
         setTesoreroCurso(datos.configuracion.tesorero || 'María González');
     }, [datos]);
-
-    // Modal de Pago Global
-    const [modalAbierto, setModalAbierto] = useState(false);
-    const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
-    const [montoPago, setMontoPago] = useState('');
-    const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
-    const [responsablePago, setResponsablePago] = useState('');
-
-    // Notificaciones locales por sección
-    const [avisosSeccion, setAvisosSeccion] = useState({});
 
     const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
         setAvisosSeccion(prev => ({ ...prev, [seccionId]: { texto, tipo } }));
@@ -89,475 +69,50 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }, 3500);
     };
 
-    const fileInputRef = useRef(null);
-
     const cuotaOficial = datos.configuracion.cuota_mensual || 15000;
     const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
     const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
-    
     const totalCuotasRecaudadas = datos.apoderados.reduce((acc, apo) => {
         let sub = 0;
         datos.configuracion.meses.forEach(m => { if (apo.pagos[m]?.monto) sub += Number(apo.pagos[m].monto); });
         return acc + sub;
     }, 0);
-
     const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
 
-    // Exportación a PDF estructurado y ordenado por apellido paterno
-    const handleExportarPDF = () => {
-        const doc = new jsPDF();
-        const anioActual = datos.anio_activo;
+    const handleCerrarAnio = async () => {
+        const confirmar = confirm(`¿Estás seguro de CERRAR DEFINITIVAMENTE el año escolar ${datos.anio_activo}?\n\n- No se permitirán más modificaciones en este año.\n- Se aperturará el año ${Number(datos.anio_activo) + 1} arrastrando el saldo final como saldo inicial.`);
+        if (!confirmar) return;
 
-        doc.setFontSize(14);
-        doc.setTextColor(15, 23, 42);
-        doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '4° Medio A'} (${anioActual})`, 14, 15);
-        
-        doc.setFontSize(9);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
-        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Saldo Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')}`, 14, 27);
-
-        let currentY = 34;
-
-        doc.setFontSize(11);
-        doc.setTextColor(15, 23, 42);
-        doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
-
-        let movimientos = [
-            ...(datos.gastos || []).map(g => ({ fecha: g.fecha || 'N/A', tipo: 'Egreso', desc: g.titulo, monto: -Number(g.monto) })),
-            ...(datos.ingresos_extra || []).map(e => ({ fecha: e.fecha || 'N/A', tipo: 'Ingreso Extra', desc: e.titulo, monto: Number(e.monto) }))
-        ].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-
-        let saldoAcumulado = Number(datos.configuracion.saldo_inicial || 0);
-        const filasMovimientos = movimientos.map(m => {
-            saldoAcumulado += m.monto;
-            return [
-                m.fecha,
-                `${m.tipo}: ${m.desc}`,
-                m.monto >= 0 ? `+$${m.monto.toLocaleString('es-CL')}` : `-$${Math.abs(m.monto).toLocaleString('es-CL')}`,
-                `$${saldoAcumulado.toLocaleString('es-CL')}`
-            ];
-        });
-
-        autoTable(doc, {
-            startY: currentY + 3,
-            head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
-            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos registrados', '-', '-']],
-            theme: 'grid',
-            headStyles: { fillColor: [16, 185, 129] },
-            styles: { fontSize: 8 }
-        });
-
-        currentY = doc.lastAutoTable.finalY + 10;
-
-        doc.setFontSize(11);
-        doc.text('2. Estado de Pagos y Saldos por Alumno (Ordenado por Apellido)', 14, currentY);
-
-        const apoderadosOrdenados = [...datos.apoderados].sort(ordenarPorApellidoPaterno);
-
-        const filasAlumnos = apoderadosOrdenados.map(apo => {
-            let totalAbonadoApo = 0;
-            let mesesPendientes = 0;
-
-            datos.configuracion.meses.forEach(mes => {
-                const p = apo.pagos[mes];
-                if (p && p.monto) {
-                    totalAbonadoApo += Number(p.monto);
-                    if (!p.pagado) mesesPendientes++;
-                } else {
-                    mesesPendientes++;
-                }
-            });
-
-            const deudaEstimada = mesesPendientes * cuotaOficial;
-
-            return [
-                apo.nombre,
-                apo.alumno,
-                `$${totalAbonadoApo.toLocaleString('es-CL')}`,
-                `${mesesPendientes} meses`,
-                `$${deudaEstimada.toLocaleString('es-CL')}`
-            ];
-        });
-
-        autoTable(doc, {
-            startY: currentY + 3,
-            head: [['Apoderado', 'Alumno', 'Total Abonos', 'Deuda Pendiente', 'Saldo / Deuda']],
-            body: filasAlumnos,
-            theme: 'grid',
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8 }
-        });
-
-        doc.save(`Relacion_Tesoreria_${anioActual}.pdf`);
-    };
-
-    const handleDescargarBackup = async () => {
         try {
-            const res = await fetch('/api/curso/backup');
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_tesoreria_${datos.anio_activo}.json`;
-            a.click();
-            mostrarAvisoLocal('acciones', "Copia de seguridad descargada.");
-        } catch (error) {
-            mostrarAvisoLocal('acciones', "Error al generar backup.", "error");
-        }
-    };
-
-    const handleRestaurarBackup = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const contenidoJson = JSON.parse(event.target.result);
-                const res = await fetch('/api/curso/backup/restaurar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(contenidoJson)
-                });
-                if (res.ok) {
-                    mostrarAvisoLocal('acciones', "Aplicación restaurada con éxito.");
-                    onActualizar();
-                } else {
-                    mostrarAvisoLocal('acciones', "Archivo de backup no válido.", "error");
-                }
-            } catch (err) {
-                mostrarAvisoLocal('acciones', "Error al procesar el archivo JSON.", "error");
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    const handleBorrarAplicacion = async () => {
-        if (confirm("⚠️ ¿Estás COMPLETAMENTE seguro de reiniciar toda la aplicación de fábrica?")) {
-            if (confirm("Confirma nuevamente para borrar todos los registros y restaurar la base:")) {
-                try {
-                    const res = await fetch('/api/curso/reset', { method: 'DELETE' });
-                    if (res.ok) {
-                        mostrarAvisoLocal('acciones', "Aplicación reiniciada de fábrica.");
-                        onActualizar();
-                    } else {
-                        mostrarAvisoLocal('acciones', "Error al reiniciar la aplicación.", "error");
-                    }
-                } catch (error) {
-                    mostrarAvisoLocal('acciones', "Error de conexión con el servidor.", "error");
-                }
-            }
-        }
-    };
-
-    const handleGuardarInfoCurso = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch('/api/curso/admin/configuracion', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    nombre_curso: nombreCurso, 
-                    profesor: profesorCurso, 
-                    presidente: presidenteCurso, 
-                    tesorero: tesoreroCurso 
-                })
-            });
+            const res = await cursoApi.cerrarAnioEscolar();
             if (res.ok) {
-                setEditandoInfoCurso(false);
-                mostrarAvisoLocal('curso', "Datos del curso guardados correctamente.");
+                mostrarAvisoLocal('acciones', `Año ${datos.anio_activo} cerrado y año siguiente aperturado.`);
                 onActualizar();
             } else {
-                mostrarAvisoLocal('curso', "Error al guardar datos del curso.", "error");
+                mostrarAvisoLocal('acciones', "Error al cerrar el año escolar.", "error");
             }
-        } catch (error) {
-            mostrarAvisoLocal('curso', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleActualizarCuota = async () => {
-        const nuevaCuota = Number(cuotaInput);
-        if (isNaN(nuevaCuota) || nuevaCuota <= 0) {
-            mostrarAvisoLocal('config', "Ingrese un valor de cuota válido.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/curso/admin/configuracion', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cuota_mensual: nuevaCuota })
-            });
-            if (res.ok) {
-                mostrarAvisoLocal('config', "Cuota actualizada y mensualidades rebalanceadas.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('config', "Error al actualizar la cuota.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('config', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleGuardarSaldoInicial = async () => {
-        try {
-            const res = await fetch('/api/curso/admin/configuracion', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ saldo_inicial: Number(saldoInicialEdit) })
-            });
-            if (res.ok) {
-                setEditandoSaldo(false);
-                mostrarAvisoLocal('config', "Saldo inicial actualizado.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('config', "Error al actualizar saldo inicial.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('config', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleRegistrarGasto = async (e) => {
-        e.preventDefault();
-        if (!gastoTitulo.trim() || !gastoMonto) {
-            mostrarAvisoLocal('gasto', "Complete descripción y monto del gasto.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/curso/admin/gasto', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mes: gastoMes, titulo: gastoTitulo, monto: gastoMonto, fecha: gastoFecha })
-            });
-
-            if (res.ok) {
-                setGastoTitulo('');
-                setGastoMonto('');
-                setGastoFecha(new Date().toISOString().slice(0, 10));
-                mostrarAvisoLocal('gasto', "Gasto registrado correctamente.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('gasto', "Error al registrar el gasto.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('gasto', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleEliminarGasto = async (id) => {
-        try {
-            const res = await fetch(`/api/curso/admin/gasto/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                mostrarAvisoLocal('relacionGastos', "Gasto eliminado.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('relacionGastos', "Error al eliminar gasto.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('relacionGastos', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleRegistrarIngresoExtra = async (e) => {
-        e.preventDefault();
-        if (!extraTitulo.trim() || !extraMonto) {
-            mostrarAvisoLocal('ingreso', "Complete concepto y monto del ingreso.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/curso/admin/ingreso-extra', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titulo: extraTitulo, monto: extraMonto, fecha: extraFecha })
-            });
-
-            if (res.ok) {
-                setExtraTitulo('');
-                setExtraMonto('');
-                setExtraFecha(new Date().toISOString().slice(0, 10));
-                mostrarAvisoLocal('ingreso', "Ingreso extra registrado.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('ingreso', "Error al registrar ingreso extra.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('ingreso', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleEliminarIngresoExtra = async (id) => {
-        try {
-            const res = await fetch(`/api/curso/admin/ingreso-extra/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                mostrarAvisoLocal('relacionIngresos', "Ingreso extra eliminado.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('relacionIngresos', "Error al eliminar ingreso extra.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('relacionIngresos', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    // Modal y Modificación de Apoderado / Alumno
-    const abrirModalEdicion = (apo) => {
-        setIdEditando(apo.id);
-        setEditNombreApo(apo.nombre);
-        setEditNombreAlu(apo.alumno);
-        setModalEditarApo(true);
-    };
-
-    const handleGuardarEdicionApo = async (e) => {
-        e.preventDefault();
-        if (!editNombreApo.trim() || !editNombreAlu.trim()) {
-            mostrarAvisoLocal('pagos', "Complete ambos campos.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/curso/admin/apoderado/${idEditando}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre: editNombreApo, alumno: editNombreAlu })
-            });
-
-            if (res.ok) {
-                setModalEditarApo(false);
-                mostrarAvisoLocal('pagos', "Apoderado y alumno modificados correctamente.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('pagos', "Error al guardar modificaciones.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    // Eliminación definitiva de apoderado
-    const handleEliminarApoderado = async (id, nombre) => {
-        if (confirm(`¿Estás seguro de eliminar a ${nombre} y a su alumno? Se borrarán todos sus registros de pago del año actual.`)) {
-            try {
-                const res = await fetch(`/api/curso/admin/apoderado/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    mostrarAvisoLocal('pagos', `Apoderado ${nombre} eliminado.`);
-                    onActualizar();
-                } else {
-                    mostrarAvisoLocal('pagos', "Error al eliminar apoderado.", "error");
-                }
-            } catch (error) {
-                mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
-            }
-        }
-    };
-
-    const abrirModalPago = (apo) => {
-        setApoderadoSeleccionado(apo);
-        setMontoPago('');
-        setFechaPago(new Date().toISOString().slice(0, 10));
-        setResponsablePago(apo.nombre);
-        setModalAbierto(true);
-    };
-
-    const handleEnviarPagoGlobal = async (e) => {
-        e.preventDefault();
-        if (!montoPago || Number(montoPago) <= 0) {
-            mostrarAvisoLocal('modalPago', "Ingrese un monto mayor a cero.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/curso/admin/pago-global', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    apoderadoId: apoderadoSeleccionado.id,
-                    montoEntregado: Number(montoPago),
-                    fecha: fechaPago,
-                    responsable: responsablePago
-                })
-            });
-
-            if (res.ok) {
-                setModalAbierto(false);
-                mostrarAvisoLocal('pagos', "Pago registrado y distribuido en las cuotas.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('modalPago', "Error al registrar pago.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('modalPago', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
-        if (montoActual <= 0) return;
-        try {
-            const res = await fetch(`/api/curso/admin/pago/${apoderadoId}/${mes}`, { method: 'DELETE' });
-            if (res.ok) {
-                mostrarAvisoLocal('pagos', `Se revirtió el pago de ${mes}`);
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('pagos', "Error al revertir pago.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleAgregarApoderado = async (e) => {
-        e.preventDefault();
-        if (!nombreApoderado.trim() || !nombreAlumno.trim()) {
-            mostrarAvisoLocal('apoderado', "Complete todos los campos requeridos.", "error");
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/curso/admin/apoderado/agregar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre: nombreApoderado, alumno: nombreAlumno })
-            });
-
-            if (res.ok) {
-                setNombreApoderado('');
-                setNombreAlumno('');
-                mostrarAvisoLocal('apoderado', "Apoderado agregado con éxito.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('apoderado', "Error al agregar apoderado.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('apoderado', "Error de conexión con el servidor.", "error");
-        }
-    };
-
-    const handleCambiarEstado = async (id, nombre, activoActual) => {
-        const nuevoEstado = !activoActual;
-        const accion = nuevoEstado ? "activado" : "ocultado";
-        try {
-            const res = await fetch(`/api/curso/admin/apoderado/estado/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activo: nuevoEstado })
-            });
-            if (res.ok) {
-                mostrarAvisoLocal('pagos', `Apoderado ${accion}.`);
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('pagos', "Error al cambiar estado.", "error");
-            }
-        } catch (error) {
-            mostrarAvisoLocal('pagos', "Error de conexión con el servidor.", "error");
+        } catch {
+            mostrarAvisoLocal('acciones', "Error de conexión.", "error");
         }
     };
 
     return (
         <div className="space-y-8 relative">
-            {/* BARRA DE HERRAMIENTAS: EXPORTAR, BACKUP Y RESET */}
+            {/* ALERTA DE AÑO CERRADO (BLOQUEO DE MODIFICACIONES) */}
+            {estaCerrado && (
+                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-2xl flex items-center justify-between shadow-xl">
+                    <div className="flex items-center gap-3">
+                        <i className="fa-solid fa-lock text-xl text-amber-400"></i>
+                        <div>
+                            <h4 className="font-bold text-sm">Año Escolar {datos.anio_activo} Cerrado</h4>
+                            <p className="text-xs text-amber-300/80">Este año se encuentra en modo histórico / solo lectura. No se admiten nuevos pagos, gastos o modificaciones.</p>
+                        </div>
+                    </div>
+                    <span className="text-xs font-mono bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-xl">Historial Bloqueado</span>
+                </div>
+            )}
+
+            {/* BARRA DE HERRAMIENTAS */}
             <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3 relative">
                 {avisosSeccion['acciones'] && (
                     <div className="absolute -top-10 left-0 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs px-3 py-1.5 rounded-xl shadow-lg z-50 animate-bounce">
@@ -566,13 +121,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 )}
                 <div className="flex items-center gap-2">
                     <button 
-                        onClick={handleExportarPDF}
+                        onClick={() => generarPdfFinanciero(datos, saldoRealCaja, cuotaOficial)}
                         className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 shadow"
                     >
                         <i className="fa-solid fa-file-pdf text-sm"></i> Exportar Informe a PDF
                     </button>
                     <button 
-                        onClick={handleDescargarBackup}
+                        onClick={() => window.open('/api/curso/backup', '_blank')}
                         className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition flex items-center gap-2 shadow"
                     >
                         <i className="fa-solid fa-download text-sm"></i> Descargar Backup (.json)
@@ -580,7 +135,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     <input 
                         type="file" 
                         ref={fileInputRef} 
-                        onChange={handleRestaurarBackup} 
+                        onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            const text = await file.text();
+                            const res = await cursoApi.restaurarBackup(JSON.parse(text));
+                            if (res.ok) onActualizar();
+                        }} 
                         accept=".json" 
                         className="hidden" 
                     />
@@ -591,116 +152,80 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <i className="fa-solid fa-upload text-sm"></i> Restaurar Backup
                     </button>
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
+                    {/* BOTÓN CERRAR AÑO ESCOLAR */}
+                    {!estaCerrado && (
+                        <button 
+                            onClick={handleCerrarAnio}
+                            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
+                            title="Bloquear este año y pasar al siguiente arrastrando saldos"
+                        >
+                            <i className="fa-solid fa-lock"></i> Cerrar Año Escolar {datos.anio_activo}
+                        </button>
+                    )}
                     <button 
-                        onClick={handleBorrarAplicacion}
+                        onClick={async () => {
+                            if (confirm("⚠️ ¿Deseas reiniciar la aplicación a valores de fábrica?")) {
+                                await cursoApi.resetApp();
+                                onActualizar();
+                            }
+                        }}
                         className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
                     >
-                        <i className="fa-solid fa-trash-arrow-up"></i> Borrar / Reiniciar App
+                        <i className="fa-solid fa-trash-arrow-up"></i> Reset
                     </button>
                 </div>
             </div>
 
             {/* DATOS DEL CURSO */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
-                {avisosSeccion['curso'] && (
-                    <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                        {avisosSeccion['curso'].texto}
-                    </div>
-                )}
                 <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
                         <i className="fa-solid fa-school"></i> Datos Generales del Curso
                     </h3>
-                    <button 
-                        onClick={() => setEditandoInfoCurso(!editandoInfoCurso)}
-                        className="text-xs text-slate-400 hover:text-white transition flex items-center gap-1.5"
-                    >
-                        <i className={`fa-solid ${editandoInfoCurso ? 'fa-xmark' : 'fa-pen-to-square'}`}></i>
-                        {editandoInfoCurso ? 'Cancelar' : 'Editar Datos'}
-                    </button>
+                    {!estaCerrado && (
+                        <button 
+                            onClick={() => setEditandoInfoCurso(!editandoInfoCurso)}
+                            className="text-xs text-slate-400 hover:text-white transition flex items-center gap-1.5"
+                        >
+                            <i className={`fa-solid ${editandoInfoCurso ? 'fa-xmark' : 'fa-pen-to-square'}`}></i>
+                            {editandoInfoCurso ? 'Cancelar' : 'Editar Datos'}
+                        </button>
+                    )}
                 </div>
 
                 {editandoInfoCurso ? (
-                    <form onSubmit={handleGuardarInfoCurso} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Curso</label>
-                            <input 
-                                type="text"
-                                value={nombreCurso}
-                                onChange={(e) => setNombreCurso(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Profesor/a Jefe</label>
-                            <input 
-                                type="text"
-                                value={profesorCurso}
-                                onChange={(e) => setProfesorCurso(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Presidente/a</label>
-                            <input 
-                                type="text"
-                                value={presidenteCurso}
-                                onChange={(e) => setPresidenteCurso(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Tesorero/a</label>
-                            <input 
-                                type="text"
-                                value={tesoreroCurso}
-                                onChange={(e) => setTesoreroCurso(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                            />
-                        </div>
-                        <div className="sm:col-span-2 lg:col-span-4 flex justify-end">
-                            <button type="submit" className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs transition">
-                                Guardar Datos del Curso
-                            </button>
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        await cursoApi.actualizarConfiguracion({ nombre_curso: nombreCurso, profesor: profesorCurso, presidente: presidenteCurso, tesorero: tesoreroCurso });
+                        setEditandoInfoCurso(false);
+                        onActualizar();
+                    }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <input type="text" value={nombreCurso} onChange={(e) => setNombreCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Curso" />
+                        <input type="text" value={profesorCurso} onChange={(e) => setProfesorCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Profesor Jefe" />
+                        <input type="text" value={presidenteCurso} onChange={(e) => setPresidenteCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Presidente" />
+                        <input type="text" value={tesoreroCurso} onChange={(e) => setTesoreroCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Tesorero" />
+                        <div className="sm:col-span-4 flex justify-end">
+                            <button type="submit" className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">Guardar</button>
                         </div>
                     </form>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-300">
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                            <span className="text-[10px] text-slate-500 block">Curso:</span>
-                            <span className="font-bold text-white text-sm">{datos.configuracion.nombre_curso || '4° Medio A'}</span>
-                        </div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                            <span className="text-[10px] text-slate-500 block">Profesor/a Jefe:</span>
-                            <span className="font-bold text-emerald-400 text-sm">{datos.configuracion.profesor || 'No asignado'}</span>
-                        </div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                            <span className="text-[10px] text-slate-500 block">Presidente/a:</span>
-                            <span className="font-bold text-sky-400 text-sm">{datos.configuracion.presidente || 'No asignado'}</span>
-                        </div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                            <span className="text-[10px] text-slate-500 block">Tesorero/a:</span>
-                            <span className="font-bold text-amber-400 text-sm">{datos.configuracion.tesorero || 'No asignado'}</span>
-                        </div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Curso:</span><span className="font-bold text-white">{datos.configuracion.nombre_curso}</span></div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Profesor Jefe:</span><span className="font-bold text-emerald-400">{datos.configuracion.profesor}</span></div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Presidente/a:</span><span className="font-bold text-sky-400">{datos.configuracion.presidente}</span></div>
+                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Tesorero/a:</span><span className="font-bold text-amber-400">{datos.configuracion.tesorero}</span></div>
                     </div>
                 )}
             </div>
 
-            {/* CABECERA, AÑO ACTIVO Y PARÁMETROS */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative">
-                {avisosSeccion['config'] && (
-                    <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                        {avisosSeccion['config'].texto}
-                    </div>
-                )}
+            {/* SELECTOR DE AÑO Y CUOTA */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración ({datos.anio_activo})
+                        <i className="fa-solid fa-calendar-check text-emerald-400"></i> Panel de Administración ({datos.anio_activo})
                     </h2>
-                    <p className="text-xs text-slate-400 mt-1">
-                        Control general de mensualidades, saldos, gastos y tesorería.
-                    </p>
+                    <p className="text-xs text-slate-400 mt-1">Gestión financiera y mensualidades del periodo escolar.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -708,134 +233,83 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <span className="text-[10px] text-slate-400">Cuota:</span>
                         <input 
                             type="number" 
-                            value={cuotaInput}
-                            onChange={(e) => setCuotaInput(e.target.value)}
-                            className="bg-slate-900 text-emerald-400 font-bold text-xs w-20 px-2 py-1 rounded border border-slate-700 focus:outline-none focus:border-emerald-500"
+                            disabled={estaCerrado}
+                            value={cuotaInput} 
+                            onChange={(e) => setCuotaInput(e.target.value)} 
+                            className="bg-slate-900 text-emerald-400 font-bold text-xs w-20 px-2 py-1 rounded border border-slate-700 disabled:opacity-50"
                         />
-                        <button 
-                            onClick={handleActualizarCuota}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2.5 py-1 rounded-lg text-xs transition flex items-center gap-1"
-                            title="Actualizar y rebalancear cuotas"
-                        >
-                            <i className="fa-solid fa-check"></i> Cambiar
-                        </button>
+                        {!estaCerrado && (
+                            <button 
+                                onClick={async () => {
+                                    await cursoApi.actualizarConfiguracion({ cuota_mensual: Number(cuotaInput) });
+                                    onActualizar();
+                                }}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2 py-1 rounded text-xs"
+                            >
+                                OK
+                            </button>
+                        )}
                     </div>
 
-                    {/* SELECTOR CON EL AÑO 2024 AGREGADO */}
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
                         <span className="text-[10px] text-slate-400">Año:</span>
                         <select 
                             value={datos.anio_activo}
                             onChange={async (e) => {
-                                const anioElegido = e.target.value;
-                                await fetch('/api/curso/admin/cambiar-anio', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ nuevoAnio: anioElegido })
-                                });
+                                await cursoApi.cambiarAnio(e.target.value);
                                 onActualizar();
                             }}
-                            className="bg-slate-900 text-white font-bold text-xs px-2 py-1 rounded border border-slate-700 cursor-pointer"
+                            className="bg-slate-900 text-white font-bold text-xs px-2 py-1 rounded border border-slate-700"
                         >
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                            <option value="2027">2027</option>
-                            <option value="2028">2028</option>
+                            {(datos.aniosDisponibles || ["2024", "2025", "2026", "2027", "2028"]).map(a => (
+                                <option key={a} value={a}>{a}</option>
+                            ))}
                         </select>
-
-                        <button 
-                            onClick={async () => {
-                                const siguienteAnio = String(Number(datos.anio_activo) + 1);
-                                await fetch('/api/curso/admin/cambiar-anio', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ nuevoAnio: siguienteAnio, cuotaMensual: cuotaOficial })
-                                });
-                                onActualizar();
-                            }}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded text-xs transition"
-                        >
-                            <i className="fa-solid fa-arrow-right"></i> Aperturar {Number(datos.anio_activo) + 1}
-                        </button>
                     </div>
 
                     <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-3">
                         <div>
                             <span className="text-[9px] text-slate-400 block font-medium">Saldo Inicial</span>
-                            {editandoSaldo ? (
+                            {editandoSaldo && !estaCerrado ? (
                                 <input 
                                     type="number"
                                     value={saldoInicialEdit}
                                     onChange={(e) => setSaldoInicialEdit(e.target.value)}
-                                    className="bg-slate-900 border border-slate-700 text-emerald-400 text-xs px-2 py-0.5 rounded w-24 font-bold mt-0.5"
-                                    autoFocus
+                                    className="bg-slate-900 border border-slate-700 text-emerald-400 text-xs px-2 py-0.5 rounded w-24 font-bold"
                                 />
                             ) : (
-                                <span className="text-xs font-bold text-emerald-400">
-                                    ${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}
-                                </span>
+                                <span className="text-xs font-bold text-emerald-400">${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}</span>
                             )}
                         </div>
-                        {editandoSaldo ? (
-                            <button onClick={handleGuardarSaldoInicial} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2.5 py-1 rounded text-[10px] transition">
-                                OK
-                            </button>
-                        ) : (
-                            <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs">
-                                <i className="fa-solid fa-pen"></i>
-                            </button>
+                        {!estaCerrado && (
+                            editandoSaldo ? (
+                                <button onClick={async () => {
+                                    await cursoApi.actualizarConfiguracion({ saldo_inicial: Number(saldoInicialEdit) });
+                                    setEditandoSaldo(false);
+                                    onActualizar();
+                                }} className="bg-emerald-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px]">OK</button>
+                            ) : (
+                                <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs"><i className="fa-solid fa-pen"></i></button>
+                            )
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* BALANCE GENERAL Y FLUJO DE CAJA */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                    <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja ({datos.anio_activo})
-                </h3>
-
+            {/* BALANCE GENERAL */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Saldo Inicial</span>
-                        <span className="text-sm font-bold text-slate-200">
-                            ${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}
-                        </span>
-                    </div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Cuotas Recaudadas</span>
-                        <span className="text-sm font-bold text-emerald-400">
-                            ${totalCuotasRecaudadas.toLocaleString('es-CL')}
-                        </span>
-                    </div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Ingresos Extra</span>
-                        <span className="text-sm font-bold text-sky-400">
-                            ${totalIngresosExtra.toLocaleString('es-CL')}
-                        </span>
-                    </div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Total Gastos</span>
-                        <span className="text-sm font-bold text-rose-400">
-                            ${totalGastos.toLocaleString('es-CL')}
-                        </span>
-                    </div>
-                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl col-span-2 sm:col-span-1 bg-emerald-950/10">
-                        <span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real en Caja</span>
-                        <span className="text-sm font-extrabold text-emerald-400">
-                            ${saldoRealCaja.toLocaleString('es-CL')}
-                        </span>
-                    </div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Saldo Anterior</span><span className="text-sm font-bold text-slate-200">${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}</span></div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Cuotas</span><span className="text-sm font-bold text-emerald-400">${totalCuotasRecaudadas.toLocaleString('es-CL')}</span></div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Ingresos Extra</span><span className="text-sm font-bold text-sky-400">${totalIngresosExtra.toLocaleString('es-CL')}</span></div>
+                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Gastos</span><span className="text-sm font-bold text-rose-400">${totalGastos.toLocaleString('es-CL')}</span></div>
+                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl col-span-2 sm:col-span-1 bg-emerald-950/10"><span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real</span><span className="text-sm font-extrabold text-emerald-400">${saldoRealCaja.toLocaleString('es-CL')}</span></div>
                 </div>
             </div>
 
-            {/* RESUMEN FINANCIERO POR ALUMNO (ORDENADO POR APELLIDO PATERNO) */}
+            {/* RESUMEN FINANCIERO POR ALUMNO */}
             <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
-                    <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno (Ordenado por Apellido Paterno)
-                </h3>
-                
+                <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2"><i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Alumno (Ordenado por Apellido)</h3>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs text-slate-300">
                         <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
@@ -848,38 +322,28 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         </thead>
                         <tbody className="divide-y divide-slate-800/60">
                             {[...datos.apoderados]
-                                .sort(ordenarPorApellidoPaterno)
+                                .sort((a, b) => obtenerApellidoPaterno(a.alumno).localeCompare(obtenerApellidoPaterno(b.alumno), 'es', { sensitivity: 'base', numeric: true }))
                                 .map(apo => {
-                                    let totalPagadoApo = 0;
-                                    let mesesDebe = 0;
-                                    
-                                    datos.configuracion.meses.forEach(mes => {
-                                        const p = apo.pagos[mes];
+                                    let totalAbonado = 0;
+                                    let mesesPendientes = 0;
+                                    datos.configuracion.meses.forEach(m => {
+                                        const p = apo.pagos[m];
                                         if (p && p.monto > 0) {
-                                            totalPagadoApo += Number(p.monto);
-                                            if (!p.pagado) mesesDebe++;
+                                            totalAbonado += Number(p.monto);
+                                            if (!p.pagado) mesesPendientes++;
                                         } else {
-                                            mesesDebe++;
+                                            mesesPendientes++;
                                         }
                                     });
-
-                                    const deudaTotal = mesesDebe * cuotaOficial;
-
                                     return (
                                         <tr key={apo.id} className={`hover:bg-slate-950/40 ${apo.activo === false ? 'opacity-50' : ''}`}>
                                             <td className="p-3">
                                                 <span className="font-semibold text-white block">{apo.nombre} {apo.activo === false && '(Inactivo)'}</span>
                                                 <span className="text-slate-400 text-[10px]">{apo.alumno}</span>
                                             </td>
-                                            <td className="p-3 text-center font-bold text-emerald-400">
-                                                ${totalPagadoApo.toLocaleString('es-CL')}
-                                            </td>
-                                            <td className="p-3 text-center text-amber-400 font-medium">
-                                                {mesesDebe} meses
-                                            </td>
-                                            <td className="p-3 text-right font-bold text-rose-400">
-                                                ${deudaTotal.toLocaleString('es-CL')}
-                                            </td>
+                                            <td className="p-3 text-center font-bold text-emerald-400">${totalAbonado.toLocaleString('es-CL')}</td>
+                                            <td className="p-3 text-center text-amber-400 font-medium">{mesesPendientes} meses</td>
+                                            <td className="p-3 text-right font-bold text-rose-400">${(mesesPendientes * cuotaOficial).toLocaleString('es-CL')}</td>
                                         </tr>
                                     );
                                 })}
@@ -888,341 +352,188 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* FORMULARIOS DE REGISTRO */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Gasto */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
-                    {avisosSeccion['gasto'] && (
-                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                            {avisosSeccion['gasto'].texto}
-                        </div>
-                    )}
-                    <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                        <i className="fa-solid fa-receipt"></i> Registrar Gasto
-                    </h3>
-                    <form onSubmit={handleRegistrarGasto} className="space-y-3">
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Descripción</label>
-                            <input 
-                                type="text" 
-                                placeholder="Ej: Compra de materiales..."
-                                value={gastoTitulo}
-                                onChange={(e) => setGastoTitulo(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <label className="text-[11px] text-slate-400 block mb-1">Mes</label>
-                                <select 
-                                    value={gastoMes} 
-                                    onChange={(e) => setGastoMes(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 cursor-pointer"
-                                >
+            {/* FORMULARIOS DE REGISTRO (DESACTIVADOS SI EL AÑO ESTÁ CERRADO) */}
+            {!estaCerrado && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Gasto */}
+                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                        <h3 className="text-sm font-bold text-rose-400"><i className="fa-solid fa-receipt mr-1"></i> Registrar Gasto</h3>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!gastoTitulo.trim() || !gastoMonto) return;
+                            await cursoApi.registrarGasto({ mes: gastoMes, titulo: gastoTitulo, monto: gastoMonto, fecha: gastoFecha });
+                            setGastoTitulo(''); setGastoMonto(''); onActualizar();
+                        }} className="space-y-3">
+                            <input type="text" placeholder="Descripción..." value={gastoTitulo} onChange={(e) => setGastoTitulo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <div className="grid grid-cols-2 gap-2">
+                                <select value={gastoMes} onChange={(e) => setGastoMes(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                                     {datos.configuracion.meses.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
+                                <input type="number" placeholder="Monto" value={gastoMonto} onChange={(e) => setGastoMonto(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
                             </div>
-                            <div>
-                                <label className="text-[11px] text-slate-400 block mb-1">Monto ($)</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="0"
-                                    value={gastoMonto}
-                                    onChange={(e) => setGastoMonto(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Fecha del Gasto</label>
-                            <div className="relative group cursor-pointer">
-                                <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-rose-400">
-                                    <i className="fa-solid fa-calendar-days text-sm"></i>
-                                </span>
-                                <input 
-                                    type="date" 
-                                    value={gastoFecha}
-                                    onChange={(e) => setGastoFecha(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 cursor-pointer uppercase font-mono"
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition">
-                            Registrar Gasto
-                        </button>
-                    </form>
-                </div>
+                            <input type="date" value={gastoFecha} onChange={(e) => setGastoFecha(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Registrar Gasto</button>
+                        </form>
+                    </div>
 
-                {/* Ingreso Extra */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
-                    {avisosSeccion['ingreso'] && (
-                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                            {avisosSeccion['ingreso'].texto}
-                        </div>
-                    )}
-                    <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                        <i className="fa-solid fa-coins"></i> Ingreso Extra (Ventas/Rifas)
-                    </h3>
-                    <form onSubmit={handleRegistrarIngresoExtra} className="space-y-3">
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Concepto / Descripción</label>
-                            <input 
-                                type="text" 
-                                placeholder="Ej: Venta de rifa..."
-                                value={extraTitulo}
-                                onChange={(e) => setExtraTitulo(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Monto Recaudado ($)</label>
-                            <input 
-                                type="number" 
-                                placeholder="0"
-                                value={extraMonto}
-                                onChange={(e) => setExtraMonto(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-bold text-emerald-400"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Fecha del Ingreso</label>
-                            <div className="relative group cursor-pointer">
-                                <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-emerald-400">
-                                    <i className="fa-solid fa-calendar-days text-sm"></i>
-                                </span>
-                                <input 
-                                    type="date" 
-                                    value={extraFecha}
-                                    onChange={(e) => setExtraFecha(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer uppercase font-mono"
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
-                            Registrar Ingreso
-                        </button>
-                    </form>
-                </div>
+                    {/* Ingreso Extra */}
+                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                        <h3 className="text-sm font-bold text-emerald-400"><i className="fa-solid fa-coins mr-1"></i> Ingreso Extra</h3>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!extraTitulo.trim() || !extraMonto) return;
+                            await cursoApi.registrarIngresoExtra({ titulo: extraTitulo, monto: extraMonto, fecha: extraFecha });
+                            setExtraTitulo(''); setExtraMonto(''); onActualizar();
+                        }} className="space-y-3">
+                            <input type="text" placeholder="Concepto..." value={extraTitulo} onChange={(e) => setExtraTitulo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <input type="number" placeholder="Monto" value={extraMonto} onChange={(e) => setExtraMonto(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <input type="date" value={extraFecha} onChange={(e) => setExtraFecha(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Registrar Ingreso</button>
+                        </form>
+                    </div>
 
-                {/* Agregar Apoderado */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
-                    {avisosSeccion['apoderado'] && (
-                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                            {avisosSeccion['apoderado'].texto}
-                        </div>
-                    )}
-                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
-                        <i className="fa-solid fa-user-plus"></i> Agregar Apoderado
-                    </h3>
-                    <form onSubmit={handleAgregarApoderado} className="space-y-3">
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Apoderado</label>
-                            <input 
-                                type="text" 
-                                placeholder="Nombre completo..."
-                                value={nombreApoderado}
-                                onChange={(e) => setNombreApoderado(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Alumno</label>
-                            <input 
-                                type="text" 
-                                placeholder="Alumno..."
-                                value={nombreAlumno}
-                                onChange={(e) => setNombreAlumno(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                            />
-                        </div>
-                        <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition mt-6">
-                            Agregar Apoderado
-                        </button>
-                    </form>
+                    {/* Agregar Apoderado */}
+                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                        <h3 className="text-sm font-bold text-sky-400"><i className="fa-solid fa-user-plus mr-1"></i> Agregar Apoderado</h3>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (!nombreApoderado.trim() || !nombreAlumno.trim()) return;
+                            await cursoApi.agregarApoderado({ nombre: nombreApoderado, alumno: nombreAlumno });
+                            setNombreApoderado(''); setNombreAlumno(''); onActualizar();
+                        }} className="space-y-3">
+                            <input type="text" placeholder="Nombre Apoderado..." value={nombreApoderado} onChange={(e) => setNombreApoderado(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <input type="text" placeholder="Nombre Alumno..." value={nombreAlumno} onChange={(e) => setNombreAlumno(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs mt-6">Agregar</button>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* TABLAS DETALLADAS DE GASTOS E INGRESOS EXTRA */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Relación de Gastos */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
-                    {avisosSeccion['relacionGastos'] && (
-                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                            {avisosSeccion['relacionGastos'].texto}
-                        </div>
-                    )}
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                            <i className="fa-solid fa-receipt"></i> Relación de Gastos
-                        </h3>
-                        <span className="text-xs text-slate-300 font-medium">Total: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong></span>
-                    </div>
-                    <div className="overflow-x-auto max-h-60 overflow-y-auto">
-                        {datos.gastos && datos.gastos.length > 0 ? (
-                            <table className="w-full text-left text-xs text-slate-300">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                    <tr>
-                                        <th className="p-2">Fecha</th>
-                                        <th className="p-2">Descripción</th>
-                                        <th className="p-2 text-right">Monto</th>
-                                        <th className="p-2 text-center">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {datos.gastos.map(g => (
-                                        <tr key={g.id} className="hover:bg-slate-950/40">
-                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
-                                            <td className="p-2 font-semibold text-white">{g.titulo} <span className="text-[10px] text-slate-400">({g.mes})</span></td>
-                                            <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <h3 className="text-sm font-bold text-rose-400"><i className="fa-solid fa-receipt mr-1"></i> Relación de Gastos</h3>
+                    <div className="overflow-x-auto max-h-52 overflow-y-auto">
+                        <table className="w-full text-left text-xs text-slate-300">
+                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                                <tr><th className="p-2">Fecha</th><th className="p-2">Descripción</th><th className="p-2 text-right">Monto</th>{!estaCerrado && <th className="p-2 text-center">Acción</th>}</tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                                {(datos.gastos || []).map(g => (
+                                    <tr key={g.id}>
+                                        <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
+                                        <td className="p-2 text-white">{g.titulo}</td>
+                                        <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
+                                        {!estaCerrado && (
                                             <td className="p-2 text-center">
-                                                <button onClick={() => handleEliminarGasto(g.id)} className="text-slate-500 hover:text-rose-400 transition" title="Eliminar gasto">
-                                                    <i className="fa-solid fa-trash-can"></i>
-                                                </button>
+                                                <button onClick={async () => { await cursoApi.eliminarGasto(g.id); onActualizar(); }} className="text-slate-500 hover:text-rose-400"><i className="fa-solid fa-trash-can"></i></button>
                                             </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados.</p>}
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                {/* Relación de Ingresos Extra */}
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4 relative">
-                    {avisosSeccion['relacionIngresos'] && (
-                        <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                            {avisosSeccion['relacionIngresos'].texto}
-                        </div>
-                    )}
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                            <i className="fa-solid fa-coins"></i> Relación de Ingresos Extra
-                        </h3>
-                        <span className="text-xs text-slate-300 font-medium">Total: <strong className="text-emerald-400">${totalIngresosExtra.toLocaleString('es-CL')}</strong></span>
-                    </div>
-                    <div className="overflow-x-auto max-h-60 overflow-y-auto">
-                        {datos.ingresos_extra && datos.ingresos_extra.length > 0 ? (
-                            <table className="w-full text-left text-xs text-slate-300">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                    <tr>
-                                        <th className="p-2">Fecha</th>
-                                        <th className="p-2">Concepto</th>
-                                        <th className="p-2 text-right">Monto</th>
-                                        <th className="p-2 text-center">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {datos.ingresos_extra.map(e => (
-                                        <tr key={e.id} className="hover:bg-slate-950/40">
-                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
-                                            <td className="p-2 font-semibold text-white">{e.titulo}</td>
-                                            <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                    <h3 className="text-sm font-bold text-emerald-400"><i className="fa-solid fa-coins mr-1"></i> Relación de Ingresos Extra</h3>
+                    <div className="overflow-x-auto max-h-52 overflow-y-auto">
+                        <table className="w-full text-left text-xs text-slate-300">
+                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                                <tr><th className="p-2">Fecha</th><th className="p-2">Concepto</th><th className="p-2 text-right">Monto</th>{!estaCerrado && <th className="p-2 text-center">Acción</th>}</tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                                {(datos.ingresos_extra || []).map(e => (
+                                    <tr key={e.id}>
+                                        <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
+                                        <td className="p-2 text-white">{e.titulo}</td>
+                                        <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
+                                        {!estaCerrado && (
                                             <td className="p-2 text-center">
-                                                <button onClick={() => handleEliminarIngresoExtra(e.id)} className="text-slate-500 hover:text-rose-400 transition" title="Eliminar ingreso extra">
-                                                    <i className="fa-solid fa-trash-can"></i>
-                                                </button>
+                                                <button onClick={async () => { await cursoApi.eliminarIngresoExtra(e.id); onActualizar(); }} className="text-slate-500 hover:text-rose-400"><i className="fa-solid fa-trash-can"></i></button>
                                             </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra registrados.</p>}
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
-            {/* GESTIÓN DE PAGOS MENSUALES (ORDENADOS POR APELLIDO PATERNO) */}
-            <div className="space-y-4 relative">
-                {avisosSeccion['pagos'] && (
-                    <div className="absolute -top-3 right-5 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-[11px] px-3 py-1 rounded-lg shadow-md z-10">
-                        {avisosSeccion['pagos'].texto}
-                    </div>
-                )}
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales por Apoderado (Ordenado por Apellido Paterno)
-                </h3>
-
+            {/* GESTIÓN DE PAGOS MENSUALES */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-white"><i className="fa-solid fa-money-check-dollar mr-2"></i> Gestión de Pagos Mensuales</h3>
                 <div className="grid grid-cols-1 gap-4">
                     {[...datos.apoderados]
-                        .sort(ordenarPorApellidoPaterno)
+                        .sort((a, b) => obtenerApellidoPaterno(a.alumno).localeCompare(obtenerApellidoPaterno(b.alumno), 'es', { sensitivity: 'base', numeric: true }))
                         .map(apo => (
                             <div key={apo.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-white text-sm">
-                                                {apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}
-                                            </h4>
-                                            {/* Modificar apoderado y alumno */}
-                                            <button 
-                                                onClick={() => abrirModalEdicion(apo)}
-                                                className="text-slate-400 hover:text-sky-400 transition text-xs p-1"
-                                                title="Editar apoderado y alumno"
-                                            >
-                                                <i className="fa-solid fa-pen-to-square"></i>
-                                            </button>
+                                            <h4 className="font-bold text-white text-sm">{apo.nombre} {apo.activo === false && <span className="text-rose-400 text-xs">(Inactivo)</span>}</h4>
+                                            {!estaCerrado && (
+                                                <button 
+                                                    onClick={() => { setIdEditando(apo.id); setEditNombreApo(apo.nombre); setEditNombreAlu(apo.alumno); setModalEditarApo(true); }}
+                                                    className="text-slate-400 hover:text-sky-400 text-xs p-1"
+                                                >
+                                                    <i className="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                            )}
                                         </div>
                                         <p className="text-xs text-emerald-400 font-medium">Alumno: {apo.alumno}</p>
                                     </div>
-                                    <div className="flex gap-2 w-full sm:w-auto items-center">
-                                        <button 
-                                            onClick={() => abrirModalPago(apo)}
-                                            className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5"
-                                        >
-                                            <i className="fa-solid fa-plus"></i> Registrar Pago / Abono
-                                        </button>
-                                        <button 
-                                            onClick={() => handleCambiarEstado(apo.id, apo.nombre, apo.activo !== false)}
-                                            className={`text-xs px-3 py-1.5 rounded-xl border transition ${
-                                                apo.activo === false 
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
-                                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
-                                            }`}
-                                            title={apo.activo === false ? "Activar apoderado" : "Ocultar apoderado"}
-                                        >
-                                            {apo.activo === false ? 'Activar' : 'Ocultar'}
-                                        </button>
-                                        {/* Eliminar permanentemente */}
-                                        <button 
-                                            onClick={() => handleEliminarApoderado(apo.id, apo.nombre)}
-                                            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-3 py-1.5 rounded-xl transition flex items-center justify-center"
-                                            title="Eliminar apoderado permanentemente"
-                                        >
-                                            <i className="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </div>
+                                    {!estaCerrado && (
+                                        <div className="flex gap-2 w-full sm:w-auto items-center">
+                                            <button 
+                                                onClick={() => { setApoderadoSeleccionado(apo); setMontoPago(''); setResponsablePago(apo.nombre); setModalAbierto(true); }}
+                                                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-1.5 rounded-xl text-xs"
+                                            >
+                                                Registrar Pago
+                                            </button>
+                                            <button 
+                                                onClick={async () => { await cursoApi.cambiarEstadoApoderado(apo.id, apo.activo === false); onActualizar(); }}
+                                                className={`text-xs px-3 py-1.5 rounded-xl border ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
+                                            >
+                                                {apo.activo === false ? 'Activar' : 'Ocultar'}
+                                            </button>
+                                            <button 
+                                                onClick={async () => {
+                                                    if (confirm(`¿Eliminar definitivamente a ${apo.nombre}?`)) {
+                                                        await cursoApi.eliminarApoderado(apo.id);
+                                                        onActualizar();
+                                                    }
+                                                }}
+                                                className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-3 py-1.5 rounded-xl"
+                                            >
+                                                <i className="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     {datos.configuracion.meses.map(mes => {
-                                        const pago = apo.pagos[mes] || { pagado: false, monto: 0, fecha: null };
+                                        const pago = apo.pagos[mes] || { pagado: false, monto: 0 };
                                         const montoAbonado = Number(pago.monto || 0);
                                         const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
 
                                         return (
-                                            <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between space-y-2">
-                                                <div>
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="text-xs font-semibold text-slate-300">{mes}</span>
-                                                        {montoAbonado > 0 && (
-                                                            <button 
-                                                                onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)}
-                                                                className="text-slate-500 hover:text-rose-400 transition text-xs"
-                                                                title="Eliminar este pago o abono"
-                                                            >
-                                                                <i className="fa-solid fa-trash-can"></i>
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    <span className={`text-[10px] block font-medium mt-0.5 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
-                                                        {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
-                                                    </span>
-                                                    {pago.fecha && (
-                                                        <span className="text-[9px] text-slate-400 block mt-1">
-                                                            📅 {pago.fecha}
-                                                        </span>
+                                            <div key={mes} className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between">
+                                                <div className="flex justify-between items-start">
+                                                    <span className="text-xs font-semibold text-slate-300">{mes}</span>
+                                                    {!estaCerrado && montoAbonado > 0 && (
+                                                        <button onClick={async () => { await cursoApi.eliminarPagoMes(apo.id, mes); onActualizar(); }} className="text-slate-500 hover:text-rose-400 text-xs">
+                                                            <i className="fa-solid fa-trash-can"></i>
+                                                        </button>
                                                     )}
                                                 </div>
+                                                <span className={`text-[10px] font-medium mt-1 ${esCompleto ? 'text-emerald-400' : montoAbonado > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                                                    {esCompleto ? 'Pagado ✓' : montoAbonado > 0 ? `Abono: $${montoAbonado}` : 'Pendiente'}
+                                                </span>
+                                                {pago.fecha && <span className="text-[9px] text-slate-400 mt-0.5">📅 {pago.fecha}</span>}
                                             </div>
                                         );
                                     })}
@@ -1232,142 +543,46 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* MODAL MODIFICAR APODERADO / ALUMNO */}
+            {/* MODALES: EDITAR APODERADO Y REGISTRAR PAGO */}
             {modalEditarApo && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
-                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                <i className="fa-solid fa-user-pen text-sky-400"></i> Modificar Apoderado
-                            </h3>
-                            <button onClick={() => setModalEditarApo(false)} className="text-slate-400 hover:text-white">
-                                <i className="fa-solid fa-xmark text-lg"></i>
-                            </button>
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        await cursoApi.editarApoderado(idEditando, { nombre: editNombreApo, alumno: editNombreAlu });
+                        setModalEditarApo(false);
+                        onActualizar();
+                    }} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm space-y-4">
+                        <h3 className="text-sm font-bold text-white">Modificar Apoderado</h3>
+                        <input type="text" value={editNombreApo} onChange={(e) => setEditNombreApo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
+                        <input type="text" value={editNombreAlu} onChange={(e) => setEditNombreAlu(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
+                        <div className="flex gap-2">
+                            <button type="button" onClick={() => setModalEditarApo(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300">Cancelar</button>
+                            <button type="submit" className="w-1/2 bg-sky-500 py-2 rounded-xl text-xs text-slate-950 font-bold">Guardar</button>
                         </div>
-
-                        <form onSubmit={handleGuardarEdicionApo} className="space-y-3">
-                            <div>
-                                <label className="text-[11px] text-slate-400 block mb-1">Nombre del Apoderado</label>
-                                <input 
-                                    type="text" 
-                                    value={editNombreApo}
-                                    onChange={(e) => setEditNombreApo(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[11px] text-slate-400 block mb-1">Nombre del Alumno</label>
-                                <input 
-                                    type="text" 
-                                    value={editNombreAlu}
-                                    onChange={(e) => setEditNombreAlu(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex gap-2 pt-3">
-                                <button 
-                                    type="button" 
-                                    onClick={() => setModalEditarApo(false)}
-                                    className="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition"
-                                >
-                                    Cancelar
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    className="w-1/2 bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition"
-                                >
-                                    Guardar Cambios
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    </form>
                 </div>
             )}
 
-            {/* MODAL DE REGISTRO DE PAGO / ABONO GLOBAL */}
             {modalAbierto && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 relative">
-                        {avisosSeccion['modalPago'] && (
-                            <div className="absolute top-2 right-4 bg-rose-950/90 border border-rose-500/50 text-rose-300 text-[11px] px-3 py-1 rounded-lg">
-                                {avisosSeccion['modalPago'].texto}
-                            </div>
-                        )}
-                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                <i className="fa-solid fa-cash-register text-emerald-400"></i> Registrar Pago / Abono
-                            </h3>
-                            <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-white">
-                                <i className="fa-solid fa-xmark text-lg"></i>
-                            </button>
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        await cursoApi.registrarPagoGlobal({ apoderadoId: apoderadoSeleccionado.id, montoEntregado: Number(montoPago), fecha: fechaPago, responsable: responsablePago });
+                        setModalAbierto(false);
+                        onActualizar();
+                    }} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+                        <h3 className="text-sm font-bold text-white">Registrar Pago</h3>
+                        <p className="text-xs text-slate-300">{apoderadoSeleccionado?.nombre} ({apoderadoSeleccionado?.alumno})</p>
+                        <input type="number" placeholder="Monto" value={montoPago} onChange={(e) => setMontoPago(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required autoFocus />
+                        <div className="grid grid-cols-2 gap-2">
+                            <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+                            <input type="text" placeholder="Responsable" value={responsablePago} onChange={(e) => setResponsablePago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
                         </div>
-
-                        <div className="text-xs text-slate-300">
-                            <p>Apoderado: <strong className="text-white">{apoderadoSeleccionado?.nombre}</strong></p>
-                            <p>Alumno: <strong className="text-emerald-400">{apoderadoSeleccionado?.alumno}</strong></p>
+                        <div className="flex gap-2">
+                            <button type="button" onClick={() => setModalAbierto(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300">Cancelar</button>
+                            <button type="submit" className="w-1/2 bg-emerald-500 py-2 rounded-xl text-xs text-slate-950 font-bold">Guardar Pago</button>
                         </div>
-
-                        <form onSubmit={handleEnviarPagoGlobal} className="space-y-3">
-                            <div>
-                                <label className="text-[11px] text-slate-400 block mb-1">Monto Entregado ($)</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="Ej: 45000"
-                                    value={montoPago}
-                                    onChange={(e) => setMontoPago(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-bold text-emerald-400"
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="text-[11px] text-slate-400 block mb-1">Fecha de Pago</label>
-                                    <div className="relative group cursor-pointer">
-                                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-emerald-400">
-                                            <i className="fa-solid fa-calendar-days text-sm"></i>
-                                        </span>
-                                        <input 
-                                            type="date" 
-                                            value={fechaPago}
-                                            onChange={(e) => setFechaPago(e.target.value)}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 cursor-pointer uppercase font-mono"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[11px] text-slate-400 block mb-1">Persona que paga</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Nombre..."
-                                        value={responsablePago}
-                                        onChange={(e) => setResponsablePago(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-2 pt-3">
-                                <button 
-                                    type="button" 
-                                    onClick={() => setModalAbierto(false)}
-                                    className="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition"
-                                >
-                                    Cancelar
-                                </button>
-                                <button 
-                                    type="submit" 
-                                    className="w-1/2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs transition"
-                                >
-                                    Guardar Pago
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    </form>
                 </div>
             )}
         </div>

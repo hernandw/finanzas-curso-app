@@ -5,62 +5,86 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Resuelve la ruta hacia data/curso_datos.json independientemente de dónde se ejecute Node
-const ARCHIVO_DATOS = path.resolve(__dirname, '../data/curso_datos.json');
+
+const ARCHIVO_LOCAL = path.resolve(__dirname, '../data/curso_datos.json');
 
 export const dbConfig = {
     async leerDatos() {
-        const dir = path.dirname(ARCHIVO_DATOS);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
+        const dir = path.dirname(ARCHIVO_LOCAL);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        if (!fs.existsSync(ARCHIVO_LOCAL)) {
+            throw new Error(`El archivo de base de datos no existe en: ${ARCHIVO_LOCAL}`);
         }
 
-        if (!fs.existsSync(ARCHIVO_DATOS) || fs.readFileSync(ARCHIVO_DATOS, 'utf-8').trim() === '') {
-            const meses = ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            const apoderadosIniciales = Array.from({ length: 18 }, (_, i) => ({
-                id: `apo-${i + 1}`,
-                nombre: `Apoderado ${i + 1}`,
-                alumno: `Alumno ${i + 1}`,
-                email: '',
-                activo: true,
-                pagos: meses.reduce((acc, mes) => ({ ...acc, [mes]: { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] } }), {})
-            }));
+        const raw = fs.readFileSync(ARCHIVO_LOCAL, 'utf-8');
+        const datos = JSON.parse(raw);
 
-            const estructuraInicial = {
-                anio_activo: "2026",
-                anios: {
-                    "2026": {
-                        cerrado: false,
-                        saldo_inicial: 0,
-                        cuota_mensual: 11000,
-                        nombre_curso: "8° Básico B",
-                        profesor: "Aylin Chong",
-                        presidente: "Ingrid Brito",
-                        tesorero: "Natalya Zakharova",
-                        meses,
-                        apoderados: apoderadosIniciales,
-                        gastos: [],
-                        ingresos_extra: []
+        // Rehidratar en memoria: si un mes no está en disco, se provee el formato estándar
+        // para que React / VistaAdmin jamás reciban valores undefined
+        Object.keys(datos.anios || {}).forEach(anioKey => {
+            const infoAnio = datos.anios[anioKey];
+            const listaMeses = infoAnio.meses || [
+                "Marzo", "Abril", "Mayo", "Junio", "Julio", 
+                "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ];
+
+            (infoAnio.apoderados || []).forEach(apo => {
+                if (!apo.pagos) apo.pagos = {};
+                if (apo.email === undefined) apo.email = '';
+
+                listaMeses.forEach(m => {
+                    if (!apo.pagos[m]) {
+                        apo.pagos[m] = {
+                            pagado: false,
+                            monto: 0,
+                            fecha: null,
+                            exonerado: false,
+                            transacciones: []
+                        };
+                    } else {
+                        // Asegurar integridad de propiedades
+                        apo.pagos[m].pagado = Boolean(apo.pagos[m].pagado);
+                        apo.pagos[m].monto = Number(apo.pagos[m].monto || 0);
+                        apo.pagos[m].exonerado = Boolean(apo.pagos[m].exonerado);
+                        apo.pagos[m].transacciones = apo.pagos[m].transacciones || [];
                     }
-                }
-            };
-            fs.writeFileSync(ARCHIVO_DATOS, JSON.stringify(estructuraInicial, null, 2), 'utf-8');
-        }
+                });
+            });
+        });
 
-        try {
-            const contenido = fs.readFileSync(ARCHIVO_DATOS, 'utf-8');
-            return JSON.parse(contenido);
-        } catch (err) {
-            console.error("Error al parsear JSON, reintentando estructura limpia:", err);
-            return { anio_activo: "2026", anios: {} };
-        }
+        return datos;
     },
 
     async guardarDatos(nuevosDatos) {
-        const dir = path.dirname(ARCHIVO_DATOS);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        fs.writeFileSync(ARCHIVO_DATOS, JSON.stringify(nuevosDatos, null, 2), 'utf-8');
+        const dir = path.dirname(ARCHIVO_LOCAL);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        // Clonar profundamente para no mutar el objeto en memoria de la sesión
+        const datosAComprimir = JSON.parse(JSON.stringify(nuevosDatos));
+
+        // Comprimir en disco: remover meses en $0 sin transacciones ni exoneración
+        Object.keys(datosAComprimir.anios || {}).forEach(anioKey => {
+            const infoAnio = datosAComprimir.anios[anioKey];
+            (infoAnio.apoderados || []).forEach(apo => {
+                if (apo.pagos) {
+                    const pagosCompactos = {};
+                    Object.keys(apo.pagos).forEach(m => {
+                        const p = apo.pagos[m];
+                        const tieneAbono = Number(p.monto || 0) > 0;
+                        const tieneTransacciones = p.transacciones && p.transacciones.length > 0;
+                        const estaExonerado = Boolean(p.exonerado);
+
+                        if (tieneAbono || tieneTransacciones || estaExonerado) {
+                            pagosCompactos[m] = p;
+                        }
+                    });
+                    apo.pagos = pagosCompactos;
+                }
+            });
+        });
+
+        // Escritura síncrona inmediata
+        fs.writeFileSync(ARCHIVO_LOCAL, JSON.stringify(datosAComprimir, null, 2), 'utf-8');
     }
 };

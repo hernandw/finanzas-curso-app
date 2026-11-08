@@ -1,6 +1,7 @@
 // backend/app.js
 import express from 'express';
 import dotenv from 'dotenv';
+import multer from 'multer';
 import cors from 'cors';
 import path from 'path';
 import apiRoutes from './routes/apiRoutes.js';
@@ -23,14 +24,24 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Asegurar que la carpeta exista físicamente
+// Ruta absoluta física a la carpeta uploads dentro de backend/
 const carpetaUploads = path.resolve(__dirname, 'uploads');
 if (!fs.existsSync(carpetaUploads)) {
     fs.mkdirSync(carpetaUploads, { recursive: true });
 }
 
-// Servir la carpeta uploads en la ruta /uploads
+// Servir la carpeta de forma pública
 app.use('/uploads', express.static(carpetaUploads));
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'recibo-' + uniqueSuffix + ext);
+    }
+});
+const upload = multer({ storage });
 
 // Montar rutas
 app.use('/api', apiRoutes);

@@ -599,7 +599,7 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
     const { anio } = req.body;
     if (!req.file) return res.status(400).json({ error: "No se recibió el documento PDF." });
-
+console.log("PDF recibido y guardado en:", req.file.path);
     try {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";

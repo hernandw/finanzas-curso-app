@@ -504,31 +504,18 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
 // 16. Enviar avisos de cobranza por correo mediante Resend (HTTP API, sin bloqueos SMTP)
 router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     const { apoderadoId, anio } = req.body;
-    console.log('[DEBUG] Petición recibida en enviar-correo-morosos:', { apoderadoId, anio });
-
-    if (!process.env.RESEND_API_KEY) {
-        console.error('[ERROR] Falta variable RESEND_API_KEY');
-        return res.status(500).json({ error: "Falta configurar la variable RESEND_API_KEY en el servidor." });
-    }
 
     try {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios ? datos.anios[anioSel] : null;
 
-        if (!infoAnio) {
-            return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
-        }
+        if (!infoAnio) return res.status(404).json({ error: `No hay datos para ${anioSel}` });
 
         const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
-        let apoderadosNotificar = [];
-
-        if (apoderadoId) {
-            const encontrado = (infoAnio.apoderados || []).find(a => a.id === apoderadoId);
-            if (encontrado) apoderadosNotificar.push(encontrado);
-        } else {
-            apoderadosNotificar = (infoAnio.apoderados || []).filter(a => a.activo !== false);
-        }
+        let apoderadosNotificar = apoderadoId 
+            ? (infoAnio.apoderados || []).filter(a => a.id === apoderadoId)
+            : (infoAnio.apoderados || []).filter(a => a.activo !== false);
 
         let enviados = 0;
         let errores = [];
@@ -551,51 +538,45 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
 
             if (deudaTotal > 0) {
                 try {
-                    console.log(`[DEBUG] Enviando correo Resend a: ${apo.email}...`);
-                    const { error } = await resend.emails.send({
-                        from: 'Tesorería <onboarding@resend.dev>',
-                        to: apo.email.trim(),
-                        subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`,
-                        html: `
-                            <div style="font-family: Arial, sans-serif; max-width: 500px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-                                <h2 style="color: #0f172a; margin-top: 0;">Estado de Cuenta - ${infoAnio.nombre_curso}</h2>
-                                <p style="color: #334155;">Estimado/a <strong>${apo.nombre}</strong>,</p>
-                                <p style="color: #475569;">Le informamos el estado actual de las cuotas de su pupilo <strong>${apo.alumno}</strong> para el periodo escolar <strong>${anioSel}</strong>:</p>
-                                <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 15px 0; border-radius: 6px;">
-                                    <p style="margin: 0; color: #991b1b; font-weight: bold;">Monto total pendiente: $${deudaTotal.toLocaleString('es-CL')}</p>
-                                    <p style="margin: 4px 0 0 0; color: #7f1d1d; font-size: 13px;">Meses con saldo: ${mesesDebe.join(', ')}</p>
-                                </div>
-                                <p style="font-size: 12px; color: #64748b;">Favor regularizar a la brevedad con la directiva de tesorería del curso.</p>
-                            </div>
-                        `
+                    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            service_id: process.env.EMAILJS_SERVICE_ID,
+                            template_id: process.env.EMAILJS_TEMPLATE_ID,
+                            user_id: process.env.EMAILJS_PUBLIC_KEY,
+                            accessToken: process.env.EMAILJS_PRIVATE_KEY,
+                            template_params: {
+                                to_email: apo.email.trim(),
+                                to_name: apo.nombre,
+                                alumno: apo.alumno,
+                                anio: anioSel,
+                                deuda_total: deudaTotal.toLocaleString('es-CL'),
+                                meses_debe: mesesDebe.join(', '),
+                                subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`
+                            }
+                        })
                     });
 
-                    if (error) {
-                        console.error(`[ERROR Resend] con ${apo.email}:`, error);
-                        errores.push(`${apo.email}: ${error.message}`);
-                    } else {
-                        console.log(`[DEBUG] Correo enviado exitosamente a: ${apo.email}`);
+                    if (response.ok) {
                         enviados++;
+                    } else {
+                        const errorText = await response.text();
+                        errores.push(`${apo.email}: ${errorText}`);
                     }
                 } catch (err) {
-                    console.error(`[ERROR Excepción] con ${apo.email}:`, err.message);
                     errores.push(`${apo.email}: ${err.message}`);
                 }
             }
         }
 
         if (enviados === 0 && errores.length > 0) {
-            return res.status(500).json({ error: `Fallo al enviar correo: ${errores.join(' | ')}` });
+            return res.status(500).json({ error: `Fallo al enviar correos: ${errores.join(' | ')}` });
         }
 
-        return res.json({
-            success: true,
-            correosEnviados: enviados,
-            mensaje: enviados > 0 ? "Correos enviados exitosamente." : "No se encontraron apoderados con deuda y correo registrado."
-        });
+        return res.json({ success: true, correosEnviados: enviados });
     } catch (error) {
-        console.error('[ERROR general en cobranza]:', error);
-        return res.status(500).json({ error: "Error en el servidor al enviar correos." });
+        return res.status(500).json({ error: "Error interno al procesar cobranza." });
     }
 });
 

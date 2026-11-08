@@ -5,6 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import apiRoutes from './routes/apiRoutes.js';
 import { dbConfig } from './config/db.js'; // <-- Importar la configuración de la base de datos
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -2,8 +2,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from 'path';
 import apiRoutes from './routes/apiRoutes.js';
 import { dbConfig } from './config/db.js'; // <-- Importar la configuración de la base de datos
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 

@@ -9,7 +9,7 @@ import { dbConfig } from '../config/db.js';
 const router = express.Router();
 
 // Configuración de almacenamiento local para comprobantes/recibos
-const uploadDir = path.resolve('backend/uploads');
+const uploadDir = path.resolve('../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }

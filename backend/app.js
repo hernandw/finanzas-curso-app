@@ -23,8 +23,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Exponer la carpeta uploads para descargas públicas directas
-app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
+// Asegurar que la carpeta exista físicamente
+const carpetaUploads = path.resolve(__dirname, 'uploads');
+if (!fs.existsSync(carpetaUploads)) {
+    fs.mkdirSync(carpetaUploads, { recursive: true });
+}
+
+// Servir la carpeta uploads en la ruta /uploads
+app.use('/uploads', express.static(carpetaUploads));
 
 // Montar rutas
 app.use('/api', apiRoutes);

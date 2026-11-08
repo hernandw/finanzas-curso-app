@@ -1,16 +1,12 @@
-
+// backend/routes/apiRoutes.js
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { Resend } from 'resend';
 import 'dotenv/config';
 import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
-
-// Instancia de Resend para envío de correos vía HTTP API (sin bloqueos de puertos SMTP en Render)
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Configuración de almacenamiento local para comprobantes/recibos
 const uploadDir = path.resolve('backend/uploads');
@@ -194,8 +190,8 @@ router.put('/curso/admin/apoderado/:id', async (req, res) => {
         const apoderado = infoAnio.apoderados.find(a => a.id === id);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
-        if (nombre) apoderado.nombre = nombre.trim();
-        if (alumno) apoderado.alumno = alumno.trim();
+        if (nombre !== undefined) apoderado.nombre = nombre.trim();
+        if (alumno !== undefined) apoderado.alumno = alumno.trim();
         if (email !== undefined) apoderado.email = email.trim().toLowerCase();
 
         await dbConfig.guardarDatos(datos);
@@ -501,7 +497,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
     }
 });
 
-// 16. Enviar avisos de cobranza por correo mediante Resend (HTTP API, sin bloqueos SMTP)
+// 16. Enviar avisos de cobranza por correo mediante EmailJS API (Directo HTTPS sin dominios)
 router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     const { apoderadoId, anio } = req.body;
 
@@ -510,7 +506,7 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios ? datos.anios[anioSel] : null;
 
-        if (!infoAnio) return res.status(404).json({ error: `No hay datos para ${anioSel}` });
+        if (!infoAnio) return res.status(404).json({ error: `No existen datos para ${anioSel}` });
 
         const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
         let apoderadosNotificar = apoderadoId 
@@ -538,31 +534,37 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
 
             if (deudaTotal > 0) {
                 try {
+                    const destino = apo.email.trim();
+                    const emailPayload = {
+                        service_id: process.env.EMAILJS_SERVICE_ID,
+                        template_id: process.env.EMAILJS_TEMPLATE_ID,
+                        user_id: process.env.EMAILJS_PUBLIC_KEY,
+                        accessToken: process.env.EMAILJS_PRIVATE_KEY,
+                        template_params: {
+                            to_email: destino,
+                            email: destino,
+                            reply_to: destino,
+                            recipient: destino,
+                            to_name: apo.nombre,
+                            alumno: apo.alumno,
+                            anio: anioSel,
+                            deuda_total: deudaTotal.toLocaleString('es-CL'),
+                            meses_debe: mesesDebe.join(', '),
+                            subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`
+                        }
+                    };
+
                     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            service_id: process.env.EMAILJS_SERVICE_ID,
-                            template_id: process.env.EMAILJS_TEMPLATE_ID,
-                            user_id: process.env.EMAILJS_PUBLIC_KEY,
-                            accessToken: process.env.EMAILJS_PRIVATE_KEY,
-                            template_params: {
-                                to_email: apo.email.trim(),
-                                to_name: apo.nombre,
-                                alumno: apo.alumno,
-                                anio: anioSel,
-                                deuda_total: deudaTotal.toLocaleString('es-CL'),
-                                meses_debe: mesesDebe.join(', '),
-                                subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`
-                            }
-                        })
+                        body: JSON.stringify(emailPayload)
                     });
 
                     if (response.ok) {
                         enviados++;
                     } else {
-                        const errorText = await response.text();
-                        errores.push(`${apo.email}: ${errorText}`);
+                        const errTxt = await response.text();
+                        errores.push(`${destino}: ${errTxt}`);
                     }
                 } catch (err) {
                     errores.push(`${apo.email}: ${err.message}`);
@@ -571,42 +573,47 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
         }
 
         if (enviados === 0 && errores.length > 0) {
-            return res.status(500).json({ error: `Fallo al enviar correos: ${errores.join(' | ')}` });
+            return res.status(500).json({ error: `Fallo al enviar: ${errores.join(' | ')}` });
         }
 
-        return res.json({ success: true, correosEnviados: enviados });
+        return res.json({ 
+            success: true, 
+            correosEnviados: enviados,
+            mensaje: enviados > 0 ? "Correos enviados con éxito." : "No hay apoderados con deuda pendiente y correo registrado."
+        });
     } catch (error) {
         return res.status(500).json({ error: "Error interno al procesar cobranza." });
     }
 });
 
-// 17. Enviar PDF por correo a los apoderados mediante EmailJS
+// 17. Enviar notificación de balance PDF a los apoderados mediante EmailJS
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
     const { anio } = req.body;
-    if (!req.file) return res.status(400).json({ error: "No se recibió el documento PDF." });
 
     try {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
-        const infoAnio = datos.anios[anioSel];
+        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
 
-        const correos = (infoAnio.apoderados || [])
-            .filter(a => a.activo !== false && a.email && a.email.trim() !== '')
-            .map(a => a.email.trim());
-
-        if (correos.length === 0) {
-            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-            return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
+        if (!infoAnio) {
+            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(404).json({ error: `No existen datos para ${anioSel}` });
         }
 
-        // Convertir el PDF a Base64 para adjuntarlo en EmailJS
-        const pdfBase64 = fs.readFileSync(req.file.path, { encoding: 'base64' });
+        const apoderadosConCorreo = (infoAnio.apoderados || [])
+            .filter(a => a.activo !== false && a.email && a.email.trim() !== '');
+
+        if (apoderadosConCorreo.length === 0) {
+            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
+        }
 
         let enviados = 0;
         let errores = [];
 
-        for (const correoDestino of correos) {
+        for (const apo of apoderadosConCorreo) {
             try {
+                const destino = apo.email.trim();
                 const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -616,21 +623,17 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
                         user_id: process.env.EMAILJS_PUBLIC_KEY,
                         accessToken: process.env.EMAILJS_PRIVATE_KEY,
                         template_params: {
-                            to_email: correoDestino,
-                            subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`,
-                            to_name: "Estimado/a Apoderado/a",
-                            alumno: "Curso",
+                            to_email: destino,
+                            email: destino,
+                            reply_to: destino,
+                            recipient: destino,
+                            to_name: apo.nombre,
+                            alumno: apo.alumno,
                             anio: anioSel,
                             deuda_total: "0",
-                            meses_debe: "Adjunto en informe PDF",
-                            content: `Adjunto encontrará el balance financiero del curso.`
-                        },
-                        attachments: [
-                            {
-                                name: `Informe_Tesoreria_${anioSel}.pdf`,
-                                data: pdfBase64
-                            }
-                        ]
+                            meses_debe: "Balance Oficial Disponible",
+                            subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`
+                        }
                     })
                 });
 
@@ -638,23 +641,23 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
                     enviados++;
                 } else {
                     const txt = await response.text();
-                    errores.push(`${correoDestino}: ${txt}`);
+                    errores.push(`${destino}: ${txt}`);
                 }
             } catch (err) {
-                errores.push(`${correoDestino}: ${err.message}`);
+                errores.push(`${apo.email}: ${err.message}`);
             }
         }
 
-        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
         if (enviados === 0 && errores.length > 0) {
-            return res.status(500).json({ error: `Fallo al enviar PDF: ${errores.join(' | ')}` });
+            return res.status(500).json({ error: `Fallo al enviar notificación: ${errores.join(' | ')}` });
         }
 
         res.json({ success: true, destinatarios: enviados });
     } catch (error) {
         if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-        res.status(500).json({ error: error.message || "Error al enviar el PDF por correo." });
+        res.status(500).json({ error: error.message || "Error al procesar notificación de balance." });
     }
 });
 

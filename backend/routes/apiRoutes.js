@@ -497,7 +497,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
     }
 });
 
-// 16. Enviar avisos de cobranza por correo mediante EmailJS API (Directo HTTPS sin dominios)
+// 16. Enviar avisos de cobranza por correo
 router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     const { apoderadoId, anio } = req.body;
 
@@ -535,29 +535,38 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
             if (deudaTotal > 0) {
                 try {
                     const destino = apo.email.trim();
-                    const emailPayload = {
-                        service_id: process.env.EMAILJS_SERVICE_ID,
-                        template_id: process.env.EMAILJS_TEMPLATE_ID,
-                        user_id: process.env.EMAILJS_PUBLIC_KEY,
-                        accessToken: process.env.EMAILJS_PRIVATE_KEY,
-                        template_params: {
-                            to_email: destino,
-                            email: destino,
-                            reply_to: destino,
-                            recipient: destino,
-                            to_name: apo.nombre,
-                            alumno: apo.alumno,
-                            anio: anioSel,
-                            deuda_total: deudaTotal.toLocaleString('es-CL'),
-                            meses_debe: mesesDebe.join(', '),
-                            subject: `Información de Tesorería - ${apo.alumno} (${anioSel})`
-                        }
-                    };
+                    const bloqueRojoHTML = `
+                        <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 18px; margin: 0 0 22px 0;">
+                            <p style="margin: 0 0 6px 0; color: #991b1b; font-weight: 700; font-size: 14px;">
+                                Monto total pendiente: $${deudaTotal.toLocaleString('es-CL')}
+                            </p>
+                            <p style="margin: 0; color: #7f1d1d; font-size: 13px; line-height: 1.4;">
+                                Meses con saldo: ${mesesDebe.join(', ')}
+                            </p>
+                        </div>
+                    `;
 
                     const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(emailPayload)
+                        body: JSON.stringify({
+                            service_id: process.env.EMAILJS_SERVICE_ID,
+                            template_id: process.env.EMAILJS_TEMPLATE_ID,
+                            user_id: process.env.EMAILJS_PUBLIC_KEY,
+                            accessToken: process.env.EMAILJS_PRIVATE_KEY,
+                            template_params: {
+                                to_email: destino,
+                                email: destino,
+                                reply_to: destino,
+                                recipient: destino,
+                                to_name: apo.nombre,
+                                titulo_cabecera: `Estado de Cuenta - ${infoAnio.nombre_curso || "Tesorería"}`,
+                                mensaje_introduccion: `Le informamos el estado actual de las cuotas de su pupilo <strong>${apo.alumno}</strong> para el periodo escolar <strong>${anioSel}</strong>:`,
+                                bloque_contenido: bloqueRojoHTML,
+                                pie_mensaje: "Favor regularizar a la brevedad con la directiva de tesorería del curso.",
+                                subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`
+                            }
+                        })
                     });
 
                     if (response.ok) {
@@ -586,17 +595,18 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     }
 });
 
-// 17. Enviar notificación de balance PDF a los apoderados mediante EmailJS
+// 17. Enviar PDF con enlace de descarga usando la MISMA plantilla
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
     const { anio } = req.body;
+    if (!req.file) return res.status(400).json({ error: "No se recibió el documento PDF." });
 
     try {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
-        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
+        const infoAnio = datos.anios[anioSel];
 
         if (!infoAnio) {
-            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             return res.status(404).json({ error: `No existen datos para ${anioSel}` });
         }
 
@@ -604,9 +614,25 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
             .filter(a => a.activo !== false && a.email && a.email.trim() !== '');
 
         if (apoderadosConCorreo.length === 0) {
-            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
         }
+
+        const hostUrl = req.protocol + '://' + req.get('host');
+        const pdfPublicUrl = `${hostUrl}/uploads/${req.file.filename}`;
+
+        const botonDescargaHTML = `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 22px 0;">
+                <p style="margin: 0 0 16px 0; color: #1e293b; font-weight: 600; font-size: 14px;">
+                    El documento oficial en formato PDF está listo para su revisión:
+                </p>
+                <a href="${pdfPublicUrl}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+                    📄 Descargar Balance PDF
+                </a>
+                <p style="margin: 14px 0 0 0; font-size: 11px; color: #64748b;">
+                    Enlace directo: <a href="${pdfPublicUrl}" style="color: #2563eb; word-break: break-all;">${pdfPublicUrl}</a>
+                </p>
+            </div>
+        `;
 
         let enviados = 0;
         let errores = [];
@@ -619,7 +645,7 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         service_id: process.env.EMAILJS_SERVICE_ID,
-                        template_id: process.env.EMAILJS_TEMPLATE_ID,
+                        template_id: process.env.EMAILJS_TEMPLATE_ID, // Misma plantilla
                         user_id: process.env.EMAILJS_PUBLIC_KEY,
                         accessToken: process.env.EMAILJS_PRIVATE_KEY,
                         template_params: {
@@ -628,10 +654,10 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
                             reply_to: destino,
                             recipient: destino,
                             to_name: apo.nombre,
-                            alumno: apo.alumno,
-                            anio: anioSel,
-                            deuda_total: "0",
-                            meses_debe: "Balance Oficial Disponible",
+                            titulo_cabecera: `Balance General - ${infoAnio.nombre_curso || "Tesorería"}`,
+                            mensaje_introduccion: `Se encuentra disponible el balance financiero y rendición de cuentas del curso correspondiente al periodo escolar <strong>${anioSel}</strong>.`,
+                            bloque_contenido: botonDescargaHTML,
+                            pie_mensaje: "Este informe ha sido emitido y auditado por la directiva de tesorería del curso.",
                             subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`
                         }
                     })
@@ -648,18 +674,17 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
             }
         }
 
-        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-
         if (enviados === 0 && errores.length > 0) {
-            return res.status(500).json({ error: `Fallo al enviar notificación: ${errores.join(' | ')}` });
+            return res.status(500).json({ error: `Fallo al enviar informe: ${errores.join(' | ')}` });
         }
 
-        res.json({ success: true, destinatarios: enviados });
+        res.json({ success: true, destinatarios: enviados, url: pdfPublicUrl });
     } catch (error) {
-        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-        res.status(500).json({ error: error.message || "Error al procesar notificación de balance." });
+        res.status(500).json({ error: error.message || "Error al procesar el informe." });
     }
 });
+
+
 
 // 18. Copia de seguridad y restauración
 router.get('/curso/backup', async (req, res) => {

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import apiRoutes from './routes/apiRoutes.js';
 import { dbConfig } from './config/db.js'; // <-- Importar la configuración de la base de datos
 import { fileURLToPath } from 'url';

@@ -580,15 +580,10 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     }
 });
 
-// 17. Enviar PDF por correo a los apoderados mediante Resend
+// 17. Enviar PDF por correo a los apoderados mediante EmailJS
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
     const { anio } = req.body;
     if (!req.file) return res.status(400).json({ error: "No se recibió el documento PDF." });
-
-    if (!process.env.RESEND_API_KEY) {
-        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-        return res.status(500).json({ error: "Falta configurar la variable RESEND_API_KEY." });
-    }
 
     try {
         const datos = await dbConfig.leerDatos();
@@ -604,28 +599,59 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
             return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
         }
 
-        const pdfBuffer = fs.readFileSync(req.file.path);
+        // Convertir el PDF a Base64 para adjuntarlo en EmailJS
+        const pdfBase64 = fs.readFileSync(req.file.path, { encoding: 'base64' });
 
-        const { error } = await resend.emails.send({
-            from: 'Tesorería <onboarding@resend.dev>',
-            to: correos,
-            subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`,
-            text: `Estimados apoderados, adjunto encontrarán el informe financiero detallado y balance del curso correspondiente al periodo escolar ${anioSel}.`,
-            attachments: [
-                {
-                    filename: `Informe_Tesoreria_${anioSel}.pdf`,
-                    content: pdfBuffer
+        let enviados = 0;
+        let errores = [];
+
+        for (const correoDestino of correos) {
+            try {
+                const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service_id: process.env.EMAILJS_SERVICE_ID,
+                        template_id: process.env.EMAILJS_TEMPLATE_ID,
+                        user_id: process.env.EMAILJS_PUBLIC_KEY,
+                        accessToken: process.env.EMAILJS_PRIVATE_KEY,
+                        template_params: {
+                            to_email: correoDestino,
+                            subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`,
+                            to_name: "Estimado/a Apoderado/a",
+                            alumno: "Curso",
+                            anio: anioSel,
+                            deuda_total: "0",
+                            meses_debe: "Adjunto en informe PDF",
+                            content: `Adjunto encontrará el balance financiero del curso.`
+                        },
+                        attachments: [
+                            {
+                                name: `Informe_Tesoreria_${anioSel}.pdf`,
+                                data: pdfBase64
+                            }
+                        ]
+                    })
+                });
+
+                if (response.ok) {
+                    enviados++;
+                } else {
+                    const txt = await response.text();
+                    errores.push(`${correoDestino}: ${txt}`);
                 }
-            ]
-        });
+            } catch (err) {
+                errores.push(`${correoDestino}: ${err.message}`);
+            }
+        }
 
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-        if (error) {
-            return res.status(500).json({ error: error.message });
+        if (enviados === 0 && errores.length > 0) {
+            return res.status(500).json({ error: `Fallo al enviar PDF: ${errores.join(' | ')}` });
         }
 
-        res.json({ success: true, destinatarios: correos.length });
+        res.json({ success: true, destinatarios: enviados });
     } catch (error) {
         if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         res.status(500).json({ error: error.message || "Error al enviar el PDF por correo." });

@@ -1,14 +1,13 @@
 // backend/routes/apiRoutes.js
-import express from "express";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import "dotenv/config";
-import { dbConfig } from "../config/db.js";
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { dbConfig } from '../config/db.js';
 
 const router = express.Router();
 
-// Usar exactamente la misma ruta que app.js
+// Configurar almacenamiento de Multer alineado exactamente con process.cwd()
 const uploadDir = path.resolve(process.cwd(), 'backend/uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -24,896 +23,576 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// 1. Obtener datos generales por año (?anio=YYYY)
-router.get("/curso/datos", async (req, res) => {
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioConsultado = req.query.anio || datos.anio_activo || "2026";
-
-    if (!datos.anios[anioConsultado]) {
-      datos.anios[anioConsultado] = {
-        cerrado: false,
-        saldo_inicial: 0,
-        cuota_mensual: 11000,
-        nombre_curso: "8° Básico B",
-        profesor: "Aylin Chong",
-        presidente: "Ingrid Brito",
-        tesorero: "Natalya Zakharova",
-        meses: [
-          "Marzo",
-          "Abril",
-          "Mayo",
-          "Junio",
-          "Julio",
-          "Agosto",
-          "Septiembre",
-          "Octubre",
-          "Noviembre",
-          "Diciembre",
-        ],
-        apoderados: [],
-        gastos: [],
-        ingresos_extra: [],
-      };
-    }
-
-    const infoAnio = datos.anios[anioConsultado];
-    const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
-
-    (infoAnio.apoderados || []).forEach((apo) => {
-      let dineroTotal = 0;
-      infoAnio.meses.forEach((mes) => {
-        const p = apo.pagos[mes];
-        if (p && !p.exonerado) {
-          if (p.transacciones && p.transacciones.length > 0) {
-            dineroTotal += p.transacciones.reduce(
-              (acc, t) => acc + Number(t.monto),
-              0,
-            );
-          } else if (p.monto) {
-            dineroTotal += Number(p.monto);
-          }
-        }
-      });
-
-      let remanente = dineroTotal;
-      infoAnio.meses.forEach((mes) => {
-        const pPrev = apo.pagos[mes] || {};
-        if (pPrev.exonerado) {
-          apo.pagos[mes] = {
-            exonerado: true,
-            pagado: false,
-            monto: 0,
-            fecha: null,
-            transacciones: [],
-          };
-          return;
-        }
-        if (remanente > 0) {
-          const abono = Math.min(remanente, cuotaOficial);
-          remanente -= abono;
-          apo.pagos[mes] = {
-            ...pPrev,
-            exonerado: false,
-            monto: abono,
-            pagado: abono >= cuotaOficial,
-          };
-        } else {
-          apo.pagos[mes] = {
-            exonerado: false,
-            pagado: false,
-            monto: 0,
-            fecha: null,
-            transacciones: [],
-          };
-        }
-      });
-    });
-
-    res.json({
-      anio_activo: anioConsultado,
-      aniosDisponibles: Object.keys(datos.anios).sort(),
-      configuracion: {
-        cerrado: Boolean(infoAnio.cerrado),
-        saldo_inicial: infoAnio.saldo_inicial || 0,
-        cuota_mensual: cuotaOficial,
-        nombre_curso: infoAnio.nombre_curso || "8° Básico B",
-        profesor: infoAnio.profesor || "Aylin Chong",
-        presidente: infoAnio.presidente || "Ingrid Brito",
-        tesorero: infoAnio.tesorero || "Natalya Zakharova",
-        meses: infoAnio.meses,
-      },
-      apoderados: infoAnio.apoderados || [],
-      gastos: infoAnio.gastos || [],
-      ingresos_extra: infoAnio.ingresos_extra || [],
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Error al obtener los datos" });
-  }
-});
-
-// 2. Registrar gasto con recibo opcional
-router.post("/curso/admin/gasto", upload.single("recibo"), async (req, res) => {
-  const { mes, titulo, monto, fecha, anio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const nuevoGasto = {
-      id: "gasto-" + Date.now(),
-      mes,
-      titulo: (titulo || "").trim(),
-      monto: Number(monto),
-      fecha: fecha || new Date().toISOString().slice(0, 10),
-      reciboUrl: req.file ? `/uploads/${req.file.filename}` : null,
-    };
-
-    infoAnio.gastos.push(nuevoGasto);
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, nuevoGasto });
-  } catch (error) {
-    res.status(500).json({ error: "Error al registrar gasto con recibo" });
-  }
-});
-
-// 3. Eliminar gasto y su archivo físico
-router.delete("/curso/admin/gasto/:id", async (req, res) => {
-  const { id } = req.params;
-  const anioActual = req.query.anio;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioSel = anioActual || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioSel];
-
-    const gastoIndex = infoAnio.gastos.findIndex((g) => g.id === id);
-    if (gastoIndex !== -1) {
-      const gasto = infoAnio.gastos[gastoIndex];
-      if (gasto.reciboUrl) {
-        const filePath = path.resolve("backend" + gasto.reciboUrl);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      }
-      infoAnio.gastos.splice(gastoIndex, 1);
-      await dbConfig.guardarDatos(datos);
-    }
-    res.json({ success: true, mensaje: "Gasto eliminado" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al eliminar gasto" });
-  }
-});
-
-// 4. Agregar Apoderado / Estudiante con correo
-router.post("/curso/admin/apoderado/agregar", async (req, res) => {
-  const { nombre, alumno, email, anio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const nuevoApoderado = {
-      id: "apo-" + Date.now(),
-      nombre: (nombre || "").trim(),
-      alumno: (alumno || "").trim(),
-      email: (email || "").trim().toLowerCase(),
-      activo: true,
-      pagos: infoAnio.meses.reduce(
-        (acc, mes) => ({
-          ...acc,
-          [mes]: {
-            pagado: false,
-            monto: 0,
-            fecha: null,
-            exonerado: false,
-            transacciones: [],
-          },
-        }),
-        {},
-      ),
-    };
-    infoAnio.apoderados.push(nuevoApoderado);
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, nuevoApoderado });
-  } catch (error) {
-    res.status(500).json({ error: "Error al agregar apoderado" });
-  }
-});
-
-// 5. Modificar datos de apoderado/alumno/correo
-router.put("/curso/admin/apoderado/:id", async (req, res) => {
-  const { id } = req.params;
-  const { nombre, alumno, email, anio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const apoderado = infoAnio.apoderados.find((a) => a.id === id);
-    if (!apoderado)
-      return res.status(404).json({ error: "Apoderado no encontrado" });
-
-    if (nombre !== undefined) apoderado.nombre = nombre.trim();
-    if (alumno !== undefined) apoderado.alumno = alumno.trim();
-    if (email !== undefined) apoderado.email = email.trim().toLowerCase();
-
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, apoderado });
-  } catch (error) {
-    res.status(500).json({ error: "Error al modificar apoderado" });
-  }
-});
-
-// 6. Eliminar Apoderado
-router.delete("/curso/admin/apoderado/:id", async (req, res) => {
-  const { id } = req.params;
-  const anioActual = req.query.anio;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioSel = anioActual || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioSel];
-
-    infoAnio.apoderados = (infoAnio.apoderados || []).filter(
-      (a) => a.id !== id,
-    );
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, mensaje: "Apoderado eliminado" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al eliminar apoderado" });
-  }
-});
-
-// 7. Cambiar estado activo/oculto de apoderado
-router.put("/curso/admin/apoderado/estado/:id", async (req, res) => {
-  const { id } = req.params;
-  const { activo, anio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioSel = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioSel];
-
-    const apoderado = infoAnio.apoderados.find((a) => a.id === id);
-    if (!apoderado)
-      return res.status(404).json({ error: "Apoderado no encontrado" });
-
-    apoderado.activo = Boolean(activo);
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, apoderado });
-  } catch (error) {
-    res.status(500).json({ error: "Error al actualizar estado" });
-  }
-});
-
-// 8. Pago global acumulativo con distribución automática en meses
-router.post("/curso/admin/pago-global", async (req, res) => {
-  const { apoderadoId, montoEntregado, fecha, responsable, anio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const apoderado = infoAnio.apoderados.find((a) => a.id === apoderadoId);
-    if (!apoderado)
-      return res.status(404).json({ error: "Apoderado no encontrado" });
-
-    let dineroRestante = Number(montoEntregado || 0);
-    const cuotaOficial = Number(infoAnio.cuota_mensual);
-    const fechaTransaccion = fecha || new Date().toISOString().slice(0, 10);
-    const personaResponsable = responsable || apoderado.nombre;
-
-    for (const mes of infoAnio.meses) {
-      if (dineroRestante <= 0) break;
-      const pagoMes = apoderado.pagos[mes] || {
-        monto: 0,
-        pagado: false,
-        exonerado: false,
-        transacciones: [],
-      };
-      if (pagoMes.exonerado) continue;
-
-      const saldoPendiente = cuotaOficial - Number(pagoMes.monto || 0);
-      if (saldoPendiente > 0) {
-        const abono = Math.min(dineroRestante, saldoPendiente);
-        const nuevoMonto = Number(pagoMes.monto || 0) + abono;
-        dineroRestante -= abono;
-        const estaPagadoCompleto = nuevoMonto >= cuotaOficial;
-
-        const transaccionNueva = {
-          monto: abono,
-          fecha: fechaTransaccion,
-          responsable: personaResponsable,
-        };
-        apoderado.pagos[mes] = {
-          exonerado: false,
-          pagado: estaPagadoCompleto,
-          monto: nuevoMonto,
-          fecha: fechaTransaccion,
-          transacciones: pagoMes.transacciones
-            ? [...pagoMes.transacciones, transaccionNueva]
-            : [transaccionNueva],
-        };
-      }
-    }
-
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, apoderado });
-  } catch (error) {
-    res.status(500).json({ error: "Error al procesar pago global" });
-  }
-});
-
-// 9. Revertir pago de un mes y recalcular remanente
-router.delete("/curso/admin/pago/:apoderadoId/:mes", async (req, res) => {
-  const { apoderadoId, mes } = req.params;
-  const anioConsulta = req.query.anio;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anioConsulta || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const apoderado = infoAnio.apoderados.find((a) => a.id === apoderadoId);
-    if (!apoderado)
-      return res.status(404).json({ error: "Apoderado no encontrado" });
-
-    apoderado.pagos[mes] = {
-      exonerado: false,
-      pagado: false,
-      monto: 0,
-      fecha: null,
-      transacciones: [],
-    };
-
-    const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
-    let dineroTotal = 0;
-    infoAnio.meses.forEach((m) => {
-      const p = apoderado.pagos[m];
-      if (p && !p.exonerado && p.monto) dineroTotal += Number(p.monto);
-    });
-
-    let remanente = dineroTotal;
-    infoAnio.meses.forEach((m) => {
-      const p = apoderado.pagos[m] || {};
-      if (p.exonerado) return;
-      if (remanente > 0) {
-        const asignar = Math.min(remanente, cuotaOficial);
-        remanente -= asignar;
-        apoderado.pagos[m] = {
-          ...p,
-          monto: asignar,
-          pagado: asignar >= cuotaOficial,
-        };
-      } else {
-        apoderado.pagos[m] = {
-          exonerado: false,
-          pagado: false,
-          monto: 0,
-          fecha: null,
-          transacciones: [],
-        };
-      }
-    });
-
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, apoderado });
-  } catch (error) {
-    res.status(500).json({ error: "Error al eliminar pago" });
-  }
-});
-
-// 10. Exonerar o des-exonerar mes
-router.put("/curso/admin/pago/exonerar/:apoderadoId/:mes", async (req, res) => {
-  const { apoderadoId, mes } = req.params;
-  const anioConsulta = req.query.anio;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anioConsulta || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const apoderado = infoAnio.apoderados.find((a) => a.id === apoderadoId);
-    if (!apoderado)
-      return res.status(404).json({ error: "Apoderado no encontrado" });
-
-    const pagoMes = apoderado.pagos[mes] || {
-      pagado: false,
-      monto: 0,
-      exonerado: false,
-    };
-    const nuevoEstado = !pagoMes.exonerado;
-
-    apoderado.pagos[mes] = {
-      ...pagoMes,
-      exonerado: nuevoEstado,
-      pagado: nuevoEstado ? false : pagoMes.pagado,
-      monto: nuevoEstado ? 0 : pagoMes.monto,
-      fecha: nuevoEstado ? null : pagoMes.fecha,
-      transacciones: nuevoEstado ? [] : pagoMes.transacciones || [],
-    };
-
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, apoderado });
-  } catch (error) {
-    res.status(500).json({ error: "Error al alternar exoneración" });
-  }
-});
-
-// 11. Registrar ingreso extra
-router.post("/curso/admin/ingreso-extra", async (req, res) => {
-  const { titulo, monto, fecha, anio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    const nuevoIngreso = {
-      id: "ext-" + Date.now(),
-      titulo: (titulo || "").trim(),
-      monto: Number(monto),
-      fecha: fecha || new Date().toISOString().slice(0, 10),
-    };
-    infoAnio.ingresos_extra.push(nuevoIngreso);
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, nuevoIngreso });
-  } catch (error) {
-    res.status(500).json({ error: "Error al registrar ingreso extra" });
-  }
-});
-
-// 12. Eliminar ingreso extra
-router.delete("/curso/admin/ingreso-extra/:id", async (req, res) => {
-  const { id } = req.params;
-  const anioActual = req.query.anio;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioSel = anioActual || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioSel];
-
-    infoAnio.ingresos_extra = (infoAnio.ingresos_extra || []).filter(
-      (e) => e.id !== id,
-    );
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, mensaje: "Ingreso extra eliminado" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al eliminar ingreso extra" });
-  }
-});
-
-// 13. Actualizar configuración (cuota, saldo inicial, directiva)
-router.put("/curso/admin/configuracion", async (req, res) => {
-  const {
-    saldo_inicial,
-    cuota_mensual,
-    nombre_curso,
-    profesor,
-    presidente,
-    tesorero,
-    anio,
-  } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios[anioActual];
-
-    if (saldo_inicial !== undefined)
-      infoAnio.saldo_inicial = Number(saldo_inicial);
-    if (cuota_mensual !== undefined)
-      infoAnio.cuota_mensual = Number(cuota_mensual);
-    if (nombre_curso !== undefined) infoAnio.nombre_curso = nombre_curso.trim();
-    if (profesor !== undefined) infoAnio.profesor = profesor.trim();
-    if (presidente !== undefined) infoAnio.presidente = presidente.trim();
-    if (tesorero !== undefined) infoAnio.tesorero = tesorero.trim();
-
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, configuracion: infoAnio });
-  } catch (error) {
-    res.status(500).json({ error: "Error al actualizar configuración" });
-  }
-});
-
-// 14. Cambiar año activo
-router.post("/curso/admin/cambiar-anio", async (req, res) => {
-  const { nuevoAnio } = req.body;
-  try {
-    const datos = await dbConfig.leerDatos();
-    datos.anio_activo = String(nuevoAnio);
-    await dbConfig.guardarDatos(datos);
-    res.json({ success: true, anio_activo: datos.anio_activo });
-  } catch (error) {
-    res.status(500).json({ error: "Error al cambiar de año" });
-  }
-});
-
-// 15. Cerrar año escolar y arrastrar saldo final de caja
-router.post("/curso/admin/cerrar-anio", async (req, res) => {
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioActual = datos.anio_activo || "2026";
-    const dataAnio = datos.anios[anioActual];
-
-    dataAnio.cerrado = true;
-
-    let totalRecaudado = 0;
-    const totalGastos = (dataAnio.gastos || []).reduce(
-      (acc, g) => acc + Number(g.monto),
-      0,
-    );
-    const totalIngresosExtra = (dataAnio.ingresos_extra || []).reduce(
-      (acc, e) => acc + Number(e.monto),
-      0,
-    );
-
-    (dataAnio.apoderados || []).forEach((apo) => {
-      dataAnio.meses.forEach((mes) => {
-        const p = apo.pagos[mes];
-        if (p && p.monto && !p.exonerado) totalRecaudado += Number(p.monto);
-      });
-    });
-
-    const saldoFinalArrastre =
-      Number(dataAnio.saldo_inicial || 0) +
-      totalRecaudado +
-      totalIngresosExtra -
-      totalGastos;
-    const siguienteAnio = String(Number(anioActual) + 1);
-    const meses = [
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
-
-    const apoderadosNuevos = (dataAnio.apoderados || [])
-      .filter((a) => a.activo !== false)
-      .map((a) => ({
-        id: "apo-" + Math.random().toString(36).substr(2, 9),
-        nombre: a.nombre,
-        alumno: a.alumno,
-        email: a.email || "",
-        activo: true,
-        pagos: meses.reduce(
-          (acc, m) => ({
-            ...acc,
-            [m]: {
-              pagado: false,
-              monto: 0,
-              fecha: null,
-              exonerado: false,
-              transacciones: [],
-            },
-          }),
-          {},
-        ),
-      }));
-
-    if (!datos.anios[siguienteAnio]) {
-      datos.anios[siguienteAnio] = {
-        cerrado: false,
-        saldo_inicial: saldoFinalArrastre,
-        cuota_mensual: Number(dataAnio.cuota_mensual) || 11000,
-        nombre_curso: dataAnio.nombre_curso,
-        profesor: dataAnio.profesor,
-        presidente: dataAnio.presidente,
-        tesorero: dataAnio.tesorero,
-        meses: meses,
-        apoderados: apoderadosNuevos,
-        gastos: [],
-        ingresos_extra: [],
-      };
-    } else {
-      datos.anios[siguienteAnio].saldo_inicial = saldoFinalArrastre;
-      if (
-        !datos.anios[siguienteAnio].apoderados ||
-        datos.anios[siguienteAnio].apoderados.length === 0
-      ) {
-        datos.anios[siguienteAnio].apoderados = apoderadosNuevos;
-      }
-    }
-
-    datos.anio_activo = siguienteAnio;
-    await dbConfig.guardarDatos(datos);
-    res.json({
-      success: true,
-      anio_activo: siguienteAnio,
-      saldo_inicial: saldoFinalArrastre,
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Error al cerrar año" });
-  }
-});
-
-// 16. Enviar avisos de cobranza por correo
-router.post("/curso/admin/enviar-correo-morosos", async (req, res) => {
-  const { apoderadoId, anio } = req.body;
-
-  try {
-    const datos = await dbConfig.leerDatos();
-    const anioSel = anio || datos.anio_activo || "2026";
-    const infoAnio = datos.anios ? datos.anios[anioSel] : null;
-
-    if (!infoAnio)
-      return res
-        .status(404)
-        .json({ error: `No existen datos para ${anioSel}` });
-
-    const cuotaOficial = Number(infoAnio.cuota_mensual || 11000);
-    let apoderadosNotificar = apoderadoId
-      ? (infoAnio.apoderados || []).filter((a) => a.id === apoderadoId)
-      : (infoAnio.apoderados || []).filter((a) => a.activo !== false);
-
-    let enviados = 0;
-    let errores = [];
-
-    for (const apo of apoderadosNotificar) {
-      if (!apo.email || apo.email.trim() === "") continue;
-
-      let deudaTotal = 0;
-      let mesesDebe = [];
-
-      (infoAnio.meses || []).forEach((m) => {
-        const p = apo.pagos ? apo.pagos[m] : null;
-        if (p?.exonerado) return;
-        const abono = Number(p?.monto || 0);
-        if (!p?.pagado) {
-          deudaTotal += cuotaOficial - abono;
-          mesesDebe.push(m);
-        }
-      });
-
-      if (deudaTotal > 0) {
-        try {
-          const destino = apo.email.trim();
-          const bloqueRojoHTML = `
-                        <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; padding: 14px 18px; margin: 0 0 22px 0;">
-                            <p style="margin: 0 0 6px 0; color: #991b1b; font-weight: 700; font-size: 14px;">
-                                Monto total pendiente: $${deudaTotal.toLocaleString("es-CL")}
-                            </p>
-                            <p style="margin: 0; color: #7f1d1d; font-size: 13px; line-height: 1.4;">
-                                Meses con saldo: ${mesesDebe.join(", ")}
-                            </p>
-                        </div>
-                    `;
-
-          const response = await fetch(
-            "https://api.emailjs.com/api/v1.0/email/send",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                service_id: process.env.EMAILJS_SERVICE_ID,
-                template_id: process.env.EMAILJS_TEMPLATE_ID,
-                user_id: process.env.EMAILJS_PUBLIC_KEY,
-                accessToken: process.env.EMAILJS_PRIVATE_KEY,
-                template_params: {
-                  to_email: destino,
-                  email: destino,
-                  reply_to: destino,
-                  recipient: destino,
-                  to_name: apo.nombre,
-                  titulo_cabecera: `Estado de Cuenta - ${infoAnio.nombre_curso || "Tesorería"}`,
-                  mensaje_introduccion: `Le informamos el estado actual de las cuotas de su pupilo <strong>${apo.alumno}</strong> para el periodo escolar <strong>${anioSel}</strong>:`,
-                  bloque_contenido: bloqueRojoHTML,
-                  pie_mensaje:
-                    "Favor regularizar a la brevedad con la directiva de tesorería del curso.",
-                  subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`,
-                },
-              }),
-            },
-          );
-
-          if (response.ok) {
-            enviados++;
-          } else {
-            const errTxt = await response.text();
-            errores.push(`${destino}: ${errTxt}`);
-          }
-        } catch (err) {
-          errores.push(`${apo.email}: ${err.message}`);
-        }
-      }
-    }
-
-    if (enviados === 0 && errores.length > 0) {
-      return res
-        .status(500)
-        .json({ error: `Fallo al enviar: ${errores.join(" | ")}` });
-    }
-
-    return res.json({
-      success: true,
-      correosEnviados: enviados,
-      mensaje:
-        enviados > 0
-          ? "Correos enviados con éxito."
-          : "No hay apoderados con deuda pendiente y correo registrado.",
-    });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ error: "Error interno al procesar cobranza." });
-  }
-});
-
-// 17. Enviar PDF con enlace de descarga usando la MISMA plantilla
-router.post(
-  "/curso/admin/enviar-pdf-correo",
-  upload.single("pdf"),
-  async (req, res) => {
-    const { anio } = req.body;
-    if (!req.file)
-      return res.status(400).json({ error: "No se recibió el documento PDF." });
-
-    console.log("PDF recibido y guardado en:", req.file.path);
-    console.log("--> PDF guardado con éxito en:", req.file.path);
-    console.log(
-      "--> ¿Existe físicamente en disco?:",
-      fs.existsSync(req.file.path),
-    );
-    
+// 1. Obtener todos los datos del año consultado (o activo) hidratando meses vacíos
+router.get('/curso/datos', async (req, res) => {
     try {
-      const datos = await dbConfig.leerDatos();
-      const anioSel = anio || datos.anio_activo || "2026";
-      const infoAnio = datos.anios[anioSel];
+        const datos = await dbConfig.leerDatos();
+        const anioConsultado = req.query.anio || datos.anio_activo || "2026";
+        
+        if (!datos.anios[anioConsultado]) {
+            datos.anios[anioConsultado] = {
+                cerrado: false,
+                saldo_inicial: 0,
+                cuota_mensual: 21000,
+                nombre_curso: "8° Básico B",
+                profesor: "Aylin Chong",
+                presidente: "Ingrid Brito",
+                tesorero: "Natalya Zakharova",
+                meses: ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+                apoderados: [],
+                gastos: [],
+                ingresos_extra: []
+            };
+        }
 
-      if (!infoAnio) {
-        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-        return res
-          .status(404)
-          .json({ error: `No existen datos para ${anioSel}` });
-      }
+        const infoAnio = datos.anios[anioConsultado];
+        const cuotaOficial = Number(infoAnio.cuota_mensual || 21000);
 
-      const apoderadosConCorreo = (infoAnio.apoderados || []).filter(
-        (a) => a.activo !== false && a.email && a.email.trim() !== "",
-      );
+        const apoderadosCompletos = (infoAnio.apoderados || []).map(apo => {
+            const pagosCompletos = {};
+            infoAnio.meses.forEach(mes => {
+                const p = apo.pagos ? apo.pagos[mes] : null;
+                if (p?.exonerado) {
+                    pagosCompletos[mes] = { pagado: false, monto: 0, fecha: null, exonerado: true, transacciones: [] };
+                } else if (p && Number(p.monto || 0) > 0) {
+                    pagosCompletos[mes] = {
+                        pagado: Boolean(p.pagado),
+                        monto: Number(p.monto || 0),
+                        fecha: p.fecha || null,
+                        exonerado: false,
+                        transacciones: p.transacciones || []
+                    };
+                } else {
+                    pagosCompletos[mes] = { pagado: false, monto: 0, fecha: null, exonerado: false, transacciones: [] };
+                }
+            });
 
-      if (apoderadosConCorreo.length === 0) {
-        return res
-          .status(400)
-          .json({
-            error: "No hay correos registrados para recibir el informe.",
-          });
-      }
+            return {
+                id: apo.id,
+                nombre: apo.nombre,
+                alumno: apo.alumno,
+                email: apo.email || '',
+                activo: apo.activo !== false,
+                pagos: pagosCompletos
+            };
+        });
 
-      // Construir enlace público seguro HTTPS
-      const host = req.get("host");
-      const pdfPublicUrl = `https://${host}/uploads/${req.file.filename}`;
+        res.json({
+            anio_activo: anioConsultado,
+            aniosDisponibles: Object.keys(datos.anios).sort(),
+            configuracion: {
+                cerrado: Boolean(infoAnio.cerrado),
+                saldo_inicial: infoAnio.saldo_inicial || 0,
+                cuota_mensual: cuotaOficial,
+                nombre_curso: infoAnio.nombre_curso || "8° Básico B",
+                profesor: infoAnio.profesor || "Aylin Chong",
+                presidente: infoAnio.presidente || "Ingrid Brito",
+                tesorero: infoAnio.tesorero || "Natalya Zakharova",
+                meses: infoAnio.meses
+            },
+            apoderados: apoderadosCompletos,
+            gastos: infoAnio.gastos || [],
+            ingresos_extra: infoAnio.ingresos_extra || []
+        });
+    } catch (error) {
+        console.error("Error al obtener datos:", error);
+        res.status(500).json({ error: "Error al obtener los datos" });
+    }
+});
 
-      const botonDescargaHTML = `
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 22px 0;">
-                <p style="margin: 0 0 16px 0; color: #1e293b; font-weight: 600; font-size: 14px;">
+// 2. Cambiar año activo
+router.post('/curso/admin/cambiar-anio', async (req, res) => {
+    const { nuevoAnio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        if (datos.anios && datos.anios[nuevoAnio]) {
+            datos.anio_activo = String(nuevoAnio);
+            await dbConfig.guardarDatos(datos);
+            return res.json({ success: true, anio_activo: datos.anio_activo });
+        }
+        res.status(404).json({ error: "El año solicitado no existe" });
+    } catch (error) {
+        res.status(500).json({ error: "Error al cambiar de año" });
+    }
+});
+
+// 3. Actualizar configuración general
+router.put('/curso/admin/configuracion', async (req, res) => {
+    const { saldo_inicial, cuota_mensual, nombre_curso, profesor, presidente, tesorero, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        if (saldo_inicial !== undefined) infoAnio.saldo_inicial = Number(saldo_inicial);
+        if (cuota_mensual !== undefined) infoAnio.cuota_mensual = Number(cuota_mensual);
+        if (nombre_curso !== undefined) infoAnio.nombre_curso = nombre_curso;
+        if (profesor !== undefined) infoAnio.profesor = profesor;
+        if (presidente !== undefined) infoAnio.presidente = presidente;
+        if (tesorero !== undefined) infoAnio.tesorero = tesorero;
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, configuracion: infoAnio });
+    } catch (error) {
+        res.status(500).json({ error: "Error al actualizar configuración" });
+    }
+});
+
+// 4. Agregar nuevo apoderado
+router.post('/curso/admin/apoderado/agregar', async (req, res) => {
+    const { nombre, alumno, email, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        const nuevoApoderado = {
+            id: 'apo-' + Date.now(),
+            nombre: nombre ? nombre.trim() : "Nuevo Apoderado",
+            alumno: alumno ? alumno.trim() : "Nuevo Alumno",
+            email: email ? email.trim().toLowerCase() : "",
+            activo: true,
+            pagos: {}
+        };
+
+        infoAnio.apoderados.push(nuevoApoderado);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, nuevoApoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al agregar apoderado" });
+    }
+});
+
+// 5. Modificar datos de apoderado
+router.put('/curso/admin/apoderado/:id', async (req, res) => {
+    const { id } = req.params;
+    const { nombre, alumno, email, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        const apoderado = infoAnio.apoderados.find(a => a.id === id);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        if (nombre !== undefined) apoderado.nombre = nombre.trim();
+        if (alumno !== undefined) apoderado.alumno = alumno.trim();
+        if (email !== undefined) apoderado.email = email.trim().toLowerCase();
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al modificar apoderado" });
+    }
+});
+
+// 6. Cambiar estado activo / inactivo de apoderado
+router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
+    const { id } = req.params;
+    const { activo, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        const apoderado = infoAnio.apoderados.find(a => a.id === id);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        apoderado.activo = Boolean(activo);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al cambiar estado" });
+    }
+});
+
+// 7. Eliminar apoderado
+router.delete('/curso/admin/apoderado/:id', async (req, res) => {
+    const { id } = req.params;
+    const anioSel = req.query.anio;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioFinal = anioSel || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioFinal];
+
+        infoAnio.apoderados = infoAnio.apoderados.filter(a => a.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar apoderado" });
+    }
+});
+
+// 8. Pago Global distribuido secuencialmente
+router.post('/curso/admin/pago-global', async (req, res) => {
+    const { apoderadoId, montoEntregado, fecha, responsable, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+        
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        let dineroRestante = Number(montoEntregado || 0);
+        const cuotaOficial = Number(infoAnio.cuota_mensual || 21000);
+        const fechaTransaccion = fecha || new Date().toISOString().slice(0, 10);
+        const personaResponsable = responsable || apoderado.nombre;
+
+        for (const mes of infoAnio.meses) {
+            if (dineroRestante <= 0) break;
+            const pagoMes = apoderado.pagos[mes] || { monto: 0, pagado: false, transacciones: [] };
+            if (pagoMes.exonerado) continue;
+
+            const saldoPendiente = cuotaOficial - Number(pagoMes.monto || 0);
+            if (saldoPendiente > 0) {
+                const abono = Math.min(dineroRestante, saldoPendiente);
+                const nuevoMonto = Number(pagoMes.monto || 0) + abono;
+                dineroRestante -= abono;
+
+                const transaccionNueva = {
+                    monto: abono,
+                    fecha: fechaTransaccion,
+                    responsable: personaResponsable
+                };
+
+                apoderado.pagos[mes] = {
+                    pagado: nuevoMonto >= cuotaOficial,
+                    monto: nuevoMonto,
+                    fecha: fechaTransaccion,
+                    transacciones: pagoMes.transacciones ? [...pagoMes.transacciones, transaccionNueva] : [transaccionNueva]
+                };
+            }
+        }
+
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al procesar pago global" });
+    }
+});
+
+// 9. Eliminar/revertir pago de un mes
+router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
+    const { apoderadoId, mes } = req.params;
+    const anioSel = req.query.anio;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioFinal = anioSel || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioFinal];
+        
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        delete apoderado.pagos[mes];
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar pago" });
+    }
+});
+
+// 10. Exonerar mes a apoderado
+router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
+    const { apoderadoId, mes } = req.params;
+    const anioSel = req.query.anio;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioFinal = anioSel || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioFinal];
+        
+        const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
+        if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
+
+        apoderado.pagos[mes] = { exonerado: true };
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, apoderado });
+    } catch (error) {
+        res.status(500).json({ error: "Error al exonerar mes" });
+    }
+});
+
+// 11. Registrar gasto
+router.post('/curso/admin/gasto', async (req, res) => {
+    const { mes, titulo, monto, fecha, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        const nuevoGasto = {
+            id: 'gas-' + Date.now(),
+            mes,
+            titulo: titulo ? titulo.trim() : "Gasto sin título",
+            monto: Number(monto || 0),
+            fecha: fecha || new Date().toISOString().slice(0, 10)
+        };
+
+        infoAnio.gastos.push(nuevoGasto);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, nuevoGasto });
+    } catch (error) {
+        res.status(500).json({ error: "Error al registrar gasto" });
+    }
+});
+
+// 12. Eliminar gasto
+router.delete('/curso/admin/gasto/:id', async (req, res) => {
+    const { id } = req.params;
+    const anioSel = req.query.anio;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioFinal = anioSel || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioFinal];
+
+        infoAnio.gastos = (infoAnio.gastos || []).filter(g => g.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar gasto" });
+    }
+});
+
+// 13. Registrar ingreso extra
+router.post('/curso/admin/ingreso-extra', async (req, res) => {
+    const { titulo, monto, fecha, anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        if (!infoAnio.ingresos_extra) infoAnio.ingresos_extra = [];
+
+        const nuevoIngreso = {
+            id: 'ext-' + Date.now(),
+            titulo: titulo ? titulo.trim() : "Ingreso Extra",
+            monto: Number(monto || 0),
+            fecha: fecha || new Date().toISOString().slice(0, 10)
+        };
+
+        infoAnio.ingresos_extra.push(nuevoIngreso);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true, nuevoIngreso });
+    } catch (error) {
+        res.status(500).json({ error: "Error al registrar ingreso extra" });
+    }
+});
+
+// 14. Eliminar ingreso extra
+router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
+    const { id } = req.params;
+    const anioSel = req.query.anio;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioFinal = anioSel || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioFinal];
+
+        infoAnio.ingresos_extra = (infoAnio.ingresos_extra || []).filter(e => e.id !== id);
+        await dbConfig.guardarDatos(datos);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Error al eliminar ingreso extra" });
+    }
+});
+
+// 15. Backup JSON
+router.get('/curso/backup', async (req, res) => {
+    try {
+        const datos = await dbConfig.leerDatos();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename=curso_datos_backup.json');
+        res.send(JSON.stringify(datos, null, 2));
+    } catch (error) {
+        res.status(500).json({ error: "Error al exportar backup" });
+    }
+});
+
+// 16. Restaurar Backup JSON
+router.post('/curso/backup/restaurar', async (req, res) => {
+    try {
+        const nuevosDatos = req.body;
+        if (!nuevosDatos || !nuevosDatos.anios) {
+            return res.status(400).json({ error: "Estructura JSON inválida para restaurar." });
+        }
+        await dbConfig.guardarDatos(nuevosDatos);
+        res.json({ success: true, mensaje: "Backup restaurado exitosamente." });
+    } catch (error) {
+        res.status(500).json({ error: "Error al restaurar backup" });
+    }
+});
+
+// 17. Enviar PDF por correo con enlace público (sin borrar archivo de uploads)[cite: 1]
+router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
+    const { anio } = req.body;
+    if (!req.file) return res.status(400).json({ error: "No se recibió el documento PDF." });
+
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios[anioSel];
+
+        if (!infoAnio) return res.status(404).json({ error: `No existen datos para ${anioSel}` });
+
+        const apoderadosConCorreo = (infoAnio.apoderados || [])
+            .filter(a => a.activo !== false && a.email && a.email.trim() !== '');
+
+        if (apoderadosConCorreo.length === 0) {
+            return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
+        }
+
+        const host = req.get('host');
+        const pdfPublicUrl = `https://${host}/uploads/${req.file.filename}`;
+
+        const bloquePdfHTML = `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 20px 0;">
+                <p style="margin: 0 0 16px 0; color: #1e293b; font-weight: 700; font-size: 15px;">
                     El documento oficial en formato PDF está listo para su revisión:
                 </p>
-                <a href="${pdfPublicUrl}" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
-                    📄 Descargar Balance PDF
-                </a>
-                <p style="margin: 14px 0 0 0; font-size: 11px; color: #64748b;">
+                <div style="margin: 0 0 16px 0;">
+                    <a href="${pdfPublicUrl}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px;">
+                        📄 Descargar Balance PDF
+                    </a>
+                </div>
+                <p style="margin: 0; color: #64748b; font-size: 11px;">
                     Enlace directo: <a href="${pdfPublicUrl}" style="color: #2563eb; word-break: break-all;">${pdfPublicUrl}</a>
                 </p>
             </div>
         `;
 
-      let enviados = 0;
-      let errores = [];
+        let enviados = 0;
+        let errores = [];
 
-      for (const apo of apoderadosConCorreo) {
-        try {
-          const destino = apo.email.trim();
-          const response = await fetch(
-            "https://api.emailjs.com/api/v1.0/email/send",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                service_id: process.env.EMAILJS_SERVICE_ID,
-                template_id: process.env.EMAILJS_TEMPLATE_ID, // Misma plantilla
-                user_id: process.env.EMAILJS_PUBLIC_KEY,
-                accessToken: process.env.EMAILJS_PRIVATE_KEY,
-                template_params: {
-                  to_email: destino,
-                  email: destino,
-                  reply_to: destino,
-                  recipient: destino,
-                  to_name: apo.nombre,
-                  titulo_cabecera: `Balance General - ${infoAnio.nombre_curso || "Tesorería"}`,
-                  mensaje_introduccion: `Se encuentra disponible el balance financiero y rendición de cuentas del curso correspondiente al periodo escolar <strong>${anioSel}</strong>.`,
-                  bloque_contenido: botonDescargaHTML,
-                  pie_mensaje:
-                    "Este informe ha sido emitido y auditado por la directiva de tesorería del curso.",
-                  subject: `Informe de Tesorería Oficial (${anioSel}) - ${infoAnio.nombre_curso}`,
-                },
-              }),
-            },
-          );
+        for (const apo of apoderadosConCorreo) {
+            try {
+                const destino = apo.email.trim();
+                const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service_id: process.env.EMAILJS_SERVICE_ID,
+                        template_id: process.env.EMAILJS_TEMPLATE_ID,
+                        user_id: process.env.EMAILJS_PUBLIC_KEY,
+                        accessToken: process.env.EMAILJS_PRIVATE_KEY,
+                        template_params: {
+                            to_email: destino,
+                            email: destino,
+                            reply_to: destino,
+                            recipient: destino,
+                            to_name: apo.nombre,
+                            titulo_cabecera: `Balance General - ${infoAnio.nombre_curso}`,
+                            mensaje_introduccion: `Se encuentra disponible el balance financiero y rendición de cuentas del curso correspondiente al periodo escolar <strong>${anioSel}</strong>.`,
+                            bloque_contenido: bloquePdfHTML,
+                            pie_mensaje: "Este informe ha sido emitido y auditado por la directiva de tesorería del curso.",
+                            subject: `Balance General Oficial (${anioSel}) - ${infoAnio.nombre_curso}`
+                        }
+                    })
+                });
 
-          if (response.ok) {
-            enviados++;
-          } else {
-            const txt = await response.text();
-            errores.push(`${destino}: ${txt}`);
-          }
-        } catch (err) {
-          errores.push(`${apo.email}: ${err.message}`);
+                if (response.ok) {
+                    enviados++;
+                } else {
+                    const txt = await response.text();
+                    errores.push(`${destino}: ${txt}`);
+                }
+            } catch (err) {
+                errores.push(`${apo.email}: ${err.message}`);
+            }
         }
-      }
 
-      if (enviados === 0 && errores.length > 0) {
-        return res
-          .status(500)
-          .json({ error: `Fallo al enviar informe: ${errores.join(" | ")}` });
-      }
+        if (enviados === 0 && errores.length > 0) {
+            return res.status(500).json({ error: `Fallo al enviar notificación: ${errores.join(' | ')}` });
+        }
 
-      res.json({ success: true, destinatarios: enviados, url: pdfPublicUrl });
+        res.json({ success: true, destinatarios: enviados, url: pdfPublicUrl });
     } catch (error) {
-      res
-        .status(500)
-        .json({ error: error.message || "Error al procesar el informe." });
+        res.status(500).json({ error: error.message || "Error al procesar el envío del informe." });
     }
-  },
-);
-
-// 18. Copia de seguridad y restauración
-router.get("/curso/backup", async (req, res) => {
-  try {
-    const datos = await dbConfig.leerDatos();
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=backup_tesoreria.json",
-    );
-    res.send(JSON.stringify(datos, null, 2));
-  } catch (error) {
-    res.status(500).json({ error: "Error al generar backup" });
-  }
 });
 
-router.post("/curso/backup/restaurar", async (req, res) => {
-  try {
-    await dbConfig.guardarDatos(req.body);
-    res.json({ success: true, mensaje: "Restaurado con éxito" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al restaurar" });
-  }
-});
+// 18. Enviar correo oficial de bienvenida y presentación de directiva
+router.post('/curso/admin/enviar-correo-bienvenida', async (req, res) => {
+    const { anio } = req.body;
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
 
-// 19. Reset de fábrica
-router.delete("/curso/reset", async (req, res) => {
-  try {
-    const datosVacia = {
-      anio_activo: "2026",
-      anios: {
-        2026: {
-          cerrado: false,
-          saldo_inicial: 0,
-          cuota_mensual: 11000,
-          nombre_curso: "8° Básico B",
-          profesor: "Aylin Chong",
-          presidente: "Ingrid Brito",
-          tesorero: "Natalya Zakharova",
-          meses: [
-            "Marzo",
-            "Abril",
-            "Mayo",
-            "Junio",
-            "Julio",
-            "Agosto",
-            "Septiembre",
-            "Octubre",
-            "Noviembre",
-            "Diciembre",
-          ],
-          apoderados: [],
-          gastos: [],
-          ingresos_extra: [],
-        },
-      },
-    };
-    await dbConfig.guardarDatos(datosVacia);
-    res.json({ success: true, mensaje: "Aplicación reiniciada" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al reiniciar" });
-  }
+        if (!infoAnio) return res.status(404).json({ error: `No existen datos para ${anioSel}` });
+
+        const apoderadosConCorreo = (infoAnio.apoderados || [])
+            .filter(a => a.activo !== false && a.email && a.email.trim() !== '');
+
+        if (apoderadosConCorreo.length === 0) {
+            return res.status(400).json({ error: "No hay correos registrados para enviar la bienvenida." });
+        }
+
+        const bloqueBienvenidaHTML = `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 0 0 20px 0;">
+                <p style="margin: 0 0 12px 0; color: #1e293b; font-weight: 700; font-size: 14px;">
+                    Directiva del Curso (${anioSel}):
+                </p>
+                <ul style="margin: 0 0 16px 0; padding-left: 20px; color: #334155; font-size: 13px; line-height: 1.6;">
+                    <li><strong>Profesor(a) Jefe:</strong> ${infoAnio.profesor || "No asignado"}</li>
+                    <li><strong>Presidente(a):</strong> ${infoAnio.presidente || "No asignado"}</li>
+                    <li><strong>Tesorero(a):</strong> ${infoAnio.tesorero || "No asignado"}</li>
+                    <li><strong>Cuota Mensual Oficial:</strong> $${Number(infoAnio.cuota_mensual || 0).toLocaleString('es-CL')}</li>
+                </ul>
+                <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 6px;">
+                    <p style="margin: 0; color: #1e40af; font-size: 12px; line-height: 1.5;">
+                        📌 <strong>Importante:</strong> Por favor guarde esta dirección en sus contactos o márquela como correo deseado. A través de este medio recibirá balances oficiales, estados de cuenta y comprobantes de tesorería.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        let enviados = 0;
+        let errores = [];
+
+        for (const apo of apoderadosConCorreo) {
+            try {
+                const destino = apo.email.trim();
+                const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service_id: process.env.EMAILJS_SERVICE_ID,
+                        template_id: process.env.EMAILJS_TEMPLATE_ID,
+                        user_id: process.env.EMAILJS_PUBLIC_KEY,
+                        accessToken: process.env.EMAILJS_PRIVATE_KEY,
+                        template_params: {
+                            to_email: destino,
+                            email: destino,
+                            reply_to: destino,
+                            recipient: destino,
+                            to_name: apo.nombre,
+                            titulo_cabecera: `Bienvenida Periodo Escolar ${anioSel} - ${infoAnio.nombre_curso}`,
+                            mensaje_introduccion: `Le damos la más cordial bienvenida al año escolar <strong>${anioSel}</strong> junto a su pupilo/a <strong>${apo.alumno}</strong>.`,
+                            bloque_contenido: bloqueBienvenidaHTML,
+                            pie_mensaje: "Agradecemos desde ya su compromiso y puntualidad para el correcto funcionamiento de las actividades del curso.",
+                            subject: `Bienvenida e Información Oficial - ${infoAnio.nombre_curso} (${anioSel})`
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    enviados++;
+                } else {
+                    const errTxt = await response.text();
+                    errores.push(`${destino}: ${errTxt}`);
+                }
+            } catch (err) {
+                errores.push(`${apo.email}: ${err.message}`);
+            }
+        }
+
+        if (enviados === 0 && errores.length > 0) {
+            return res.status(500).json({ error: `Fallo al enviar bienvenidas: ${errores.join(' | ')}` });
+        }
+
+        return res.json({ success: true, destinatarios: enviados });
+    } catch (error) {
+        res.status(500).json({ error: "Error interno al enviar correos de bienvenida." });
+    }
 });
 
 export default router;

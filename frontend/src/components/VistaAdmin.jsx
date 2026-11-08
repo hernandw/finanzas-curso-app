@@ -1,1065 +1,590 @@
 // src/components/VistaAdmin.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-// Reemplaza por tu URL exacta de Render si VITE_API_URL no está definida
-const BACKEND_RENDER_URL = 'https://finanzas-curso-app.onrender.com';
-const API_BASE = (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') 
-    ? import.meta.env.VITE_API_URL.replace(/\/$/, '') 
-    : BACKEND_RENDER_URL;
+import { cursoApi } from '../services/cursoApi';
 
 export default function VistaAdmin({ datos, onActualizar, onCerrarSesion }) {
-    if (!datos || !datos.apoderados || !datos.configuracion) {
-        return (
-            <div className="flex items-center justify-center p-8 text-slate-400 text-xs">
-                <i className="fa-solid fa-spinner animate-spin mr-2"></i> Cargando panel de administración...
-            </div>
-        );
-    }
+    const [cargando, setCargando] = useState(false);
+    const [mensaje, setMensaje] = useState(null);
+    const [tipoMensaje, setTipoMensaje] = useState('info');
 
-    const estaCerrado = Boolean(datos.configuracion.cerrado);
+    // Modales y formularios
+    const [modalApoderado, setModalApoderado] = useState(false);
+    const [apoderadoEditando, setApoderadoEditando] = useState(null);
+    const [formApoderado, setFormApoderado] = useState({ nombre: '', alumno: '', email: '' });
 
-    const obtenerApellidoPaterno = (nombreCompleto = '') => {
-        if (!nombreCompleto) return '';
-        const partes = nombreCompleto.trim().split(/\s+/);
-        if (partes.length === 1) return partes[0].toLowerCase();
-        if (partes.length === 2 || partes.length === 3) return partes[1].toLowerCase();
-        return partes[partes.length - 2].toLowerCase();
-    };
+    const [modalGasto, setModalGasto] = useState(false);
+    const [formGasto, setFormGasto] = useState({ mes: 'Marzo', titulo: '', monto: '', fecha: '' });
 
-    const ordenarPorApellidoPaterno = (a, b) => {
-        const apA = obtenerApellidoPaterno(a.alumno);
-        const apB = obtenerApellidoPaterno(b.alumno);
-        return apA.localeCompare(apB, 'es', { sensitivity: 'base', numeric: true });
-    };
+    const [modalPago, setModalPago] = useState(false);
+    const [apoderadoPago, setApoderadoPago] = useState(null);
+    const [formPago, setFormPago] = useState({ montoEntregado: '', fecha: '', responsable: '' });
 
-    const [busquedaAdmin, setBusquedaAdmin] = useState('');
-
-    const [nombreApoderado, setNombreApoderado] = useState('');
-    const [nombreAlumno, setNombreAlumno] = useState('');
-    const [emailApoderado, setEmailApoderado] = useState('');
-    
-    const [gastoMes, setGastoMes] = useState(datos.configuracion.meses[0]);
-    const [gastoTitulo, setGastoTitulo] = useState('');
-    const [gastoMonto, setGastoMonto] = useState('');
-    const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().slice(0, 10));
-    const [reciboFile, setReciboFile] = useState(null);
-
-    const [extraTitulo, setExtraTitulo] = useState('');
-    const [extraMonto, setExtraMonto] = useState('');
-    const [extraFecha, setExtraFecha] = useState(new Date().toISOString().slice(0, 10));
-
-    const [saldoInicialEdit, setSaldoInicialEdit] = useState(datos.configuracion.saldo_inicial || 0);
-    const [editandoSaldo, setEditandoSaldo] = useState(false);
-    const [cuotaInput, setCuotaInput] = useState(datos.configuracion.cuota_mensual || 11000);
-
-    const [nombreCurso, setNombreCurso] = useState(datos.configuracion.nombre_curso || '8° Básico B');
-    const [profesorCurso, setProfesorCurso] = useState(datos.configuracion.profesor || 'Aylin Chong');
-    const [presidenteCurso, setPresidenteCurso] = useState(datos.configuracion.presidente || 'Ingrid Brito');
-    const [tesoreroCurso, setTesoreroCurso] = useState(datos.configuracion.tesorero || 'Natalya Zakharova');
-    const [editandoInfoCurso, setEditandoInfoCurso] = useState(false);
-
-    const [modalEditarApo, setModalEditarApo] = useState(false);
-    const [idEditando, setIdEditando] = useState(null);
-    const [editNombreApo, setEditNombreApo] = useState('');
-    const [editNombreAlu, setEditNombreAlu] = useState('');
-    const [editEmailApo, setEditEmailApo] = useState('');
-
-    const [modalAbierto, setModalAbierto] = useState(false);
-    const [apoderadoSeleccionado, setApoderadoSeleccionado] = useState(null);
-    const [montoPago, setMontoPago] = useState('');
-    const [fechaPago, setFechaPago] = useState(new Date().toISOString().slice(0, 10));
-    const [responsablePago, setResponsablePago] = useState('');
-
-    const [avisosSeccion, setAvisosSeccion] = useState({});
     const fileInputRef = useRef(null);
 
-    useEffect(() => {
-        setCuotaInput(datos.configuracion.cuota_mensual || 11000);
-        setSaldoInicialEdit(datos.configuracion.saldo_inicial || 0);
-        setNombreCurso(datos.configuracion.nombre_curso || '8° Básico B');
-        setProfesorCurso(datos.configuracion.profesor || 'Aylin Chong');
-        setPresidenteCurso(datos.configuracion.presidente || 'Ingrid Brito');
-        setTesoreroCurso(datos.configuracion.tesorero || 'Natalya Zakharova');
-    }, [datos]);
+    const anioActivo = datos.anio_activo || "2026";
+    const infoConfig = datos.configuracion || {};
+    const cuotaMensual = Number(infoConfig.cuota_mensual || 21000);
+    const apoderados = datos.apoderados || [];
+    const gastos = datos.gastos || [];
+    const meses = infoConfig.meses || [];
 
-    const mostrarAvisoLocal = (seccionId, texto, tipo = 'success') => {
-        setAvisosSeccion(prev => ({ ...prev, [seccionId]: { texto, tipo } }));
-        setTimeout(() => {
-            setAvisosSeccion(prev => {
-                const copia = { ...prev };
-                delete copia[seccionId];
-                return copia;
-            });
-        }, 3500);
+    const mostrarAlerta = (txt, tipo = 'info') => {
+        setMensaje(txt);
+        setTipoMensaje(tipo);
+        setTimeout(() => setMensaje(null), 6000);
     };
 
-    const cuotaOficial = datos.configuracion.cuota_mensual || 11000;
-    const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
-    const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
-    
-    let totalCuotasRecaudadas = 0;
-    let totalDeudaPorRecoger = 0;
-    let totalMesesPendientesCurso = 0;
+    // Generar archivo PDF en memoria
+    const generarBlobPDF = () => {
+        const doc = new jsPDF('landscape');
+        doc.setFontSize(16);
+        doc.text(`Balance General - ${infoConfig.nombre_curso || "Curso"} (${anioActivo})`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Profesor: ${infoConfig.profesor || "-"} | Presidente: ${infoConfig.presidente || "-"} | Tesorero: ${infoConfig.tesorero || "-"}`, 14, 22);
 
-    datos.apoderados.forEach(apo => {
-        if (apo.activo === false) return;
-        datos.configuracion.meses.forEach(m => {
-            const p = apo.pagos[m];
-            if (p?.exonerado) return;
-            const monto = Number(p?.monto || 0);
-            totalCuotasRecaudadas += monto;
-            if (!p?.pagado) {
-                totalMesesPendientesCurso++;
-                totalDeudaPorRecoger += (cuotaOficial - monto);
-            }
-        });
-    });
-
-    const saldoRealCaja = Number(datos.configuracion.saldo_inicial || 0) + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
-    const totalEstudiantesActivos = datos.apoderados.filter(a => a.activo !== false).length;
-
-    const armarDocumentoPDF = () => {
-        const doc = new jsPDF();
-        const anioActual = datos.anio_activo;
-
-        doc.setFontSize(14);
-        doc.setTextColor(15, 23, 42);
-        doc.text(`Informe Financiero - Curso: ${datos.configuracion.nombre_curso || '8° Básico B'} (${anioActual})`, 14, 15);
-        
-        doc.setFontSize(9);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Profesor/a: ${datos.configuracion.profesor || 'N/A'} | Presidente/a: ${datos.configuracion.presidente || 'N/A'} | Tesorero/a: ${datos.configuracion.tesorero || 'N/A'}`, 14, 21);
-        doc.text(`Saldo Inicial: $${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')} | Caja Actual: $${saldoRealCaja.toLocaleString('es-CL')} | Deuda por Recoger: $${totalDeudaPorRecoger.toLocaleString('es-CL')}`, 14, 27);
-
-        let currentY = 34;
-        doc.setFontSize(11);
-        doc.setTextColor(15, 23, 42);
-        doc.text('1. Relación de Movimientos (Ingresos y Egresos)', 14, currentY);
-
-        let movimientos = [
-            ...(datos.gastos || []).map(g => ({ fecha: g.fecha || 'N/A', tipo: 'Egreso', desc: g.titulo, monto: -Number(g.monto) })),
-            ...(datos.ingresos_extra || []).map(e => ({ fecha: e.fecha || 'N/A', tipo: 'Ingreso Extra', desc: e.titulo, monto: Number(e.monto) }))
-        ].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-
-        let saldoAcumulado = Number(datos.configuracion.saldo_inicial || 0);
-        const filasMovimientos = movimientos.map(m => {
-            saldoAcumulado += m.monto;
-            return [
-                m.fecha,
-                `${m.tipo}: ${m.desc}`,
-                m.monto >= 0 ? `+$${m.monto.toLocaleString('es-CL')}` : `-$${Math.abs(m.monto).toLocaleString('es-CL')}`,
-                `$${saldoAcumulado.toLocaleString('es-CL')}`
-            ];
+        const head = [['#', 'Apoderado', 'Alumno', ...meses, 'Total']];
+        const body = apoderados.filter(a => a.activo !== false).map((apo, idx) => {
+            let totalApo = 0;
+            const filaMeses = meses.map(m => {
+                const p = apo.pagos[m];
+                if (p?.exonerado) return 'Exon.';
+                const monto = Number(p?.monto || 0);
+                totalApo += monto;
+                return monto > 0 ? `$${monto.toLocaleString('es-CL')}` : '-';
+            });
+            return [idx + 1, apo.nombre, apo.alumno, ...filaMeses, `$${totalApo.toLocaleString('es-CL')}`];
         });
 
         autoTable(doc, {
-            startY: currentY + 3,
-            head: [['Fecha', 'Descripción', 'Monto', 'Saldo Acumulado']],
-            body: filasMovimientos.length > 0 ? filasMovimientos : [['-', 'No hay movimientos', '-', '-']],
+            head,
+            body,
+            startY: 28,
             theme: 'grid',
-            headStyles: { fillColor: [16, 185, 129] },
-            styles: { fontSize: 8 }
+            styles: { fontSize: 7, cellPadding: 1.5 },
+            headStyles: { fillColor: [30, 41, 59] }
         });
 
-        currentY = doc.lastAutoTable.finalY + 10;
-        doc.setFontSize(11);
-        doc.text('2. Estado de Pagos y Saldos por Alumno', 14, currentY);
-
-        const apoderadosOrdenados = [...datos.apoderados].sort(ordenarPorApellidoPaterno);
-        const filasAlumnos = apoderadosOrdenados.map(apo => {
-            let totalAbonadoApo = 0;
-            let mesesPendientes = 0;
-            let deudaApo = 0;
-
-            datos.configuracion.meses.forEach(mes => {
-                const p = apo.pagos[mes];
-                if (p?.exonerado) return;
-                const m = Number(p?.monto || 0);
-                totalAbonadoApo += m;
-                if (!p?.pagado) {
-                    mesesPendientes++;
-                    deudaApo += (cuotaOficial - m);
-                }
-            });
-
-            return [
-                apo.alumno,
-                apo.nombre,
-                apo.email || 'Sin correo',
-                `$${totalAbonadoApo.toLocaleString('es-CL')}`,
-                `${mesesPendientes} meses`,
-                `$${deudaApo.toLocaleString('es-CL')}`
-            ];
-        });
-
-        filasAlumnos.push([
-            'TOTAL GENERAL',
-            '-',
-            '-',
-            `$${totalCuotasRecaudadas.toLocaleString('es-CL')}`,
-            `${totalMesesPendientesCurso} meses`,
-            `$${totalDeudaPorRecoger.toLocaleString('es-CL')}`
-        ]);
-
-        autoTable(doc, {
-            startY: currentY + 3,
-            head: [['Estudiante', 'Apoderado', 'Correo', 'Total Abonos', 'Meses Pendientes', 'Deuda Estimada']],
-            body: filasAlumnos,
-            theme: 'grid',
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8 }
-        });
-
-        return doc;
+        return doc.output('blob');
     };
 
-    const handleExportarPDF = () => {
-        const doc = armarDocumentoPDF();
-        doc.save(`Informe_Tesoreria_${datos.anio_activo}.pdf`);
-    };
-
-    const handleEnviarPdfPorCorreo = async () => {
-        if (!confirm(`¿Deseas enviar este informe PDF a los apoderados con correo registrado?`)) return;
-
-        const doc = armarDocumentoPDF();
-        const pdfBlob = doc.output('blob');
-
-        const formData = new FormData();
-        formData.append('pdf', pdfBlob, `Informe_Tesoreria_${datos.anio_activo}.pdf`);
-        formData.append('anio', datos.anio_activo);
-
+    // 1. Enviar PDF por Correo y guardar copia local automáticamente
+    const handleEnviarPdfCorreo = async () => {
         try {
-            mostrarAvisoLocal('acciones', "Enviando PDF por correo...");
-            const res = await fetch(`${API_BASE}/api/curso/admin/enviar-pdf-correo`, {
-                method: 'POST',
-                body: formData
-            });
+            setCargando(true);
+            const pdfBlob = generarBlobPDF();
+
+            // Descarga automática en el computador local
+            const urlBlob = URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = urlBlob;
+            a.download = `Balance_${anioActivo}_Oficial.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(urlBlob);
+
+            // Envío al servidor para distribución por correo
+            const formData = new FormData();
+            formData.append('pdf', pdfBlob, `balance-${anioActivo}.pdf`);
+            formData.append('anio', anioActivo);
+
+            const res = await cursoApi.enviarPdfCorreo(formData);
             const data = await res.json();
-            if (res.ok) {
-                mostrarAvisoLocal('acciones', `PDF enviado a ${data.destinatarios} destinatarios.`);
-            } else {
-                mostrarAvisoLocal('acciones', data.error || "Error al enviar PDF.", "error");
-            }
-        } catch {
-            mostrarAvisoLocal('acciones', "Error de conexión al enviar correo.", "error");
+
+            if (!res.ok) throw new Error(data.error || "Fallo al enviar PDF");
+
+            mostrarAlerta(`✅ Copia guardada en tu equipo y enviada por correo a ${data.destinatarios} apoderados.`, 'success');
+        } catch (error) {
+            mostrarAlerta(`❌ ${error.message}`, 'error');
+        } finally {
+            setCargando(false);
         }
     };
 
-    const handleEnviarRecordatorioMorosos = async (apoderadoId = null) => {
-        const texto = apoderadoId ? "¿Enviar aviso de cobranza al correo de este apoderado?" : "¿Enviar recordatorio de cobro a TODOS los apoderados morosos con correo?";
-        if (!confirm(texto)) return;
-
+    // 2. Enviar Correo de Bienvenida a todos
+    const handleEnviarBienvenida = async () => {
+        if (!confirm(`¿Deseas enviar el correo oficial de bienvenida y presentación de directiva a todos los apoderados con correo del año ${anioActivo}?`)) return;
         try {
-            mostrarAvisoLocal('pagos', "Enviando correos de cobranza...");
-            const res = await fetch(`${API_BASE}/api/curso/admin/enviar-correo-morosos`, {
+            setCargando(true);
+            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/curso/admin/enviar-correo-bienvenida`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apoderadoId, anio: datos.anio_activo })
+                body: JSON.stringify({ anio: anioActivo })
             });
             const data = await res.json();
-            if (res.ok) {
-                mostrarAvisoLocal('pagos', `Correos enviados exitosamente: ${data.correosEnviados}`);
-            } else {
-                mostrarAvisoLocal('pagos', data.error || "Error al enviar correos.", "error");
-            }
-        } catch {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
+            if (!res.ok) throw new Error(data.error || "Fallo al enviar bienvenidas");
+
+            mostrarAlerta(`🎉 Correo de bienvenida enviado con éxito a ${data.destinatarios} apoderados.`, 'success');
+        } catch (error) {
+            mostrarAlerta(`❌ ${error.message}`, 'error');
+        } finally {
+            setCargando(false);
         }
     };
 
+    // 3. Backup JSON
+    const handleBackup = () => {
+        window.open(cursoApi.backupUrl(), '_blank');
+    };
+
+    // 4. Restaurar Backup
+    const handleArchivoRestaurar = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                setCargando(true);
+                const res = await cursoApi.restaurarBackup(event.target.result);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Error al restaurar");
+                mostrarAlerta("✅ Tesorería restaurada exitosamente.", 'success');
+                onActualizar();
+            } catch (err) {
+                mostrarAlerta(`❌ ${err.message}`, 'error');
+            } finally {
+                setCargando(false);
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    // Guardar / Modificar Apoderado
+    const handleGuardarApoderado = async (e) => {
+        e.preventDefault();
+        try {
+            setCargando(true);
+            if (apoderadoEditando) {
+                await cursoApi.modificarApoderado(apoderadoEditando.id, { ...formApoderado, anio: anioActivo });
+                mostrarAlerta("Apoderado actualizado correctamente.", 'success');
+            } else {
+                await cursoApi.agregarApoderado({ ...formApoderado, anio: anioActivo });
+                mostrarAlerta("Nuevo apoderado agregado.", 'success');
+            }
+            setModalApoderado(false);
+            setApoderadoEditando(null);
+            setFormApoderado({ nombre: '', alumno: '', email: '' });
+            onActualizar();
+        } catch (err) {
+            mostrarAlerta("Error al guardar apoderado.", 'error');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    // Registrar Pago Global
+    const handleRegistrarPago = async (e) => {
+        e.preventDefault();
+        try {
+            setCargando(true);
+            await cursoApi.registrarPagoGlobal({
+                apoderadoId: apoderadoPago.id,
+                montoEntregado: Number(formPago.montoEntregado),
+                fecha: formPago.fecha,
+                responsable: formPago.responsable,
+                anio: anioActivo
+            });
+            mostrarAlerta("Abono procesado correctamente.", 'success');
+            setModalPago(false);
+            setFormPago({ montoEntregado: '', fecha: '', responsable: '' });
+            onActualizar();
+        } catch (err) {
+            mostrarAlerta("Error al registrar pago.", 'error');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    // Registrar Gasto
     const handleRegistrarGasto = async (e) => {
         e.preventDefault();
-        if (!gastoTitulo.trim() || !gastoMonto) return;
-
-        const formData = new FormData();
-        formData.append('mes', gastoMes);
-        formData.append('titulo', gastoTitulo);
-        formData.append('monto', gastoMonto);
-        formData.append('fecha', gastoFecha);
-        formData.append('anio', datos.anio_activo);
-        if (reciboFile) formData.append('recibo', reciboFile);
-
         try {
-            const res = await fetch(`${API_BASE}/api/curso/admin/gasto`, {
-                method: 'POST',
-                body: formData
-            });
-            if (res.ok) {
-                setGastoTitulo('');
-                setGastoMonto('');
-                setReciboFile(null);
-                mostrarAvisoLocal('gasto', "Gasto registrado correctamente.");
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('gasto', "Error al registrar gasto.", "error");
-            }
-        } catch {
-            mostrarAvisoLocal('gasto', "Error de conexión.", "error");
+            setCargando(true);
+            await cursoApi.registrarGasto({ ...formGasto, monto: Number(formGasto.monto), anio: anioActivo });
+            mostrarAlerta("Gasto registrado con éxito.", 'success');
+            setModalGasto(false);
+            setFormGasto({ mes: 'Marzo', titulo: '', monto: '', fecha: '' });
+            onActualizar();
+        } catch (err) {
+            mostrarAlerta("Error al registrar gasto.", 'error');
+        } finally {
+            setCargando(false);
         }
     };
-
-    const handleCambiarAnio = async (nuevoAnio) => {
-        try {
-            const res = await fetch(`${API_BASE}/api/curso/admin/cambiar-anio`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nuevoAnio })
-            });
-            if (res.ok) {
-                onActualizar(nuevoAnio);
-            }
-        } catch {
-            mostrarAvisoLocal('acciones', "Error al cambiar de año.", "error");
-        }
-    };
-
-    const handleExonerarMes = async (apoderadoId, mes) => {
-        try {
-            const res = await fetch(`${API_BASE}/api/curso/admin/pago/exonerar/${apoderadoId}/${mes}?anio=${datos.anio_activo}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            if (res.ok) {
-                mostrarAvisoLocal('pagos', `Mes ${mes} actualizado.`);
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('pagos', "Error al alternar exoneración.", "error");
-            }
-        } catch {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
-        }
-    };
-
-    const handleEliminarPagoMes = async (apoderadoId, mes, montoActual) => {
-        if (montoActual <= 0) return;
-        try {
-            const res = await fetch(`${API_BASE}/api/curso/admin/pago/${apoderadoId}/${mes}?anio=${datos.anio_activo}`, { 
-                method: 'DELETE' 
-            });
-            if (res.ok) {
-                mostrarAvisoLocal('pagos', `Pago de ${mes} eliminado.`);
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('pagos', "Error al revertir pago.", "error");
-            }
-        } catch {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
-        }
-    };
-
-    const handleEliminarApoderado = async (id, nombre) => {
-        if (!confirm(`¿Eliminar definitivamente a ${nombre} y su alumno?`)) return;
-        try {
-            const res = await fetch(`${API_BASE}/api/curso/admin/apoderado/${id}?anio=${datos.anio_activo}`, { 
-                method: 'DELETE' 
-            });
-            if (res.ok) {
-                mostrarAvisoLocal('pagos', `Apoderado ${nombre} eliminado.`);
-                onActualizar();
-            } else {
-                mostrarAvisoLocal('pagos', "Error al eliminar apoderado.", "error");
-            }
-        } catch {
-            mostrarAvisoLocal('pagos', "Error de conexión.", "error");
-        }
-    };
-
-    const apoderadosFiltradosAdmin = datos.apoderados
-        .filter(a => 
-            a.alumno.toLowerCase().includes(busquedaAdmin.toLowerCase()) || 
-            a.nombre.toLowerCase().includes(busquedaAdmin.toLowerCase())
-        )
-        .sort(ordenarPorApellidoPaterno);
 
     return (
-        <div className="space-y-8 relative">
-            {/* ALERTA DE AÑO CERRADO */}
-            {estaCerrado && (
-                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-2xl flex items-center justify-between shadow-xl">
-                    <div className="flex items-center gap-3">
-                        <i className="fa-solid fa-lock text-xl text-amber-400"></i>
-                        <div>
-                            <h4 className="font-bold text-sm">Año Escolar {datos.anio_activo} Cerrado</h4>
-                            <p className="text-xs text-amber-300/80">Este periodo escolar se encuentra en modo histórico. No se admiten modificaciones.</p>
-                        </div>
-                    </div>
-                    <span className="text-xs font-mono bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-xl">Solo Lectura</span>
+        <div className="min-h-screen bg-slate-100 p-4 md:p-6 font-sans">
+            {/* BARRA SUPERIOR: TÍTULO + IDENTIFICADOR ADMIN + BOTÓN CERRAR SESIÓN */}
+            <div className="bg-slate-900 text-white rounded-2xl p-4 md:p-6 shadow-xl mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+                        Panel de Administración — {infoConfig.nombre_curso} ({anioActivo})
+                    </h1>
+                    <p className="text-slate-400 text-xs mt-1">
+                        Gestión financiera escolar, rendición de cuentas y distribución de informes
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full uppercase tracking-wider shadow">
+                        ADMIN
+                    </span>
+                    <button
+                        onClick={onCerrarSesion}
+                        className="bg-red-500 hover:bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow hover:shadow-lg flex items-center gap-1.5"
+                    >
+                        <span>Cerrar sesión</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* ALERTAS */}
+            {mensaje && (
+                <div className={`p-4 rounded-xl mb-6 text-sm font-semibold shadow-md ${
+                    tipoMensaje === 'success' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                    tipoMensaje === 'error' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                    'bg-blue-100 text-blue-800 border border-blue-300'
+                }`}>
+                    {mensaje}
                 </div>
             )}
 
-            {/* BARRA DE HERRAMIENTAS */}
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3 relative">
-                {avisosSeccion['acciones'] && (
-                    <div className="absolute -top-10 left-0 bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs px-3 py-1.5 rounded-xl shadow-lg z-50 animate-bounce">
-                        {avisosSeccion['acciones'].texto}
-                    </div>
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                    <button 
-                        onClick={handleExportarPDF}
-                        className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                    >
-                        <i className="fa-solid fa-file-pdf"></i> Descargar PDF
-                    </button>
-                    <button 
-                        onClick={handleEnviarPdfPorCorreo}
-                        className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                    >
-                        <i className="fa-solid fa-paper-plane"></i> Enviar PDF por Correo
-                    </button>
-                    <button 
-                        onClick={() => window.open(`${API_BASE}/api/curso/backup`, '_blank')}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                    >
-                        <i className="fa-solid fa-download"></i> Backup .json
-                    </button>
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={async (e) => {
-                            const file = e.target.files[0];
-                            if (!file) return;
-                            const text = await file.text();
-                            const res = await fetch(`${API_BASE}/api/curso/backup/restaurar`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: text
-                            });
-                            if (res.ok) onActualizar();
-                        }} 
-                        accept=".json" 
-                        className="hidden" 
-                    />
-                    <button 
-                        onClick={() => fileInputRef.current.click()}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                    >
-                        <i className="fa-solid fa-upload"></i> Restaurar
-                    </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {!estaCerrado && (
-                        <button 
-                            onClick={async () => {
-                                if (confirm(`¿Cerrar definitivamente el año escolar ${datos.anio_activo}?`)) {
-                                    await fetch(`${API_BASE}/api/curso/admin/cerrar-anio`, { method: 'POST' });
-                                    onActualizar();
-                                }
-                            }}
-                            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                        >
-                            <i className="fa-solid fa-lock"></i> Cerrar Año Escolar
-                        </button>
-                    )}
-                    <button 
-                        onClick={async () => {
-                            if (confirm("⚠️ ¿Deseas reiniciar la aplicación a valores de fábrica?")) {
-                                await fetch(`${API_BASE}/api/curso/reset`, { method: 'DELETE' });
-                                onActualizar();
-                            }
-                        }}
-                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                    >
-                        <i className="fa-solid fa-trash-arrow-up"></i> Reset
-                    </button>
-                </div>
-            </div>
-
-            {/* DATOS DEL CURSO */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
-                        <i className="fa-solid fa-school"></i> Datos Generales del Curso
-                    </h3>
-                    {!estaCerrado && (
-                        <button 
-                            onClick={() => setEditandoInfoCurso(!editandoInfoCurso)}
-                            className="text-xs text-slate-400 hover:text-white transition flex items-center gap-1.5"
-                        >
-                            <i className={`fa-solid ${editandoInfoCurso ? 'fa-xmark' : 'fa-pen-to-square'}`}></i>
-                            {editandoInfoCurso ? 'Cancelar' : 'Editar Datos'}
-                        </button>
-                    )}
-                </div>
-
-                {editandoInfoCurso ? (
-                    <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        await fetch(`${API_BASE}/api/curso/admin/configuracion`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ nombre_curso: nombreCurso, profesor: profesorCurso, presidente: presidenteCurso, tesorero: tesoreroCurso, anio: datos.anio_activo })
-                        });
-                        setEditandoInfoCurso(false);
-                        onActualizar();
-                    }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <input type="text" value={nombreCurso} onChange={(e) => setNombreCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Curso" />
-                        <input type="text" value={profesorCurso} onChange={(e) => setProfesorCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Profesor Jefe" />
-                        <input type="text" value={presidenteCurso} onChange={(e) => setPresidenteCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Presidente" />
-                        <input type="text" value={tesoreroCurso} onChange={(e) => setTesoreroCurso(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" placeholder="Tesorero" />
-                        <div className="sm:col-span-4 flex justify-end">
-                            <button type="submit" className="bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs">Guardar</button>
-                        </div>
-                    </form>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-300">
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Curso:</span><span className="font-bold text-white">{datos.configuracion.nombre_curso}</span></div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Profesor/a:</span><span className="font-bold text-emerald-400">{datos.configuracion.profesor}</span></div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Presidente/a:</span><span className="font-bold text-sky-400">{datos.configuracion.presidente}</span></div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-500 block">Tesorero/a:</span><span className="font-bold text-amber-400">{datos.configuracion.tesorero}</span></div>
-                    </div>
-                )}
-            </div>
-
-            {/* CONFIGURACIÓN DE CUOTA, AÑO Y SALDO INICIAL */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                        <i className="fa-solid fa-lock text-emerald-400"></i> Panel de Administración ({datos.anio_activo})
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-1">Control de finanzas, mensualidades e historial del curso.</p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
-                        <span className="text-[10px] text-slate-400">Cuota:</span>
-                        <input 
-                            type="number" 
-                            disabled={estaCerrado}
-                            value={cuotaInput}
-                            onChange={(e) => setCuotaInput(e.target.value)}
-                            className="bg-slate-900 text-emerald-400 font-bold text-xs w-20 px-2 py-1 rounded border border-slate-700 disabled:opacity-50"
-                        />
-                        {!estaCerrado && (
-                            <button 
-                                onClick={async () => {
-                                    await fetch(`${API_BASE}/api/curso/admin/configuracion`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ cuota_mensual: Number(cuotaInput), anio: datos.anio_activo })
-                                    });
-                                    mostrarAvisoLocal('config', "Cuota guardada.");
-                                    onActualizar();
-                                }}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-2 py-1 rounded text-xs"
-                            >
-                                OK
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-2">
-                        <span className="text-[10px] text-slate-400">Año:</span>
-                        <select 
-                            value={datos.anio_activo}
-                            onChange={(e) => handleCambiarAnio(e.target.value)}
-                            className="bg-slate-900 text-white font-bold text-xs px-2 py-1 rounded border border-slate-700 cursor-pointer"
-                        >
-                            {(datos.aniosDisponibles || ["2024", "2025", "2026", "2027", "2028"]).map(a => (
-                                <option key={a} value={a}>{a}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="bg-slate-950 border border-slate-800 px-3 py-2 rounded-xl flex items-center gap-3">
-                        <div>
-                            <span className="text-[9px] text-slate-400 block font-medium">Saldo Inicial</span>
-                            {editandoSaldo && !estaCerrado ? (
-                                <input 
-                                    type="number"
-                                    value={saldoInicialEdit}
-                                    onChange={(e) => setSaldoInicialEdit(e.target.value)}
-                                    className="bg-slate-900 border border-slate-700 text-emerald-400 text-xs px-2 py-0.5 rounded w-24 font-bold"
-                                />
-                            ) : (
-                                <span className="text-xs font-bold text-emerald-400">${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}</span>
-                            )}
-                        </div>
-                        {!estaCerrado && (
-                            editandoSaldo ? (
-                                <button onClick={async () => {
-                                    await fetch(`${API_BASE}/api/curso/admin/configuracion`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ saldo_inicial: Number(saldoInicialEdit), anio: datos.anio_activo })
-                                    });
-                                    setEditandoSaldo(false);
-                                    onActualizar();
-                                }} className="bg-emerald-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[10px]">OK</button>
-                            ) : (
-                                <button onClick={() => setEditandoSaldo(true)} className="text-slate-400 hover:text-white text-xs"><i className="fa-solid fa-pen"></i></button>
-                            )
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* BALANCE GENERAL */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                    <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja ({datos.anio_activo})
-                </h3>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Saldo Anterior</span><span className="text-sm font-bold text-slate-200">${Number(datos.configuracion.saldo_inicial || 0).toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Cuotas</span><span className="text-sm font-bold text-emerald-400">${totalCuotasRecaudadas.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Ingresos Extra</span><span className="text-sm font-bold text-sky-400">${totalIngresosExtra.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl"><span className="text-[10px] text-slate-400 block">Gastos</span><span className="text-sm font-bold text-rose-400">${totalGastos.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl bg-emerald-950/10"><span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real</span><span className="text-sm font-extrabold text-emerald-400">${saldoRealCaja.toLocaleString('es-CL')}</span></div>
-                    <div className="bg-slate-950 border border-amber-500/30 p-3 rounded-xl bg-amber-950/10"><span className="text-[10px] text-amber-400 block font-semibold">Deuda por Recoger</span><span className="text-sm font-extrabold text-amber-400">${totalDeudaPorRecoger.toLocaleString('es-CL')}</span></div>
-                </div>
-            </div>
-
-            {/* RESUMEN FINANCIERO POR ALUMNO CON TOTALES AL PIE */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
-                        <i className="fa-solid fa-chart-pie"></i> Resumen Financiero por Estudiante
-                    </h3>
+            {/* BOTONERA PRINCIPAL DE ACCIONES */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-2.5 items-center justify-between">
+                <div className="flex flex-wrap gap-2">
                     <button
-                        onClick={() => handleEnviarRecordatorioMorosos(null)}
-                        className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow"
+                        onClick={handleEnviarPdfCorreo}
+                        disabled={cargando}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5"
                     >
-                        <i className="fa-solid fa-envelope-open-text"></i> Notificar a Todos los Morosos
+                        📄 Descargar y Enviar Balance PDF
+                    </button>
+
+                    <button
+                        onClick={handleEnviarBienvenida}
+                        disabled={cargando}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5"
+                    >
+                        ✉️ Enviar Bienvenida a Todos
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            setApoderadoEditando(null);
+                            setFormApoderado({ nombre: '', alumno: '', email: '' });
+                            setModalApoderado(true);
+                        }}
+                        className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow"
+                    >
+                        ➕ Nuevo Apoderado
+                    </button>
+
+                    <button
+                        onClick={() => setModalGasto(true)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow"
+                    >
+                        🏷️ Registrar Gasto
                     </button>
                 </div>
-                
+
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={handleBackup}
+                        className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                    >
+                        💾 Backup .json
+                    </button>
+
+                    <input
+                        type="file"
+                        accept=".json"
+                        ref={fileInputRef}
+                        onChange={handleArchivoRestaurar}
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current.click()}
+                        disabled={cargando}
+                        className="bg-slate-200 hover:bg-slate-300 text-slate-800 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                    >
+                        📥 Restaurar
+                    </button>
+                </div>
+            </div>
+
+            {/* TABLA PRINCIPAL DE APODERADOS */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h2 className="text-sm font-bold text-slate-800">
+                        Nómina de Estudiantes y Cuotas Mensuales ({apoderados.length})
+                    </h2>
+                    <span className="text-xs text-slate-500 font-medium">Cuota: ${cuotaMensual.toLocaleString('es-CL')}</span>
+                </div>
+
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs text-slate-300">
-                        <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                    <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-100 text-slate-600 uppercase tracking-wider font-semibold border-b border-slate-200">
                             <tr>
-                                <th className="p-3">Estudiante (Alumno)</th>
-                                <th className="p-3">Apoderado / Correo</th>
-                                <th className="p-3 text-center">Total Recaudado</th>
-                                <th className="p-3 text-center">Meses Pendientes</th>
-                                <th className="p-3 text-right">Deuda Estimada</th>
-                                <th className="p-3 text-center">Aviso</th>
+                                <th className="p-3">Apoderado / Alumno</th>
+                                <th className="p-3">Correo Electrónico</th>
+                                {meses.map(m => <th key={m} className="p-3 text-center">{m}</th>)}
+                                <th className="p-3 text-center">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800/60">
-                            {[...datos.apoderados]
-                                .sort(ordenarPorApellidoPaterno)
-                                .map(apo => {
-                                    let totalAbonado = 0;
-                                    let mesesPendientes = 0;
-                                    let deudaApo = 0;
-
-                                    datos.configuracion.meses.forEach(m => {
+                        <tbody className="divide-y divide-slate-100">
+                            {apoderados.map(apo => (
+                                <tr key={apo.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="p-3">
+                                        <div className="font-bold text-slate-900">{apo.nombre}</div>
+                                        <div className="text-slate-500 text-[11px]">{apo.alumno}</div>
+                                    </td>
+                                    <td className="p-3">
+                                        {apo.email ? (
+                                            <span className="text-slate-700 font-medium">{apo.email}</span>
+                                        ) : (
+                                            <span className="text-rose-500 text-[10px] font-bold">Sin correo</span>
+                                        )}
+                                    </td>
+                                    {meses.map(m => {
                                         const p = apo.pagos[m];
-                                        if (p?.exonerado) return;
-                                        const monto = Number(p?.monto || 0);
-                                        totalAbonado += monto;
-                                        if (!p?.pagado) {
-                                            mesesPendientes++;
-                                            deudaApo += (cuotaOficial - monto);
+                                        if (p?.exonerado) {
+                                            return <td key={m} className="p-3 text-center"><span className="text-slate-400 font-bold">Exon.</span></td>;
                                         }
-                                    });
-
-                                    return (
-                                        <tr key={apo.id} className={`hover:bg-slate-950/40 ${apo.activo === false ? 'opacity-50' : ''}`}>
-                                            <td className="p-3 font-extrabold text-white text-sm">{apo.alumno}</td>
-                                            <td className="p-3 text-slate-400">
-                                                <span>{apo.nombre} {apo.activo === false && '(Inactivo)'}</span>
-                                                <span className="block text-[10px] text-slate-500 font-mono">{apo.email || 'Sin correo'}</span>
+                                        const pagado = p?.pagado;
+                                        const monto = Number(p?.monto || 0);
+                                        return (
+                                            <td key={m} className="p-3 text-center">
+                                                {pagado ? (
+                                                    <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                                        ${monto.toLocaleString('es-CL')}
+                                                    </span>
+                                                ) : monto > 0 ? (
+                                                    <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                                        ${monto.toLocaleString('es-CL')}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-300 font-medium">-</span>
+                                                )}
                                             </td>
-                                            <td className="p-3 text-center font-bold text-emerald-400">${totalAbonado.toLocaleString('es-CL')}</td>
-                                            <td className="p-3 text-center text-amber-400 font-medium">{mesesPendientes} meses</td>
-                                            <td className="p-3 text-right font-bold text-rose-400">${deudaApo.toLocaleString('es-CL')}</td>
-                                            <td className="p-3 text-center">
-                                                {deudaApo > 0 && apo.email ? (
-                                                    <button
-                                                        onClick={() => handleEnviarRecordatorioMorosos(apo.id)}
-                                                        className="text-amber-400 hover:text-amber-300 p-1"
-                                                        title="Enviar aviso por correo"
-                                                    >
-                                                        <i className="fa-solid fa-paper-plane"></i>
-                                                    </button>
-                                                ) : <span className="text-slate-600">-</span>}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                    <td className="p-3 text-center">
+                                        <div className="flex items-center justify-center gap-1.5">
+                                            <button
+                                                onClick={() => {
+                                                    setApoderadoPago(apo);
+                                                    setFormPago({ montoEntregado: '', fecha: new Date().toISOString().slice(0, 10), responsable: apo.nombre });
+                                                    setModalPago(true);
+                                                }}
+                                                className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors"
+                                            >
+                                                Pagar
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setApoderadoEditando(apo);
+                                                    setFormApoderado({ nombre: apo.nombre, alumno: apo.alumno, email: apo.email || '' });
+                                                    setModalApoderado(true);
+                                                }}
+                                                className="bg-slate-100 text-slate-700 hover:bg-slate-200 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors"
+                                            >
+                                                Editar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
-                        <tfoot className="bg-slate-950 text-white font-bold border-t-2 border-slate-700">
-                            <tr>
-                                <td className="p-3 text-sky-400 uppercase tracking-wider font-extrabold">TOTAL GENERAL</td>
-                                <td className="p-3 text-slate-500">-</td>
-                                <td className="p-3 text-center text-emerald-400 text-sm">${totalCuotasRecaudadas.toLocaleString('es-CL')}</td>
-                                <td className="p-3 text-center text-amber-400 text-sm">{totalMesesPendientesCurso} meses</td>
-                                <td className="p-3 text-right text-rose-400 text-sm font-extrabold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
 
-            {/* FORMULARIOS DE REGISTRO */}
-            {!estaCerrado && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Gasto */}
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                        <h3 className="text-sm font-bold text-rose-400"><i className="fa-solid fa-receipt mr-1"></i> Registrar Gasto</h3>
-                        <form onSubmit={handleRegistrarGasto} className="space-y-3">
-                            <input type="text" placeholder="Descripción..." value={gastoTitulo} onChange={(e) => setGastoTitulo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                            <div className="grid grid-cols-2 gap-2">
-                                <select value={gastoMes} onChange={(e) => setGastoMes(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                                    {datos.configuracion.meses.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                                <input type="number" placeholder="Monto" value={gastoMonto} onChange={(e) => setGastoMonto(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                            </div>
-                            <input type="date" value={gastoFecha} onChange={(e) => setGastoFecha(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+            {/* MODAL APODERADO */}
+            {modalApoderado && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+                        <h3 className="text-base font-bold text-slate-900 mb-4">
+                            {apoderadoEditando ? 'Modificar Apoderado' : 'Registrar Nuevo Apoderado'}
+                        </h3>
+                        <form onSubmit={handleGuardarApoderado} className="space-y-4">
                             <div>
-                                <label className="text-[10px] text-slate-400 block mb-1">Adjuntar Recibo (Opcional)</label>
-                                <input 
-                                    type="file" 
-                                    onChange={(e) => setReciboFile(e.target.files[0])}
-                                    accept="image/*,application/pdf"
-                                    className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-slate-800 file:text-slate-300"
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre Apoderado</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formApoderado.nombre}
+                                    onChange={e => setFormApoderado({ ...formApoderado, nombre: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
                             </div>
-                            <button type="submit" className="w-full bg-rose-500 hover:bg-rose-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Registrar Gasto</button>
-                        </form>
-                    </div>
-
-                    {/* Ingreso Extra */}
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                        <h3 className="text-sm font-bold text-emerald-400"><i className="fa-solid fa-coins mr-1"></i> Ingreso Extra</h3>
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            if (!extraTitulo.trim() || !extraMonto) return;
-                            await fetch(`${API_BASE}/api/curso/admin/ingreso-extra`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ titulo: extraTitulo, monto: extraMonto, fecha: extraFecha, anio: datos.anio_activo })
-                            });
-                            setExtraTitulo(''); setExtraMonto(''); onActualizar();
-                        }} className="space-y-3">
-                            <input type="text" placeholder="Concepto..." value={extraTitulo} onChange={(e) => setExtraTitulo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                            <input type="number" placeholder="Monto" value={extraMonto} onChange={(e) => setExtraMonto(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                            <input type="date" value={extraFecha} onChange={(e) => setExtraFecha(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                            <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Registrar Ingreso</button>
-                        </form>
-                    </div>
-
-                    {/* Agregar Apoderado */}
-                    <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                        <h3 className="text-sm font-bold text-sky-400"><i className="fa-solid fa-user-plus mr-1"></i> Agregar Estudiante / Apoderado</h3>
-                        <form onSubmit={async (e) => {
-                            e.preventDefault();
-                            if (!nombreApoderado.trim() || !nombreAlumno.trim()) return;
-                            await fetch(`${API_BASE}/api/curso/admin/apoderado/agregar`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ nombre: nombreApoderado, alumno: nombreAlumno, email: emailApoderado, anio: datos.anio_activo })
-                            });
-                            setNombreApoderado(''); setNombreAlumno(''); setEmailApoderado(''); onActualizar();
-                        }} className="space-y-3">
-                            <input type="text" placeholder="Nombre Alumno..." value={nombreAlumno} onChange={(e) => setNombreAlumno(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold" required />
-                            <input type="text" placeholder="Nombre Apoderado..." value={nombreApoderado} onChange={(e) => setNombreApoderado(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                            <input type="email" placeholder="Correo electrónico..." value={emailApoderado} onChange={(e) => setEmailApoderado(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                            <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2 rounded-xl text-xs">Agregar</button>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Nombre Alumno</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formApoderado.alumno}
+                                    onChange={e => setFormApoderado({ ...formApoderado, alumno: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico (Notificaciones)</label>
+                                <input
+                                    type="email"
+                                    placeholder="ejemplo@gmail.com"
+                                    value={formApoderado.email}
+                                    onChange={e => setFormApoderado({ ...formApoderado, email: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setModalApoderado(false)}
+                                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={cargando}
+                                    className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* TABLAS DETALLADAS DE GASTOS E INGRESOS EXTRA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                    <h3 className="text-sm font-bold text-rose-400"><i className="fa-solid fa-receipt mr-1"></i> Relación de Gastos</h3>
-                    <div className="overflow-x-auto max-h-52 overflow-y-auto">
-                        <table className="w-full text-left text-xs text-slate-300">
-                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                <tr>
-                                    <th className="p-2">Fecha</th>
-                                    <th className="p-2">Descripción</th>
-                                    <th className="p-2 text-right">Monto</th>
-                                    <th className="p-2 text-center">Recibo</th>
-                                    {!estaCerrado && <th className="p-2 text-center">Acción</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/60">
-                                {(datos.gastos || []).map(g => (
-                                    <tr key={g.id}>
-                                        <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
-                                        <td className="p-2 text-white">{g.titulo}</td>
-                                        <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
-                                        <td className="p-2 text-center">
-                                            {g.reciboUrl ? (
-                                                <a href={`${API_BASE}${g.reciboUrl}`} target="_blank" rel="noreferrer" className="text-sky-400 hover:text-sky-300 text-xs">
-                                                    <i className="fa-solid fa-image"></i>
-                                                </a>
-                                            ) : <span className="text-slate-600">-</span>}
-                                        </td>
-                                        {!estaCerrado && (
-                                            <td className="p-2 text-center">
-                                                <button onClick={async () => {
-                                                    await fetch(`${API_BASE}/api/curso/admin/gasto/${g.id}?anio=${datos.anio_activo}`, { method: 'DELETE' });
-                                                    onActualizar();
-                                                }} className="text-slate-500 hover:text-rose-400"><i className="fa-solid fa-trash-can"></i></button>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                    <h3 className="text-sm font-bold text-emerald-400"><i className="fa-solid fa-coins mr-1"></i> Relación de Ingresos Extra</h3>
-                    <div className="overflow-x-auto max-h-52 overflow-y-auto">
-                        <table className="w-full text-left text-xs text-slate-300">
-                            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                <tr><th className="p-2">Fecha</th><th className="p-2">Concepto</th><th className="p-2 text-right">Monto</th>{!estaCerrado && <th className="p-2 text-center">Acción</th>}</tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/60">
-                                {(datos.ingresos_extra || []).map(e => (
-                                    <tr key={e.id}>
-                                        <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
-                                        <td className="p-2 text-white">{e.titulo}</td>
-                                        <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
-                                        {!estaCerrado && (
-                                            <td className="p-2 text-center">
-                                                <button onClick={async () => {
-                                                    await fetch(`${API_BASE}/api/curso/admin/ingreso-extra/${e.id}?anio=${datos.anio_activo}`, { method: 'DELETE' });
-                                                    onActualizar();
-                                                }} className="text-slate-500 hover:text-rose-400"><i className="fa-solid fa-trash-can"></i></button>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {/* GESTIÓN DE PAGOS MENSUALES */}
-            <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-1">
-                    <div className="flex items-center gap-3">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                            <i className="fa-solid fa-money-check-dollar"></i> Gestión de Pagos Mensuales
-                        </h3>
-                        <span className="text-xs bg-slate-950 border border-slate-800 text-sky-400 font-bold px-3 py-1 rounded-xl">
-                            {totalEstudiantesActivos} Estudiantes
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <input
-                            type="text"
-                            placeholder="Buscar estudiante o apoderado..."
-                            value={busquedaAdmin}
-                            onChange={(e) => setBusquedaAdmin(e.target.value)}
-                            className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-full sm:w-56"
-                        />
-                        <button
-                            onClick={onCerrarSesion}
-                            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 flex-shrink-0"
-                        >
-                            <i className="fa-solid fa-arrow-right-from-bracket"></i> Cerrar Sesión
-                        </button>
-                    </div>
-                </div>
-                
-                <div className="flex flex-col gap-4">
-                    {apoderadosFiltradosAdmin.map(apo => (
-                        <div key={apo.id} className="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
-                            <div className="xl:w-1/4 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-slate-800 pb-3 xl:pb-0 xl:pr-4 flex flex-col justify-between">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="font-extrabold text-white text-base tracking-wide flex items-center gap-1.5">
-                                            <i className="fa-solid fa-user-graduate text-sky-400 text-sm"></i>
-                                            {apo.alumno} {apo.activo === false && <span className="text-rose-400 text-xs font-normal">(Inactivo)</span>}
-                                        </h4>
-                                        {!estaCerrado && (
-                                            <button 
-                                                onClick={() => { 
-                                                    setIdEditando(apo.id); 
-                                                    setEditNombreApo(apo.nombre); 
-                                                    setEditNombreAlu(apo.alumno); 
-                                                    setEditEmailApo(apo.email || '');
-                                                    setModalEditarApo(true); 
-                                                }}
-                                                className="text-slate-400 hover:text-sky-400 text-xs p-1"
-                                            >
-                                                <i className="fa-solid fa-pen-to-square"></i>
-                                            </button>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Apoderado: <span className="text-slate-200 font-medium">{apo.nombre}</span>
-                                    </p>
-                                    <p className="text-[10px] text-slate-500 font-mono">
-                                        {apo.email || 'Sin correo registrado'}
-                                    </p>
-                                </div>
-
-                                {!estaCerrado && (
-                                    <div className="flex gap-2 w-full mt-3 items-center">
-                                        <button 
-                                            onClick={() => { setApoderadoSeleccionado(apo); setMontoPago(''); setResponsablePago(apo.nombre); setModalAbierto(true); }}
-                                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs transition"
-                                        >
-                                            Registrar Pago
-                                        </button>
-                                        <button 
-                                            onClick={async () => {
-                                                await fetch(`${API_BASE}/api/curso/admin/apoderado/estado/${apo.id}`, {
-                                                    method: 'PUT',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ activo: apo.activo === false, anio: datos.anio_activo })
-                                                });
-                                                onActualizar();
-                                            }}
-                                            className={`text-xs px-2.5 py-1.5 rounded-xl border ${apo.activo === false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}
-                                        >
-                                            {apo.activo === false ? 'Activar' : 'Ocultar'}
-                                        </button>
-                                        <button 
-                                            onClick={() => handleEliminarApoderado(apo.id, apo.nombre)}
-                                            className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs px-2.5 py-1.5 rounded-xl"
-                                        >
-                                            <i className="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    </div>
-                                )}
+            {/* MODAL PAGO GLOBAL */}
+            {modalPago && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+                        <h3 className="text-base font-bold text-slate-900 mb-1">Abonar Cuotas</h3>
+                        <p className="text-xs text-slate-500 mb-4">{apoderadoPago?.alumno} — {apoderadoPago?.nombre}</p>
+                        <form onSubmit={handleRegistrarPago} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Monto Entregado ($)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="100"
+                                    placeholder="Ej: 21000"
+                                    value={formPago.montoEntregado}
+                                    onChange={e => setFormPago({ ...formPago, montoEntregado: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                                />
                             </div>
-
-                            <div className="flex-1 grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
-                                {datos.configuracion.meses.map(mes => {
-                                    const pago = apo.pagos[mes] || { pagado: false, monto: 0, exonerado: false, fecha: null };
-                                    const montoAbonado = Number(pago.monto || 0);
-                                    const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
-
-                                    return (
-                                        <div key={mes} className={`border p-2 rounded-xl flex flex-col justify-between text-center min-h-[72px] ${pago.exonerado ? 'bg-slate-950/40 border-slate-800/40 opacity-70' : 'bg-slate-950 border-slate-800'}`}>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{mes.slice(0, 3)}</span>
-                                                <div className="flex items-center gap-1">
-                                                    {!estaCerrado && montoAbonado === 0 && (
-                                                        <button
-                                                            onClick={() => handleExonerarMes(apo.id, mes)}
-                                                            className={`text-[9px] px-1 py-0.2 rounded transition ${pago.exonerado ? 'bg-sky-500/20 text-sky-400' : 'text-slate-600 hover:text-slate-300'}`}
-                                                            title={pago.exonerado ? "Quitar exoneración" : "Exonerar mes"}
-                                                        >
-                                                            <i className="fa-solid fa-ban"></i>
-                                                        </button>
-                                                    )}
-                                                    {!estaCerrado && montoAbonado > 0 && (
-                                                        <button onClick={() => handleEliminarPagoMes(apo.id, mes, montoAbonado)} className="text-slate-600 hover:text-rose-400 text-[10px]">
-                                                            <i className="fa-solid fa-trash-can"></i>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="my-1">
-                                                {pago.exonerado ? (
-                                                    <span className="inline-block w-full text-center bg-sky-500/10 text-sky-400 border border-sky-500/20 py-0.5 rounded text-[9px] font-bold">Exon.</span>
-                                                ) : esCompleto ? (
-                                                    <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[9px] font-bold">✓ Pagado</span>
-                                                ) : montoAbonado > 0 ? (
-                                                    <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[9px] font-bold">${(montoAbonado / 1000).toFixed(0)}k</span>
-                                                ) : (
-                                                    <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[9px] font-bold">Pend.</span>
-                                                )}
-                                            </div>
-
-                                            <span className="text-[8px] text-slate-500 font-mono truncate">
-                                                {pago.fecha ? pago.fecha.slice(5) : '-'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Fecha</label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={formPago.fecha}
+                                    onChange={e => setFormPago({ ...formPago, fecha: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
                             </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* MODALES */}
-            {modalEditarApo && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        await fetch(`${API_BASE}/api/curso/admin/apoderado/${idEditando}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ nombre: editNombreApo, alumno: editNombreAlu, email: editEmailApo, anio: datos.anio_activo })
-                        });
-                        setModalEditarApo(false);
-                        onActualizar();
-                    }} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-sm space-y-4">
-                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                            <i className="fa-solid fa-user-pen text-sky-400"></i> Modificar Estudiante / Apoderado
-                        </h3>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Estudiante</label>
-                            <input type="text" value={editNombreAlu} onChange={(e) => setEditNombreAlu(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold" required />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Nombre del Apoderado</label>
-                            <input type="text" value={editNombreApo} onChange={(e) => setEditNombreApo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" required />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-slate-400 block mb-1">Correo Electrónico</label>
-                            <input type="email" value={editEmailApo} onChange={(e) => setEditEmailApo(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                            <button type="button" onClick={() => setModalEditarApo(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300 font-bold">Cancelar</button>
-                            <button type="submit" className="w-1/2 bg-sky-500 py-2 rounded-xl text-xs text-slate-950 font-bold">Guardar</button>
-                        </div>
-                    </form>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Responsable del Pago</label>
+                                <input
+                                    type="text"
+                                    value={formPago.responsable}
+                                    onChange={e => setFormPago({ ...formPago, responsable: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setModalPago(false)}
+                                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={cargando}
+                                    className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow"
+                                >
+                                    Procesar Abono
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
 
-            {modalAbierto && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        await fetch(`${API_BASE}/api/curso/admin/pago-global`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                apoderadoId: apoderadoSeleccionado.id,
-                                montoEntregado: Number(montoPago),
-                                fecha: fechaPago,
-                                responsable: responsablePago,
-                                anio: datos.anio_activo
-                            })
-                        });
-                        setModalAbierto(false);
-                        onActualizar();
-                    }} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-4">
-                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                                <i className="fa-solid fa-cash-register text-emerald-400"></i> Registrar Pago / Abono
-                            </h3>
-                            <button onClick={() => setModalAbierto(false)} className="text-slate-400 hover:text-white">
-                                <i className="fa-solid fa-xmark text-lg"></i>
-                            </button>
-                        </div>
-                        <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs space-y-1">
-                            <p className="text-white">Estudiante: <strong className="text-sky-400 text-sm">{apoderadoSeleccionado?.alumno}</strong></p>
-                            <p className="text-slate-400">Apoderado: {apoderadoSeleccionado?.nombre}</p>
-                        </div>
-                        <input type="number" placeholder="Monto entregado ($)" value={montoPago} onChange={(e) => setMontoPago(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-bold text-emerald-400" required autoFocus />
-                        <div className="grid grid-cols-2 gap-2">
-                            <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                            <input type="text" placeholder="Responsable del pago" value={responsablePago} onChange={(e) => setResponsablePago(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
-                        </div>
-                        <div className="flex gap-2 pt-2">
-                            <button type="button" onClick={() => setModalAbierto(false)} className="w-1/2 bg-slate-800 py-2 rounded-xl text-xs text-slate-300 font-bold">Cancelar</button>
-                            <button type="submit" className="w-1/2 bg-emerald-500 py-2 rounded-xl text-xs text-slate-950 font-bold">Guardar Pago</button>
-                        </div>
-                    </form>
+            {/* MODAL GASTO */}
+            {modalGasto && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+                        <h3 className="text-base font-bold text-slate-900 mb-4">Registrar Nuevo Gasto</h3>
+                        <form onSubmit={handleRegistrarGasto} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Mes Contable</label>
+                                <select
+                                    value={formGasto.mes}
+                                    onChange={e => setFormGasto({ ...formGasto, mes: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    {meses.map(m => <option key={m} value={m}>{m}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Descripción / Título</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="Ej: Torta aniversario o abono paseo"
+                                    value={formGasto.titulo}
+                                    onChange={e => setFormGasto({ ...formGasto, titulo: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Monto ($)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    min="1"
+                                    placeholder="Ej: 35000"
+                                    value={formGasto.monto}
+                                    onChange={e => setFormGasto({ ...formGasto, monto: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Fecha</label>
+                                <input
+                                    type="date"
+                                    value={formGasto.fecha}
+                                    onChange={e => setFormGasto({ ...formGasto, fecha: e.target.value })}
+                                    className="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setModalGasto(false)}
+                                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={cargando}
+                                    className="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow"
+                                >
+                                    Guardar Gasto
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

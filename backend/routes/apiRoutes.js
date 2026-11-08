@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 
 // Configuración de almacenamiento físico unificada exactamente con app.js
+// Apunta exactamente a backend/uploads
 const uploadDir = path.resolve(__dirname, '../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

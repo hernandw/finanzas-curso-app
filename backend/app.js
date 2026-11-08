@@ -27,7 +27,7 @@ if (!fs.existsSync(carpetaUploads)) {
     fs.mkdirSync(carpetaUploads, { recursive: true });
 }
 
-// Servir públicamente la carpeta /uploads
+// Servir públicamente ANTES de las rutas api
 app.use('/uploads', express.static(carpetaUploads));
 
 app.use('/api', apiRoutes);

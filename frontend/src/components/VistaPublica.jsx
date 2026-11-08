@@ -2,329 +2,291 @@
 import React, { useState } from 'react';
 
 export default function VistaPublica({ datos, onCambiarAnio }) {
+    const [busqueda, setBusqueda] = useState('');
+
     if (!datos || !datos.apoderados) {
         return (
-            <div className="flex items-center justify-center p-8 text-slate-400 text-xs">
-                <i className="fa-solid fa-spinner animate-spin mr-2"></i> Cargando...
+            <div className="flex items-center justify-center p-12 text-slate-400 text-xs font-sans">
+                <i className="fa-solid fa-spinner animate-spin mr-2 text-[#00d084]"></i> Cargando información del curso...
             </div>
         );
     }
 
-    const [inputBusqueda, setInputBusqueda] = useState('');
-    const [filtroConfirmado, setFiltroConfirmado] = useState('');
+    const anioActivo = datos.anio_activo || "2026";
+    const infoConfig = datos.configuracion || {};
+    const cuotaOficial = Number(infoConfig.cuota_mensual || 21000);
+    const saldoInicial = Number(infoConfig.saldo_inicial || 0);
+    const meses = infoConfig.meses || [];
+    const aniosDisponibles = datos.aniosDisponibles || ["2024", "2025", "2026"];
 
+    const abreviarMes = (m) => m.substring(0, 3).toUpperCase();
+
+    // Función precisa para extraer el apellido paterno
     const obtenerApellidoPaterno = (nombreCompleto = '') => {
         if (!nombreCompleto) return '';
         const partes = nombreCompleto.trim().split(/\s+/);
         if (partes.length === 1) return partes[0].toLowerCase();
-        if (partes.length === 2 || partes.length === 3) return partes[1].toLowerCase();
+        if (partes.length === 2) return partes[1].toLowerCase();
+        if (partes.length === 3) return partes[1].toLowerCase();
         return partes[partes.length - 2].toLowerCase();
     };
 
-    const handleBuscar = (e) => {
-        e.preventDefault();
-        setFiltroConfirmado(inputBusqueda.trim());
-    };
+    // Cálculos de balance general (solo estudiantes activos)
+    let totalCuotasRecaudadas = 0;
+    let totalDeudaPorRecoger = 0;
 
-    const handleLimpiar = () => {
-        setInputBusqueda('');
-        setFiltroConfirmado('');
-    };
+    (datos.apoderados || []).forEach(apo => {
+        if (apo.activo === false) return;
+        meses.forEach(m => {
+            const p = apo.pagos ? apo.pagos[m] : null;
+            if (p?.exonerado) return;
+            const montoAbonado = Number(p?.monto || 0);
+            totalCuotasRecaudadas += montoAbonado;
+            const pendiente = Math.max(0, cuotaOficial - montoAbonado);
+            totalDeudaPorRecoger += pendiente;
+        });
+    });
 
-    const apoderadosFiltrados = datos.apoderados
-        .filter(a => 
-            (a.activo !== false) && (
-                a.nombre.toLowerCase().includes(filtroConfirmado.toLowerCase()) || 
-                a.alumno.toLowerCase().includes(filtroConfirmado.toLowerCase())
-            )
-        )
+    const totalGastos = (datos.gastos || []).reduce((acc, g) => acc + Number(g.monto || 0), 0);
+    const totalIngresosExtra = (datos.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto || 0), 0);
+    const saldoRealCaja = saldoInicial + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
+
+    // Filtro por búsqueda Y ordenamiento alfabético por Apellido Paterno
+    const apoderadosFiltrados = (datos.apoderados || [])
+        .filter(a => a.activo !== false && (
+            a.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+            a.alumno.toLowerCase().includes(busqueda.toLowerCase())
+        ))
         .sort((a, b) => {
             const apA = obtenerApellidoPaterno(a.alumno);
             const apB = obtenerApellidoPaterno(b.alumno);
             return apA.localeCompare(apB, 'es', { sensitivity: 'base', numeric: true });
         });
 
-    const cuotaOficial = datos.configuracion?.cuota_mensual || 11000;
-    const saldoInicial = Number(datos.configuracion?.saldo_inicial || 0);
-    const totalGastos = datos.gastos ? datos.gastos.reduce((acc, g) => acc + Number(g.monto), 0) : 0;
-    const totalIngresosExtra = datos.ingresos_extra ? datos.ingresos_extra.reduce((acc, e) => acc + Number(e.monto), 0) : 0;
-    
-    let totalCuotasRecaudadas = 0;
-    let totalDeudaPorRecoger = 0;
-
-    datos.apoderados.forEach(apo => {
-        if (apo.activo === false) return;
-        datos.configuracion.meses.forEach(m => {
-            const p = apo.pagos[m];
-            if (p?.exonerado) return;
-            const montoAbonado = Number(p?.monto || 0);
-            totalCuotasRecaudadas += montoAbonado;
-            if (!p?.pagado) {
-                totalDeudaPorRecoger += (cuotaOficial - montoAbonado);
-            }
-        });
-    });
-
-    const saldoRealCaja = saldoInicial + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
-    const aniosDisponibles = datos.aniosDisponibles || ["2024", "2025", "2026", "2027", "2028"];
-
     return (
-        <div className="space-y-6">
-            {/* CABECERA CON BUSCADOR CON BOTÓN BUSCAR */}
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                            Periodo {datos.anio_activo}
-                        </span>
-                        
-                        <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl">
-                            <span className="text-[10px] text-slate-400 font-medium">Ver Año:</span>
-                            <select 
-                                value={datos.anio_activo}
-                                onChange={(e) => onCambiarAnio && onCambiarAnio(e.target.value)}
-                                className="bg-transparent text-emerald-400 font-bold text-xs outline-none cursor-pointer"
-                            >
-                                {aniosDisponibles.map(anio => (
-                                    <option key={anio} value={anio} className="bg-slate-900 text-white">
-                                        {anio}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+        <div className="space-y-6 font-sans text-slate-100">
+            {/* 1. FICHA OFICIAL CON DATOS GENERALES DEL CURSO */}
+            <div className="bg-[#0b1120] border border-[#162035] p-5 rounded-2xl shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#162035] pb-3">
+                    <div className="flex items-center gap-2">
+                        <i className="fa-solid fa-school text-[#00d084] text-base"></i>
+                        <h2 className="text-base font-bold text-white tracking-wide">
+                            {infoConfig.nombre_curso || '8° Básico B'} — Datos del Curso
+                        </h2>
                     </div>
 
-                    <h2 className="text-xl font-extrabold text-white mt-2 flex items-center gap-2">
-                        <i className="fa-solid fa-school text-sky-400"></i> Tesorería - {datos.configuracion.nombre_curso || '8° Básico B'}
-                    </h2>
-                    <div className="flex flex-wrap gap-3 text-xs text-slate-400 mt-2">
-                        <span><strong className="text-slate-300">Profesor/a:</strong> {datos.configuracion.profesor || 'N/A'}</span>
-                        <span>•</span>
-                        <span><strong className="text-slate-300">Presidente/a:</strong> {datos.configuracion.presidente || 'N/A'}</span>
-                        <span>•</span>
-                        <span><strong className="text-slate-300">Tesorero/a:</strong> {datos.configuracion.tesorero || 'N/A'}</span>
-                        <span>•</span>
-                        <span><strong className="text-emerald-400">Cuota:</strong> ${Number(cuotaOficial).toLocaleString('es-CL')}</span>
+                    <div className="flex items-center gap-2 bg-[#070b14] border border-[#162035] px-3 py-1.5 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Periodo:</span>
+                        <select 
+                            value={anioActivo}
+                            onChange={(e) => onCambiarAnio && onCambiarAnio(e.target.value)}
+                            className="bg-transparent text-[#00d084] font-bold text-xs outline-none cursor-pointer"
+                        >
+                            {aniosDisponibles.map(anio => (
+                                <option key={anio} value={anio} className="bg-[#0b1120] text-white">
+                                    {anio}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
-                {/* FORMULARIO DE BÚSQUEDA CON BOTÓN */}
-                <form onSubmit={handleBuscar} className="w-full md:w-auto flex items-center gap-2">
-                    <input 
-                        type="text"
-                        placeholder="Estudiante o apoderado..."
-                        value={inputBusqueda}
-                        onChange={(e) => setInputBusqueda(e.target.value)}
-                        className="w-full md:w-56 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
-                    />
-                    <button
-                        type="submit"
-                        className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5"
-                    >
-                        <i className="fa-solid fa-magnifying-glass"></i> Buscar
-                    </button>
-                    {filtroConfirmado && (
-                        <button
-                            type="button"
-                            onClick={handleLimpiar}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-2 rounded-xl text-xs transition"
-                            title="Limpiar búsqueda"
-                        >
-                            <i className="fa-solid fa-xmark"></i>
-                        </button>
-                    )}
-                </form>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-medium block">Profesor/a Jefe:</span>
+                        <span className="text-sm font-bold text-[#00d084]">{infoConfig.profesor || 'Aylin Chong'}</span>
+                    </div>
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-medium block">Presidente/a:</span>
+                        <span className="text-sm font-bold text-[#38bdf8]">{infoConfig.presidente || 'Ingrid Brito'}</span>
+                    </div>
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-medium block">Tesorero/a:</span>
+                        <span className="text-sm font-bold text-[#f59e0b]">{infoConfig.tesorero || 'Natalya Zakharova'}</span>
+                    </div>
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-medium block">Cuota Mensual Oficial:</span>
+                        <span className="text-sm font-bold text-white font-mono">${cuotaOficial.toLocaleString('es-CL')}</span>
+                    </div>
+                </div>
             </div>
 
-            {/* BALANCE GENERAL Y DEUDA POR RECOGER */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                    <i className="fa-solid fa-scale-balanced"></i> Balance General y Flujo de Caja ({datos.anio_activo})
+            {/* 2. BALANCE GENERAL Y FLUJO DE CAJA (LAS 6 CARDS KPI) */}
+            <div className="bg-[#0b1120] border border-[#162035] p-5 rounded-2xl shadow-xl space-y-4">
+                <h3 className="text-sm font-bold text-[#00d084] flex items-center gap-2">
+                    <i className="fa-solid fa-scale-balanced text-base"></i> Balance General y Flujo de Caja ({anioActivo})
                 </h3>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Saldo Anterior</span>
-                        <span className="text-sm font-bold text-slate-200">${saldoInicial.toLocaleString('es-CL')}</span>
+                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Anterior</span>
+                        <span className="text-base font-bold text-white tracking-tight">
+                            ${saldoInicial.toLocaleString('es-CL')}
+                        </span>
                     </div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Cuotas Recaudadas</span>
-                        <span className="text-sm font-bold text-emerald-400">${totalCuotasRecaudadas.toLocaleString('es-CL')}</span>
+
+                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Cuotas Recaudadas</span>
+                        <span className="text-base font-bold text-[#00d084] tracking-tight">
+                            ${totalCuotasRecaudadas.toLocaleString('es-CL')}
+                        </span>
                     </div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Ingresos Extra</span>
-                        <span className="text-sm font-bold text-sky-400">${totalIngresosExtra.toLocaleString('es-CL')}</span>
+
+                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Ingresos Extra</span>
+                        <span className="text-base font-bold text-[#38bdf8] tracking-tight">
+                            ${totalIngresosExtra.toLocaleString('es-CL')}
+                        </span>
                     </div>
-                    <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block">Total Egresos</span>
-                        <span className="text-sm font-bold text-rose-400">${totalGastos.toLocaleString('es-CL')}</span>
+
+                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Total Egresos</span>
+                        <span className="text-base font-bold text-[#f43f5e] tracking-tight">
+                            ${totalGastos.toLocaleString('es-CL')}
+                        </span>
                     </div>
-                    <div className="bg-slate-950 border border-emerald-500/30 p-3 rounded-xl bg-emerald-950/10">
-                        <span className="text-[10px] text-emerald-400 block font-semibold">Saldo Real en Caja</span>
-                        <span className="text-sm font-extrabold text-emerald-400">${saldoRealCaja.toLocaleString('es-CL')}</span>
+
+                    <div className="bg-[#070b14] border border-[#00d084]/40 p-3.5 rounded-xl flex flex-col justify-center">
+                        <span className="text-[10px] text-[#00d084] font-semibold block mb-1">Saldo Real en Caja</span>
+                        <span className="text-lg font-black text-[#00d084] tracking-tight">
+                            ${saldoRealCaja.toLocaleString('es-CL')}
+                        </span>
                     </div>
-                    <div className="bg-slate-950 border border-amber-500/30 p-3 rounded-xl bg-amber-950/10">
-                        <span className="text-[10px] text-amber-400 block font-semibold">Deuda por Recoger</span>
-                        <span className="text-sm font-extrabold text-amber-400">${totalDeudaPorRecoger.toLocaleString('es-CL')}</span>
+
+                    <div className="bg-[#070b14] border border-[#f59e0b] p-3.5 rounded-xl flex flex-col justify-center shadow-lg shadow-[#f59e0b]/5">
+                        <span className="text-[10px] text-[#f59e0b] font-bold block mb-1">Deuda por Recoger</span>
+                        <span className="text-lg font-black text-[#f59e0b] tracking-tight">
+                            ${totalDeudaPorRecoger.toLocaleString('es-CL')}
+                        </span>
                     </div>
                 </div>
             </div>
 
-            {/* RELACIÓN DE GASTOS E INGRESOS EXTRA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
-                            <i className="fa-solid fa-receipt"></i> Relación de Gastos ({datos.anio_activo})
-                        </h3>
-                        <span className="text-xs text-slate-300 font-medium">Total: <strong className="text-rose-400">${totalGastos.toLocaleString('es-CL')}</strong></span>
-                    </div>
-                    <div className="overflow-x-auto max-h-52 overflow-y-auto">
-                        {datos.gastos && datos.gastos.length > 0 ? (
-                            <table className="w-full text-left text-xs text-slate-300">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                    <tr><th className="p-2">Fecha</th><th className="p-2">Descripción</th><th className="p-2 text-right">Monto</th><th className="p-2 text-center">Recibo</th></tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {datos.gastos.map(g => (
-                                        <tr key={g.id} className="hover:bg-slate-950/40">
-                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{g.fecha}</td>
-                                            <td className="p-2 font-semibold text-white">{g.titulo}</td>
-                                            <td className="p-2 text-right font-bold text-rose-400">${Number(g.monto).toLocaleString('es-CL')}</td>
-                                            <td className="p-2 text-center">
-                                                {g.reciboUrl ? (
-                                                    <a href={g.reciboUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:text-sky-300" title="Ver Recibo">
-                                                        <i className="fa-solid fa-paperclip"></i>
-                                                    </a>
-                                                ) : <span className="text-slate-600">-</span>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : <p className="text-xs text-slate-500 text-center py-4">No hay gastos registrados.</p>}
-                    </div>
-                </div>
-
-                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                        <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                            <i className="fa-solid fa-coins"></i> Ingresos Extra ({datos.anio_activo})
-                        </h3>
-                        <span className="text-xs text-slate-300 font-medium">Total: <strong className="text-emerald-400">${totalIngresosExtra.toLocaleString('es-CL')}</strong></span>
-                    </div>
-                    <div className="overflow-x-auto max-h-52 overflow-y-auto">
-                        {datos.ingresos_extra && datos.ingresos_extra.length > 0 ? (
-                            <table className="w-full text-left text-xs text-slate-300">
-                                <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
-                                    <tr><th className="p-2">Fecha</th><th className="p-2">Concepto</th><th className="p-2 text-right">Monto</th></tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800/60">
-                                    {datos.ingresos_extra.map(e => (
-                                        <tr key={e.id} className="hover:bg-slate-950/40">
-                                            <td className="p-2 text-slate-400 font-mono text-[10px]">{e.fecha}</td>
-                                            <td className="p-2 font-semibold text-white">{e.titulo}</td>
-                                            <td className="p-2 text-right font-bold text-emerald-400">${Number(e.monto).toLocaleString('es-CL')}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : <p className="text-xs text-slate-500 text-center py-4">No hay ingresos extra registrados.</p>}
-                    </div>
-                </div>
-            </div>
-
-            {/* TARJETAS HORIZONTALES POR ALUMNO A LO ANCHO */}
-            <div className="space-y-4">
-                <div className="flex justify-between items-center px-1">
-                    <h3 className="text-sm font-bold text-sky-400 flex items-center gap-2">
-                        <i className="fa-solid fa-users"></i> Estado Mensual por Estudiante ({apoderadosFiltrados.length})
+            {/* 3. BARRA DE BÚSQUEDA Y TOTAL POR RECOGER */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-1">
+                <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-users text-[#00d084]"></i>
+                    <h3 className="text-sm font-bold text-white tracking-wide">
+                        Estado Mensual por Estudiante ({apoderadosFiltrados.length})
                     </h3>
-                    <span className="text-xs text-slate-400">
-                        Total por Recoger: <strong className="text-amber-400 font-bold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</strong>
-                    </span>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    {apoderadosFiltrados.map(apo => {
-                        let totalPagadoApo = 0;
-                        let deudaApo = 0;
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
+                        Total por Recoger: <strong className="text-[#f59e0b] font-bold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</strong>
+                    </span>
+                    <input 
+                        type="text" 
+                        placeholder="Buscar estudiante..." 
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        className="bg-[#0b1120] border border-[#162035] rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d084] w-full sm:w-56"
+                    />
+                </div>
+            </div>
 
-                        datos.configuracion.meses.forEach(mes => {
-                            const p = apo.pagos[mes];
-                            if (p && p.monto && !p.exonerado) totalPagadoApo += Number(p.monto);
-                            if (!p?.exonerado && !p?.pagado) {
-                                deudaApo += (cuotaOficial - Number(p?.monto || 0));
-                            }
-                        });
+            {/* 4. TARJETAS HORIZONTALES ORDENADAS POR APELLIDO PATERNO */}
+            <div className="space-y-4">
+                {apoderadosFiltrados.map(apo => {
+                    let totalAbonado = 0;
+                    let deudaEstudiante = 0;
 
-                        return (
-                            <div key={apo.id} className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl hover:border-slate-700 transition flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
-                                <div className="xl:w-1/4 flex-shrink-0 border-b xl:border-b-0 xl:border-r border-slate-800 pb-3 xl:pb-0 xl:pr-4 flex justify-between xl:flex-col items-center xl:items-start gap-1">
-                                    <div>
-                                        <h3 className="font-extrabold text-white text-base tracking-wide flex items-center gap-2">
-                                            <i className="fa-solid fa-graduation-cap text-sky-400 text-sm"></i> {apo.alumno}
-                                        </h3>
-                                        <p className="text-xs text-slate-400 mt-0.5">
-                                            Apoderado: <span className="text-slate-200 font-medium">{apo.nombre}</span>
-                                        </p>
+                    meses.forEach(m => {
+                        const p = apo.pagos ? apo.pagos[m] : null;
+                        if (p?.exonerado) return;
+                        const monto = Number(p?.monto || 0);
+                        totalAbonado += monto;
+                        deudaEstudiante += Math.max(0, cuotaOficial - monto);
+                    });
+
+                    // Si no tiene deuda pendiente, está Al Día
+                    const alDia = deudaEstudiante === 0;
+
+                    return (
+                        <div 
+                            key={apo.id} 
+                            className="bg-[#0b1120] border border-[#162035] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 hover:border-[#223150] transition"
+                        >
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <i className="fa-solid fa-graduation-cap text-[#00d084] text-sm"></i>
+                                        <h4 className="text-base font-bold text-white tracking-wide">
+                                            {apo.alumno}
+                                        </h4>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-lg font-bold">
-                                            Abonado: ${totalPagadoApo.toLocaleString('es-CL')}
-                                        </span>
-                                        {deudaApo > 0 ? (
-                                            <span className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-lg font-bold">
-                                                Debe: ${deudaApo.toLocaleString('es-CL')}
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-lg font-bold">
-                                                Al día ✓
-                                            </span>
-                                        )}
-                                    </div>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        Apoderado: <span className="text-slate-300 font-medium">{apo.nombre}</span>
+                                    </p>
                                 </div>
 
-                                <div className="flex-1 grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
-                                    {datos.configuracion.meses.map(mes => {
-                                        const pago = apo.pagos[mes] || { pagado: false, monto: 0, exonerado: false, fecha: null };
-                                        const montoAbonado = Number(pago.monto || 0);
-                                        const esCompleto = pago.pagado && (montoAbonado >= cuotaOficial);
-                                        const esAbono = !esCompleto && (montoAbonado > 0);
-
-                                        return (
-                                            <div key={mes} className={`border p-2 rounded-xl flex flex-col justify-between text-center min-h-[64px] ${pago.exonerado ? 'bg-slate-950/40 border-slate-800/40 opacity-70' : 'bg-slate-950 border-slate-800'}`}>
-                                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{mes.slice(0, 3)}</span>
-                                                <div className="my-1">
-                                                    {pago.exonerado ? (
-                                                        <span className="inline-block w-full text-center bg-sky-500/10 text-sky-400 border border-sky-500/20 py-0.5 rounded text-[9px] font-bold">
-                                                            Exon.
-                                                        </span>
-                                                    ) : esCompleto ? (
-                                                        <span className="inline-block w-full text-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 rounded text-[9px] font-bold">
-                                                            ✓ Pagado
-                                                        </span>
-                                                    ) : esAbono ? (
-                                                        <span className="inline-block w-full text-center bg-amber-500/10 text-amber-400 border border-amber-500/20 py-0.5 rounded text-[9px] font-bold">
-                                                            ${(montoAbonado / 1000).toFixed(0)}k
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-block w-full text-center bg-rose-500/10 text-rose-400 border border-rose-500/20 py-0.5 rounded text-[9px] font-bold">
-                                                            Pend.
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <span className="text-[8px] text-slate-500 font-mono truncate">
-                                                    {pago.fecha ? pago.fecha.slice(5) : '-'}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
+                                {/* ESTADO: SI ESTÁ AL DÍA DESAPARECE "ABONÓ" Y "DEBE", QUEDA SOLO EL BOTÓN AZUL */}
+                                <div className="flex items-center gap-2">
+                                    {alDia ? (
+                                        <span className="bg-blue-600/20 border border-blue-500/40 text-blue-400 px-4 py-1.5 rounded-xl text-xs font-bold tracking-wide shadow-sm shadow-blue-500/10">
+                                            Al Día ✓
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <span className="bg-[#00d084]/10 border border-[#00d084]/25 text-[#00d084] px-3 py-1 rounded-full text-xs font-bold">
+                                                Abonado: ${totalAbonado.toLocaleString('es-CL')}
+                                            </span>
+                                            <span className="bg-[#f43f5e]/10 border border-[#f43f5e]/25 text-[#f43f5e] px-3 py-1 rounded-full text-xs font-bold">
+                                                Debe: ${deudaEstudiante.toLocaleString('es-CL')}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+
+                            {/* Tira completa de los 10 meses */}
+                            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                                {meses.map(m => {
+                                    const p = apo.pagos ? apo.pagos[m] : null;
+                                    const esExonerado = p?.exonerado;
+                                    const monto = Number(p?.monto || 0);
+                                    const esPagado = p?.pagado || monto >= cuotaOficial;
+                                    const esAbono = !esPagado && monto > 0;
+
+                                    return (
+                                        <div 
+                                            key={m} 
+                                            className="bg-[#070b14] border border-[#162035] p-2.5 rounded-xl flex flex-col justify-between items-center text-center space-y-1.5"
+                                        >
+                                            <span className="text-[10px] font-bold text-slate-400 tracking-wider">
+                                                {abreviarMes(m)}
+                                            </span>
+
+                                            <div className="w-full">
+                                                {esExonerado ? (
+                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#1e293b] text-slate-400 border border-slate-700">
+                                                        Exon.
+                                                    </span>
+                                                ) : esPagado ? (
+                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#00d084]/15 text-[#00d084] border border-[#00d084]/30">
+                                                        Pagado
+                                                    </span>
+                                                ) : esAbono ? (
+                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
+                                                        Abono
+                                                    </span>
+                                                ) : (
+                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/25">
+                                                        Pend.
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <span className="text-[10px] text-slate-500 font-mono">
+                                                {monto > 0 ? `$${monto.toLocaleString('es-CL')}` : '-'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

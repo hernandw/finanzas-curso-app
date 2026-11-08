@@ -20,38 +20,38 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Aumentar el límite del parser JSON para permitir restaurar backups grandes (evita error 413)
+// Aumentar el límite del parser JSON para backups y datos
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Ruta absoluta física garantizada
-const carpetaUploads = path.resolve(process.cwd(), 'backend/uploads');
+// 1. DEFINIR Y CREAR LA CARPETA FÍSICA UPLOADS
+const carpetaUploads = path.resolve(__dirname, 'uploads');
 if (!fs.existsSync(carpetaUploads)) {
     fs.mkdirSync(carpetaUploads, { recursive: true });
 }
 
-// Servir públicamente la carpeta
+// 2. SERVIR PÚBLICAMENTE LA CARPETA UPLOADS
 app.use('/uploads', express.static(carpetaUploads));
 
-// Rutas de la API
+// 3. RUTAS DE LA API
 app.use('/api', apiRoutes);
 app.use('/', apiRoutes);
 
-// Ruta de comprobación de salud del servidor
+// Ruta de estado del servidor
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Manejador general de errores
 app.use((err, req, res, next) => {
-    console.error("Error no capturado:", err);
+    console.error("Error capturado:", err);
     if (err.status === 413 || err.type === 'entity.too.large') {
         return res.status(413).json({ error: "El archivo enviado supera el tamaño máximo permitido." });
     }
     res.status(err.status || 500).json({ error: err.message || "Error interno del servidor" });
 });
 
-// Inicialización del puerto
+// Inicialización del servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor de Tesorería ejecutándose en el puerto ${PORT}`);

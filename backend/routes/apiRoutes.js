@@ -550,7 +550,7 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
                             anio: anioSel,
                             deuda_total: deudaTotal.toLocaleString('es-CL'),
                             meses_debe: mesesDebe.join(', '),
-                            subject: `Aviso de Cuotas Pendientes - ${apo.alumno} (${anioSel})`
+                            subject: `Información de Tesorería - ${apo.alumno} (${anioSel})`
                         }
                     };
 

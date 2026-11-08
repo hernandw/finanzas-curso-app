@@ -4,6 +4,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { Resend } from 'resend';
+import 'dotenv/config';
 import { dbConfig } from '../config/db.js';
 
 const router = express.Router();

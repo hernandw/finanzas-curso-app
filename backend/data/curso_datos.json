@@ -7355,7 +7355,14 @@
           "fecha": "2026-11-20"
         }
       ],
-      "ingresos_extra": []
+      "ingresos_extra": [
+        {
+          "id": "ext-1794176449167",
+          "titulo": "recaudacion dia de profe 18  x 2.500",
+          "monto": 45000,
+          "fecha": "2026-11-08"
+        }
+      ]
     }
   }
 }

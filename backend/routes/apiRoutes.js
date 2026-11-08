@@ -8,19 +8,19 @@ import { dbConfig } from "../config/db.js";
 
 const router = express.Router();
 
-// Configuración de almacenamiento local para comprobantes/recibos
-const uploadDir = path.resolve("../uploads");
+// Usar exactamente la misma ruta que app.js
+const uploadDir = path.resolve(process.cwd(), 'backend/uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, "recibo-" + uniqueSuffix + ext);
-  },
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'recibo-' + uniqueSuffix + ext);
+    }
 });
 const upload = multer({ storage });
 

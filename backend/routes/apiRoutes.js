@@ -617,8 +617,9 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
             return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
         }
 
-        const hostUrl = req.protocol + '://' + req.get('host');
-        const pdfPublicUrl = `${hostUrl}/uploads/${req.file.filename}`;
+        // Construir enlace público seguro HTTPS
+const host = req.get('host');
+const pdfPublicUrl = `https://${host}/uploads/${req.file.filename}`;
 
         const botonDescargaHTML = `
             <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 22px 0;">

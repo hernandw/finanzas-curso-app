@@ -3,10 +3,11 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const cursoApi = {
     obtenerDatos: (anio = null) => {
+        const timestamp = Date.now();
         const url = anio 
-            ? `${API_BASE}/api/curso/datos?anio=${anio}` 
-            : `${API_BASE}/api/curso/datos`;
-        return fetch(url);
+            ? `${API_BASE}/api/curso/datos?anio=${anio}&_t=${timestamp}` 
+            : `${API_BASE}/api/curso/datos?_t=${timestamp}`;
+        return fetch(url, { cache: 'no-store' });
     },
 
     registrarGasto: (formData) =>

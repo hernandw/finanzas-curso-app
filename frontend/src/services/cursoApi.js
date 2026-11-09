@@ -122,11 +122,15 @@ export const cursoApi = {
         }),
 
         resetearDatos: async (anio) => {
-        const res = await fetch(`${API_URL}/api/curso/admin/reset`, {
+        const res = await fetch(`${API_BASE}/api/curso/admin/reset`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ anio })
         });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Error HTTP ${res.status}`);
+        }
         return res.json();
     },
 };

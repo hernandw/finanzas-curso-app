@@ -797,6 +797,7 @@ router.post('/curso/backup/restaurar', async (req, res) => {
 });
 
 // Reiniciar los datos a estado limpio (vaciar pagos, gastos e ingresos extra)
+
 router.post('/curso/admin/reset', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
@@ -807,46 +808,20 @@ router.post('/curso/admin/reset', async (req, res) => {
             return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
         }
 
-        // Limpiar gastos e ingresos extra
+        // 1. Vaciar gastos e ingresos extraordinarios
         infoAnio.gastos = [];
         infoAnio.ingresos_extra = [];
 
-        // Limpiar pagos de todos los apoderados del año seleccionado
+        // 2. Limpiar todos los meses de pagos de los apoderados
         (infoAnio.apoderados || []).forEach(apo => {
             apo.pagos = {};
         });
 
         await dbConfig.guardarDatos(datos);
-        res.json({ success: true, mensaje: `Datos del año ${anioSel} restablecidos a cero correctamente.` });
+        return res.json({ success: true, mensaje: `Datos de ${anioSel} restablecidos a cero correctamente.` });
     } catch (error) {
-        console.error("Error al reiniciar datos:", error);
-        res.status(500).json({ error: "Error en el servidor al reiniciar datos." });
-    }
-});// Reiniciar los datos a estado limpio (vaciar pagos, gastos e ingresos extra)
-router.post('/curso/admin/reset', async (req, res) => {
-    try {
-        const datos = await dbConfig.leerDatos();
-        const anioSel = req.body.anio || datos.anio_activo || "2026";
-        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
-
-        if (!infoAnio) {
-            return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
-        }
-
-        // Limpiar gastos e ingresos extra
-        infoAnio.gastos = [];
-        infoAnio.ingresos_extra = [];
-
-        // Limpiar pagos de todos los apoderados del año seleccionado
-        (infoAnio.apoderados || []).forEach(apo => {
-            apo.pagos = {};
-        });
-
-        await dbConfig.guardarDatos(datos);
-        res.json({ success: true, mensaje: `Datos del año ${anioSel} restablecidos a cero correctamente.` });
-    } catch (error) {
-        console.error("Error al reiniciar datos:", error);
-        res.status(500).json({ error: "Error en el servidor al reiniciar datos." });
+        console.error("Error en /curso/admin/reset:", error);
+        return res.status(500).json({ error: "Error en el servidor al reiniciar datos." });
     }
 });
 

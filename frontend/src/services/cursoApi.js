@@ -119,5 +119,14 @@ export const cursoApi = {
     resetApp: () =>
         fetch(`${API_BASE}/api/curso/reset`, {
             method: 'DELETE'
-        })
+        }),
+
+        resetearDatos: async (anio) => {
+        const res = await fetch(`${API_URL}/api/curso/admin/reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ anio })
+        });
+        return res.json();
+    },
 };

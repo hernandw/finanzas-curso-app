@@ -1130,62 +1130,77 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center gap-2 pt-1">
-                                        {alDia ? (
-                                            <span className="bg-blue-600/20 border border-blue-500/40 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold tracking-wide shadow">
-                                                Al Día ✓
-                                            </span>
-                                        ) : (
-                                            !estaCerrado && (
-                                                <button
-                                                    onClick={() => {
-                                                        setApoderadoPago(apo);
-                                                        setFormPago({
-                                                            montoEntregado: '',
-                                                            fecha: new Date().toISOString().slice(0, 10),
-                                                            responsable: apo.nombre
-                                                        });
-                                                        setModalPago(true);
-                                                    }}
-                                                    className="bg-[#00d084] hover:bg-[#00b572] text-[#070b14] font-bold py-2 px-4 rounded-xl text-xs transition shadow flex items-center gap-1.5 cursor-pointer"
-                                                >
-                                                    Registrar Pago
-                                                </button>
-                                            )
-                                        )}
+                                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+    {alDia ? (
+        <span className="bg-blue-600/20 border border-blue-500/40 text-blue-400 px-3.5 py-1.5 rounded-xl text-xs font-bold tracking-wide shadow inline-flex items-center gap-1">
+            Al Día ✓
+        </span>
+    ) : (
+        <>
+            {/* Desglose de lo abonado y lo que debe en el mismo lugar */}
+            <div className="flex items-center gap-1.5 bg-[#070b14] border border-[#162035] px-2.5 py-1 rounded-xl text-[11px] font-mono shadow-inner">
+                <span className="text-slate-400 text-[10px]">Abonó:</span>
+                <span className="font-bold text-[#00d084]">
+                    ${totalAbonado.toLocaleString('es-CL')}
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-400 text-[10px]">Debe:</span>
+                <span className="font-bold text-[#f43f5e]">
+                    ${deudaEstudiante.toLocaleString('es-CL')}
+                </span>
+            </div>
 
-                                        {!estaCerrado && (
-                                            <>
-                                                <button
-                                                    onClick={async () => {
-                                                        await cursoApi.cambiarEstadoApoderado(apo.id, apo.activo === false, anioActivo);
-                                                        onActualizar(anioActivo);
-                                                        toast(apo.activo === false ? "Estudiante reactivado y sumado a saldos." : "Estudiante ocultado y restado de saldos.");
-                                                    }}
-                                                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer border ${
-                                                        esOculto 
-                                                            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/50' 
-                                                            : 'bg-[#070b14] hover:bg-[#162035] border-[#1e293b] text-[#f59e0b]'
-                                                    }`}
-                                                >
-                                                    {apo.activo === false ? 'Mostrar' : 'Ocultar'}
-                                                </button>
+            {!estaCerrado && (
+                <button
+                    onClick={() => {
+                        setApoderadoPago(apo);
+                        setFormPago({
+                            montoEntregado: '',
+                            fecha: new Date().toISOString().slice(0, 10),
+                            responsable: apo.nombre
+                        });
+                        setModalPago(true);
+                    }}
+                    className="bg-[#00d084] hover:bg-[#00b572] text-[#070b14] font-bold py-1.5 px-3.5 rounded-xl text-xs transition shadow flex items-center gap-1.5 cursor-pointer"
+                >
+                    Registrar Pago
+                </button>
+            )}
+        </>
+    )}
 
-                                                <button
-                                                    onClick={async () => {
-                                                        if (confirm(`¿Eliminar definitivamente a ${apo.alumno}?`)) {
-                                                            await cursoApi.eliminarApoderado(apo.id, anioActivo);
-                                                            onActualizar(anioActivo);
-                                                            toast("Estudiante eliminado.");
-                                                        }
-                                                    }}
-                                                    className="bg-[#e11d48]/15 hover:bg-[#e11d48]/25 text-[#f43f5e] border border-[#e11d48]/30 p-2.5 rounded-xl text-xs transition cursor-pointer"
-                                                >
-                                                    <i className="fa-solid fa-trash-can"></i>
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
+    {!estaCerrado && (
+        <>
+            <button
+                onClick={async () => {
+                    await cursoApi.cambiarEstadoApoderado(apo.id, apo.activo === false, anioActivo);
+                    onActualizar(anioActivo);
+                    toast(apo.activo === false ? "Estudiante reactivado y sumado a saldos." : "Estudiante ocultado y restado de saldos.");
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+                    esOculto 
+                        ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/50' 
+                        : 'bg-[#070b14] hover:bg-[#162035] border-[#1e293b] text-[#f59e0b]'
+                }`}
+            >
+                {apo.activo === false ? 'Mostrar' : 'Ocultar'}
+            </button>
+
+            <button
+                onClick={async () => {
+                    if (confirm(`¿Eliminar definitivamente a ${apo.alumno}?`)) {
+                        await cursoApi.eliminarApoderado(apo.id, anioActivo);
+                        onActualizar(anioActivo);
+                        toast("Estudiante eliminado.");
+                    }
+                }}
+                className="bg-[#e11d48]/15 hover:bg-[#e11d48]/25 text-[#f43f5e] border border-[#e11d48]/30 px-2.5 py-1.5 rounded-xl text-xs transition cursor-pointer"
+            >
+                <i className="fa-solid fa-trash-can"></i>
+            </button>
+        </>
+    )}
+</div>
                                 </div>
 
                                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5 flex-1 w-full">

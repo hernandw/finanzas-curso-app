@@ -765,7 +765,138 @@
           "alumno": "Vicente Espinoza Riquelme",
           "email": "gabriel.espinoza@ejemplo.com",
           "activo": true,
-          "pagos": {}
+          "pagos": {
+            "Marzo": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Abril": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Mayo": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Junio": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Julio": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Agosto": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Septiembre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Octubre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Noviembre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            },
+            "Diciembre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Gabriel Espinoza"
+                }
+              ],
+              "exonerado": false
+            }
+          }
         },
         {
           "id": "apo-demo-06",
@@ -773,7 +904,138 @@
           "alumno": "Catalina Fuentes Sepúlveda",
           "email": "rodrigo.fuentes@ejemplo.com",
           "activo": true,
-          "pagos": {}
+          "pagos": {
+            "Marzo": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Abril": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Mayo": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Junio": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Julio": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Agosto": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Septiembre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Octubre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Noviembre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            },
+            "Diciembre": {
+              "pagado": false,
+              "monto": 10000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 10000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Rodrigo Fuentes"
+                }
+              ],
+              "exonerado": false
+            }
+          }
         },
         {
           "id": "apo-demo-07",
@@ -816,7 +1078,16 @@
           "pagos": {}
         }
       ],
-      "gastos": [],
+      "gastos": [
+        {
+          "id": "gas-1794312816685",
+          "mes": "Marzo",
+          "titulo": "compra de pollos",
+          "monto": 50000,
+          "fecha": "2026-11-10",
+          "comprobante": "https://finanzas-curso-app.onrender.com/uploads/comprobante-1794312816679-75591164.png"
+        }
+      ],
       "ingresos_extra": []
     }
   }

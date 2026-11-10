@@ -1205,72 +1205,82 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
                                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5 flex-1 w-full">
                                     {meses.map(m => {
-                                        const p = apo.pagos ? apo.pagos[m] : null;
-                                        const esExonerado = p?.exonerado;
-                                        const monto = Number(p?.monto || 0);
-                                        const esPagado = p?.pagado || monto >= cuotaOficial;
+    const p = apo.pagos ? apo.pagos[m] : null;
+    const esExonerado = Boolean(p?.exonerado);
+    const monto = Number(p?.monto || 0);
+    const esPagado = Boolean(p?.pagado) || monto >= cuotaOficial;
+    const esAbono = monto > 0 && monto < cuotaOficial;
 
-                                        return (
-                                            <div 
-                                                key={m} 
-                                                className="bg-[#070b14] border border-[#162035] p-3 rounded-2xl flex flex-col justify-between items-center text-center w-full h-[92px] shadow-sm hover:border-[#223150] transition"
-                                            >
-                                                <div className="w-full flex justify-between items-center px-1">
-                                                    <span className="text-[11px] font-bold text-slate-300 tracking-wider">
-                                                        {abreviarMes(m)}
-                                                    </span>
-                                                    {!estaCerrado && (
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (confirm(`¿Exonerar cuota de ${m}?`)) {
-                                                                    await cursoApi.exonerarMes(apo.id, m, anioActivo);
-                                                                    onActualizar(anioActivo);
-                                                                }
-                                                            }}
-                                                            className="text-slate-600 hover:text-amber-400 text-[10px] cursor-pointer"
-                                                            title={`Exonerar ${m}`}
-                                                        >
-                                                            <i className="fa-solid fa-ban"></i>
-                                                        </button>
-                                                    )}
-                                                </div>
+    return (
+        <div 
+            key={m} 
+            className="bg-[#070b14] border border-[#162035] p-3 rounded-2xl flex flex-col justify-between items-center text-center w-full h-[92px] shadow-sm hover:border-[#223150] transition"
+        >
+            <div className="w-full flex justify-between items-center px-1">
+                <span className="text-[11px] font-bold text-slate-300 tracking-wider">
+                    {abreviarMes(m)}
+                </span>
+                {!estaCerrado && (
+                    <button
+                        onClick={async () => {
+                            if (confirm(`¿Exonerar cuota de ${m}?`)) {
+                                await cursoApi.exonerarMes(apo.id, m, anioActivo);
+                                onActualizar(anioActivo);
+                            }
+                        }}
+                        className="text-slate-600 hover:text-amber-400 text-[10px] cursor-pointer"
+                        title={`Exonerar ${m}`}
+                    >
+                        <i className="fa-solid fa-ban"></i>
+                    </button>
+                )}
+            </div>
 
-                                                <div className="w-full py-0.5">
-                                                    {esExonerado ? (
-                                                        <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#1e293b] text-slate-400 border border-slate-700">
-                                                            Exon.
-                                                        </span>
-                                                    ) : esPagado ? (
-                                                        <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#00d084]/15 text-[#00d084] border border-[#00d084]/30">
-                                                            ✓ Pagado
-                                                        </span>
-                                                    ) : (
-                                                        <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/25">
-                                                            Pend.
-                                                        </span>
-                                                    )}
-                                                </div>
+            {/* BADGES SEGÚN ESTADO EXACTO */}
+            <div className="w-full py-0.5">
+                {esExonerado ? (
+                    <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#1e293b] text-slate-400 border border-slate-700">
+                        Exon.
+                    </span>
+                ) : esPagado ? (
+                    <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#00d084]/15 text-[#00d084] border border-[#00d084]/30">
+                        ✓ Pagado
+                    </span>
+                ) : esAbono ? (
+                    <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
+                        Abono
+                    </span>
+                ) : (
+                    <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/25">
+                        Pend.
+                    </span>
+                )}
+            </div>
 
-                                                <div className="flex items-center justify-between w-full text-[10px] text-slate-400 font-mono px-1">
-                                                    <span>{p?.fecha ? p.fecha.slice(5) : '-'}</span>
-                                                    {!estaCerrado && (monto > 0 || esExonerado) && (
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (confirm(`¿Revertir pago de ${m}?`)) {
-                                                                    await cursoApi.eliminarPagoMes(apo.id, m, anioActivo);
-                                                                    onActualizar(anioActivo);
-                                                                }
-                                                            }}
-                                                            className="text-rose-500 hover:text-rose-400 opacity-60 hover:opacity-100 cursor-pointer"
-                                                            title="Revertir abono"
-                                                        >
-                                                            <i className="fa-solid fa-trash-can text-[10px]"></i>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+            <div className="flex items-center justify-between w-full text-[10px] text-slate-400 font-mono px-1">
+                <span>
+                    {esAbono 
+                        ? `$${monto.toLocaleString('es-CL')}` 
+                        : (p?.fecha ? p.fecha.slice(5) : '-')}
+                </span>
+                {!estaCerrado && (monto > 0 || esExonerado) && (
+                    <button
+                        onClick={async () => {
+                            if (confirm(`¿Revertir pago de ${m}?`)) {
+                                await cursoApi.eliminarPagoMes(apo.id, m, anioActivo);
+                                onActualizar(anioActivo);
+                            }
+                        }}
+                        className="text-rose-500 hover:text-rose-400 opacity-60 hover:opacity-100 cursor-pointer"
+                        title="Revertir abono"
+                    >
+                        <i className="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+})}
                                 </div>
                             </div>
                         );

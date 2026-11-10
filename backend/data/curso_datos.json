@@ -731,9 +731,123 @@
           "id": "apo-demo-01",
           "nombre": "Esteban Abarca",
           "alumno": "Lucas Abarca Salgado",
-          "email": "esteban.abarca@ejemplo.com",
+          "email": "triviamaniaes@gmail.com",
           "activo": true,
-          "pagos": {}
+          "pagos": {
+            "Marzo": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Abril": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 10000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                },
+                {
+                  "monto": 10000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Mayo": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Junio": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Julio": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Agosto": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 20000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Septiembre": {
+              "pagado": true,
+              "monto": 20000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 10000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                },
+                {
+                  "monto": 10000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ],
+              "exonerado": false
+            },
+            "Octubre": {
+              "pagado": false,
+              "monto": 15000,
+              "fecha": "2026-11-10",
+              "transacciones": [
+                {
+                  "monto": 15000,
+                  "fecha": "2026-11-10",
+                  "responsable": "Esteban Abarca"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "apo-demo-02",

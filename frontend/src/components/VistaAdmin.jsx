@@ -516,33 +516,63 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <span>Cerrar Año Escolar</span>
                     </button>
 
-                    
-<button
-    onClick={async () => {
-        const confirmacion = confirm(`⚠️ ¿ATENCIÓN: Deseas restablecer a CERO todos los pagos, gastos e ingresos extra del año ${anioActivo}? Esta acción no se puede deshacer.`);
-        if (!confirmacion) return;
+                    {/* BOTÓN 1: RESET CUOTAS (Mantiene a los alumnos) */}
+                    <button
+                        onClick={async () => {
+                            const confirmacion = confirm(`⚠️ ¿Deseas restablecer a CERO los pagos, gastos e ingresos de ${anioActivo}? Los estudiantes se mantendrán.`);
+                            if (!confirmacion) return;
 
-        try {
-            setCargando(true);
-            const res = await cursoApi.resetearDatos(anioActivo);
-            if (res.success) {
-                toast(`🗑️ ${res.mensaje}`);
-                onActualizar(anioActivo);
-            } else {
-                toast(res.error || "No se pudo reiniciar", 'error');
-            }
-        } catch (error) {
-            toast("Error al comunicarse con el servidor", 'error');
-        } finally {
-            setCargando(false);
-        }
-    }}
-    disabled={cargando || estaCerrado}
-    className="bg-[#e11d48]/15 hover:bg-[#e11d48]/25 text-[#f43f5e] border border-[#e11d48]/30 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
->
-    <i className="fa-solid fa-trash-can"></i>
-    <span>Reset</span>
-</button>
+                            try {
+                                setCargando(true);
+                                const res = await cursoApi.resetCuotas(anioActivo);
+                                if (res.success) {
+                                    toast(`🗑️ ${res.mensaje}`);
+                                    onActualizar(anioActivo);
+                                } else {
+                                    toast(res.error || "No se pudo reiniciar", 'error');
+                                }
+                            } catch (error) {
+                                toast("Error al comunicarse con el servidor", 'error');
+                            } finally {
+                                setCargando(false);
+                            }
+                        }}
+                        disabled={cargando || estaCerrado}
+                        title="Vaciar pagos y gastos manteniendo a los estudiantes"
+                        className="bg-[#e11d48]/15 hover:bg-[#e11d48]/25 text-[#f43f5e] border border-[#e11d48]/30 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                    >
+                        <i className="fa-solid fa-receipt"></i>
+                        <span>Reset Cuotas</span>
+                    </button>
+
+                    {/* BOTÓN 2: RESET TOTAL (Vacía todo para cargar la demo) */}
+                    <button
+                        onClick={async () => {
+                            const confirmacion = confirm(`🚨 ¿ELIMINAR TODO? Esta acción borrará a todos los estudiantes, pagos, gastos y dejará el año ${anioActivo} totalmente en blanco.`);
+                            if (!confirmacion) return;
+
+                            try {
+                                setCargando(true);
+                                const res = await cursoApi.resetTotal(anioActivo);
+                                if (res.success) {
+                                    toast(`🧹 ${res.mensaje}`);
+                                    onActualizar(anioActivo);
+                                } else {
+                                    toast(res.error || "No se pudo reiniciar", 'error');
+                                }
+                            } catch (error) {
+                                toast("Error al comunicarse con el servidor", 'error');
+                            } finally {
+                                setCargando(false);
+                            }
+                        }}
+                        disabled={cargando || estaCerrado}
+                        title="Borrar todo para dejar en blanco y cargar la demo"
+                        className="bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-700/60 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                    >
+                        <i className="fa-solid fa-trash-can"></i>
+                        <span>Reset Total</span>
+                    </button>
                 </div>
             </div>
 

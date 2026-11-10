@@ -1,4 +1,4 @@
-// frontend/src/services/cursoApi.js
+// src/services/cursoApi.js
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const cursoApi = {
@@ -13,7 +13,7 @@ export const cursoApi = {
     registrarGasto: (formData) =>
         fetch(`${API_BASE}/api/curso/admin/gasto`, {
             method: 'POST',
-            body: formData // Envía Multipart FormData directamente con el recibo
+            body: formData
         }),
 
     eliminarGasto: (id, anio) =>
@@ -117,13 +117,8 @@ export const cursoApi = {
             body: jsonString
         }),
 
-    resetApp: () =>
-        fetch(`${API_BASE}/api/curso/reset`, {
-            method: 'DELETE'
-        }),
-
-        resetearDatos: async (anio) => {
-        const res = await fetch(`${API_BASE}/api/curso/admin/reset`, {
+    resetCuotas: async (anio) => {
+        const res = await fetch(`${API_BASE}/api/curso/admin/reset-cuotas`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ anio })
@@ -134,4 +129,17 @@ export const cursoApi = {
         }
         return res.json();
     },
+
+    resetTotal: async (anio) => {
+        const res = await fetch(`${API_BASE}/api/curso/admin/reset-total`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ anio })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Error HTTP ${res.status}`);
+        }
+        return res.json();
+    }
 };

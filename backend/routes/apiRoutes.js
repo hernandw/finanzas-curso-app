@@ -796,9 +796,8 @@ router.post('/curso/backup/restaurar', async (req, res) => {
     }
 });
 
-// Reiniciar los datos a estado limpio (vaciar pagos, gastos e ingresos extra)
-
-router.post('/curso/admin/reset', async (req, res) => {
+// 20. Reset Parcial: Vaciar cuotas, gastos e ingresos pero CONSERVAR estudiantes y directiva
+router.post('/curso/admin/reset-cuotas', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
         const anioSel = req.body.anio || datos.anio_activo || "2026";
@@ -808,20 +807,42 @@ router.post('/curso/admin/reset', async (req, res) => {
             return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
         }
 
-        // 1. Vaciar gastos e ingresos extraordinarios
         infoAnio.gastos = [];
         infoAnio.ingresos_extra = [];
 
-        // 2. Limpiar todos los meses de pagos de los apoderados
         (infoAnio.apoderados || []).forEach(apo => {
             apo.pagos = {};
         });
 
         await dbConfig.guardarDatos(datos);
-        return res.json({ success: true, mensaje: `Datos de ${anioSel} restablecidos a cero correctamente.` });
+        return res.json({ success: true, mensaje: `Pagos, gastos e ingresos de ${anioSel} restablecidos a cero. Los estudiantes se mantuvieron.` });
     } catch (error) {
-        console.error("Error en /curso/admin/reset:", error);
-        return res.status(500).json({ error: "Error en el servidor al reiniciar datos." });
+        console.error("Error en /curso/admin/reset-cuotas:", error);
+        return res.status(500).json({ error: "Error en el servidor al reiniciar cuotas." });
+    }
+});
+
+// 21. Reset Total: Borrar estudiantes, pagos, gastos, ingresos y saldo en cero
+router.post('/curso/admin/reset-total', async (req, res) => {
+    try {
+        const datos = await dbConfig.leerDatos();
+        const anioSel = req.body.anio || datos.anio_activo || "2026";
+        const infoAnio = datos.anios ? datos.anios[anioSel] : null;
+
+        if (!infoAnio) {
+            return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
+        }
+
+        infoAnio.gastos = [];
+        infoAnio.ingresos_extra = [];
+        infoAnio.apoderados = [];
+        infoAnio.saldo_inicial = 0;
+
+        await dbConfig.guardarDatos(datos);
+        return res.json({ success: true, mensaje: `El año ${anioSel} ha sido vaciado por completo (0 estudiantes y sin movimientos).` });
+    } catch (error) {
+        console.error("Error en /curso/admin/reset-total:", error);
+        return res.status(500).json({ error: "Error en el servidor al realizar el reset total." });
     }
 });
 

@@ -400,16 +400,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     const handleCerrarAnio = async () => {
         if (estaCerrado) return toast("Este año ya está cerrado.", 'error');
-        if (!confirm(`¿Cerrar el año escolar ${anioActivo}? Se trasladará el saldo a ${Number(anioActivo) + 1}.`)) return;
+        const confirmacion = confirm(`¿Cerrar definitivamente el año escolar ${anioActivo}?\n\n- No se podrán registrar ni modificar pagos o gastos.\n- El saldo real se trasladará como saldo inicial al año ${Number(anioActivo) + 1}.\n- Los estudiantes se migrarán con saldo $0.`);
+        if (!confirmacion) return;
+
         try {
             setCargando(true);
-            const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/curso/admin/cerrar-anio`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            toast(data.mensaje);
+            const data = await cursoApi.cerrarAnio(anioActivo);
+            toast(`🔒 ${data.mensaje}`);
             onActualizar(data.anio_activo);
         } catch (error) {
             toast(error.message, 'error');
@@ -440,6 +437,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
                 }`}>
                     <span>{notificacion.msg}</span>
+                </div>
+            )}
+
+            {/* AVISO VISUAL DE AÑO CERRADO */}
+            {estaCerrado && (
+                <div className="bg-amber-950/40 border border-amber-500/40 text-amber-300 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2">
+                    <i className="fa-solid fa-lock"></i>
+                    <span>Este año escolar ({anioActivo}) está <strong>OFICIALMENTE CERRADO</strong>. Los registros están protegidos en modo de solo lectura.</span>
                 </div>
             )}
 
@@ -509,11 +514,15 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleCerrarAnio}
-                        disabled={estaCerrado}
-                        className="bg-[#d97706]/20 hover:bg-[#d97706]/30 text-[#f59e0b] border border-[#d97706]/40 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer"
+                        disabled={estaCerrado || cargando}
+                        className={`${
+                            estaCerrado
+                                ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                                : 'bg-[#d97706]/20 hover:bg-[#d97706]/30 text-[#f59e0b] border-[#d97706]/40 cursor-pointer shadow'
+                        } border px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5`}
                     >
                         <i className="fa-solid fa-lock"></i>
-                        <span>Cerrar Año Escolar</span>
+                        <span>{estaCerrado ? 'Año Cerrado' : 'Cerrar Año Escolar'}</span>
                     </button>
 
                     {/* BOTÓN 1: RESET CUOTAS (Mantiene a los alumnos) */}
@@ -631,6 +640,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* Botón Cambiar en lugar de OK */}
                     <form onSubmit={handleGuardarCuota} className="flex items-center gap-1.5 bg-[#070b14] border border-[#162035] px-3 py-1.5 rounded-xl">
                         <span className="text-xs text-slate-400">Cuota:</span>
                         <input 
@@ -638,14 +648,14 @@ export default function VistaAdmin({ datos, onActualizar }) {
                             disabled={estaCerrado}
                             value={cuotaInput} 
                             onChange={(e) => setCuotaInput(e.target.value)}
-                            className="w-20 bg-transparent text-[#00d084] font-bold font-mono outline-none text-xs ml-0.5 focus:bg-[#162035] px-1 rounded" 
+                            className="w-20 bg-transparent text-[#00d084] font-bold font-mono outline-none text-xs ml-0.5 focus:bg-[#162035] px-1 rounded disabled:opacity-50" 
                         />
                         {!estaCerrado && (
                             <button 
                                 type="submit"
                                 className="bg-[#00d084] hover:bg-[#00b572] text-[#070b14] text-[10px] font-bold px-2 py-0.5 rounded-lg transition ml-1 cursor-pointer"
                             >
-                                OK
+                                Cambiar
                             </button>
                         )}
                     </form>
@@ -720,8 +730,8 @@ export default function VistaAdmin({ datos, onActualizar }) {
                     </h3>
                     <button
                         onClick={() => handleNotificarMorosos(null)}
-                        disabled={cargando}
-                        className="bg-[#f59e0b] hover:bg-[#d97706] text-[#070b14] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer"
+                        disabled={cargando || estaCerrado}
+                        className="bg-[#f59e0b] hover:bg-[#d97706] text-[#070b14] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer disabled:opacity-40"
                     >
                         <i className="fa-solid fa-envelope"></i>
                         <span>Notificar a Todos los Morosos</span>
@@ -776,7 +786,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                             ${deudaEstimada.toLocaleString('es-CL')}
                                         </td>
                                         <td className="p-3 text-center">
-                                            {deudaEstimada > 0 && apo.email ? (
+                                            {deudaEstimada > 0 && apo.email && !estaCerrado ? (
                                                 <button
                                                     onClick={() => handleNotificarMorosos(apo.id, apo.nombre)}
                                                     disabled={enviandoId === apo.id}
@@ -807,48 +817,53 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <input 
                             type="text" 
                             required 
+                            disabled={estaCerrado}
                             placeholder="Descripción..." 
                             value={formGasto.titulo}
                             onChange={(e) => setFormGasto({ ...formGasto, titulo: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <div className="grid grid-cols-2 gap-2">
                             <select 
+                                disabled={estaCerrado}
                                 value={formGasto.mes} 
                                 onChange={(e) => setFormGasto({ ...formGasto, mes: e.target.value })}
-                                className="bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white"
+                                className="bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50"
                             >
                                 {meses.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                             <input 
                                 type="number" 
                                 required 
+                                disabled={estaCerrado}
                                 placeholder="Monto" 
                                 value={formGasto.monto}
                                 onChange={(e) => setFormGasto({ ...formGasto, monto: e.target.value })}
-                                className="bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                                className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                             />
                         </div>
                         <input 
                             type="date" 
+                            disabled={estaCerrado}
                             value={formGasto.fecha}
                             onChange={(e) => setFormGasto({ ...formGasto, fecha: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <div>
                             <span className="text-[10px] text-slate-400 block mb-1">Adjuntar Recibo (Opcional)</span>
                             <input 
                                 type="file" 
                                 ref={fileGastoInputRef}
+                                disabled={estaCerrado}
                                 accept="image/*,.pdf"
                                 onChange={(e) => setArchivoGasto(e.target.files[0] || null)}
-                                className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:bg-[#162035] file:text-slate-300" 
+                                className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:bg-[#162035] file:text-slate-300 disabled:opacity-50" 
                             />
                         </div>
                         <button 
                             type="submit" 
-                            disabled={cargando}
-                            className="w-full bg-[#f43f5e] hover:bg-[#e11d48] text-white font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer"
+                            disabled={cargando || estaCerrado}
+                            className="w-full bg-[#f43f5e] hover:bg-[#e11d48] text-white font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer disabled:opacity-40"
                         >
                             Registrar Gasto
                         </button>
@@ -863,30 +878,33 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <input 
                             type="text" 
                             required 
+                            disabled={estaCerrado}
                             placeholder="Concepto..." 
                             value={formIngresoExtra.titulo}
                             onChange={(e) => setFormIngresoExtra({ ...formIngresoExtra, titulo: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <input 
                             type="number" 
                             required 
+                            disabled={estaCerrado}
                             placeholder="Monto" 
                             value={formIngresoExtra.monto}
                             onChange={(e) => setFormIngresoExtra({ ...formIngresoExtra, monto: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <input 
                             type="date" 
+                            disabled={estaCerrado}
                             value={formIngresoExtra.fecha}
                             onChange={(e) => setFormIngresoExtra({ ...formIngresoExtra, fecha: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <div className="pt-7">
                             <button 
                                 type="submit" 
-                                disabled={cargando}
-                                className="w-full bg-[#00d084] hover:bg-[#00b572] text-[#070b14] font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer"
+                                disabled={cargando || estaCerrado}
+                                className="w-full bg-[#00d084] hover:bg-[#00b572] text-[#070b14] font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer disabled:opacity-40"
                             >
                                 Registrar Ingreso
                             </button>
@@ -902,31 +920,34 @@ export default function VistaAdmin({ datos, onActualizar }) {
                         <input 
                             type="text" 
                             required 
+                            disabled={estaCerrado}
                             placeholder="Nombre Alumno..." 
                             value={formNuevoEstudiante.alumno}
                             onChange={(e) => setFormNuevoEstudiante({ ...formNuevoEstudiante, alumno: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <input 
                             type="text" 
                             required 
+                            disabled={estaCerrado}
                             placeholder="Nombre Apoderado..." 
                             value={formNuevoEstudiante.nombre}
                             onChange={(e) => setFormNuevoEstudiante({ ...formNuevoEstudiante, nombre: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <input 
                             type="email" 
+                            disabled={estaCerrado}
                             placeholder="Correo electrónico..." 
                             value={formNuevoEstudiante.email}
                             onChange={(e) => setFormNuevoEstudiante({ ...formNuevoEstudiante, email: e.target.value })}
-                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white" 
+                            className="w-full bg-[#070b14] border border-[#162035] rounded-xl px-3 py-2 text-xs text-white disabled:opacity-50" 
                         />
                         <div className="pt-7">
                             <button 
                                 type="submit" 
-                                disabled={cargando}
-                                className="w-full bg-[#00c5ff] hover:bg-[#00b0e6] text-[#070b14] font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer"
+                                disabled={cargando || estaCerrado}
+                                className="w-full bg-[#00c5ff] hover:bg-[#00b0e6] text-[#070b14] font-bold py-2.5 rounded-xl text-xs transition shadow cursor-pointer disabled:opacity-40"
                             >
                                 Agregar
                             </button>
@@ -1032,7 +1053,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
                 </div>
             </div>
 
-            {/* GESTIÓN DE PAGOS MENSUALES: CARDS ANCHAS Y EQUILIBRADAS */}
+            {/* GESTIÓN DE PAGOS MENSUALES */}
             <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-1">
                     <div className="flex items-center gap-2">
@@ -1081,7 +1102,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                         : 'hover:border-[#223150]'
                                 }`}
                             >
-                                {/* Lado Izquierdo: Datos y Botones (ancho equilibrado para eliminar espacio vacío) */}
                                 <div className="space-y-3 w-full xl:w-72 flex-shrink-0">
                                     <div>
                                         <div className="flex items-center gap-2">
@@ -1168,7 +1188,6 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                     </div>
                                 </div>
 
-                                {/* Lado Derecho: Meses ensanchados que llenan todo el espacio restante */}
                                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5 flex-1 w-full">
                                     {meses.map(m => {
                                         const p = apo.pagos ? apo.pagos[m] : null;

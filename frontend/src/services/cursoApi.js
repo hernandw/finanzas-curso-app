@@ -90,10 +90,18 @@ export const cursoApi = {
             body: JSON.stringify({ nuevoAnio })
         }),
 
-    cerrarAnio: () =>
-        fetch(`${API_BASE}/api/curso/admin/cerrar-anio`, {
-            method: 'POST'
-        }),
+    cerrarAnio: async (anio) => {
+        const res = await fetch(`${API_BASE}/api/curso/admin/cerrar-anio`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ anio })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Error HTTP ${res.status}`);
+        }
+        return res.json();
+    },
 
     enviarCorreoMorosos: (apoderadoId, anio) =>
         fetch(`${API_BASE}/api/curso/admin/enviar-correo-morosos`, {

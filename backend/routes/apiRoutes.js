@@ -146,6 +146,7 @@ router.put('/curso/admin/configuracion', async (req, res) => {
         const infoAnio = datos.anios[anioSel];
 
         if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "Este año escolar está cerrado y no permite modificaciones" });
 
         if (saldo_inicial !== undefined) infoAnio.saldo_inicial = Number(saldo_inicial);
         if (cuota_mensual !== undefined) infoAnio.cuota_mensual = Number(cuota_mensual);
@@ -168,6 +169,9 @@ router.post('/curso/admin/apoderado/agregar', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año está cerrado" });
 
         const nuevoApoderado = {
             id: 'apo-' + Date.now(),
@@ -195,6 +199,9 @@ router.put('/curso/admin/apoderado/:id', async (req, res) => {
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
 
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año está cerrado" });
+
         const apoderado = infoAnio.apoderados.find(a => a.id === id);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
@@ -218,6 +225,9 @@ router.put('/curso/admin/apoderado/estado/:id', async (req, res) => {
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
 
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año está cerrado" });
+
         const apoderado = infoAnio.apoderados.find(a => a.id === id);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
 
@@ -238,6 +248,9 @@ router.delete('/curso/admin/apoderado/:id', async (req, res) => {
         const anioFinal = anioSel || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioFinal];
 
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año está cerrado" });
+
         infoAnio.apoderados = infoAnio.apoderados.filter(a => a.id !== id);
         await dbConfig.guardarDatos(datos);
         res.json({ success: true });
@@ -253,6 +266,9 @@ router.post('/curso/admin/pago-global', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
         
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
@@ -303,6 +319,9 @@ router.delete('/curso/admin/pago/:apoderadoId/:mes', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioFinal = anioSel || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioFinal];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
         
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
@@ -323,6 +342,9 @@ router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioFinal = anioSel || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioFinal];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
         
         const apoderado = infoAnio.apoderados.find(a => a.id === apoderadoId);
         if (!apoderado) return res.status(404).json({ error: "Apoderado no encontrado" });
@@ -342,6 +364,9 @@ router.post('/curso/admin/gasto', upload.single('comprobante'), async (req, res)
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
 
         let comprobanteUrl = null;
         if (req.file) {
@@ -375,6 +400,9 @@ router.delete('/curso/admin/gasto/:id', async (req, res) => {
         const anioFinal = anioSel || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioFinal];
 
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
+
         infoAnio.gastos = (infoAnio.gastos || []).filter(g => g.id !== id);
         await dbConfig.guardarDatos(datos);
         res.json({ success: true });
@@ -390,6 +418,9 @@ router.post('/curso/admin/ingreso-extra', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioSel];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
 
         if (!infoAnio.ingresos_extra) infoAnio.ingresos_extra = [];
 
@@ -416,6 +447,9 @@ router.delete('/curso/admin/ingreso-extra/:id', async (req, res) => {
         const datos = await dbConfig.leerDatos();
         const anioFinal = anioSel || datos.anio_activo || "2026";
         const infoAnio = datos.anios[anioFinal];
+
+        if (!infoAnio) return res.status(404).json({ error: "Año no encontrado" });
+        if (infoAnio.cerrado) return res.status(400).json({ error: "El año escolar está cerrado" });
 
         infoAnio.ingresos_extra = (infoAnio.ingresos_extra || []).filter(e => e.id !== id);
         await dbConfig.guardarDatos(datos);
@@ -534,8 +568,6 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
     try {
         const datos = await dbConfig.leerDatos();
         const anioSel = anio || datos.anio_activo || "2026";
-        
-        // Declaración segura de infoAnio
         const infoAnio = datos.anios ? datos.anios[anioSel] : null;
 
         if (!infoAnio) {
@@ -704,19 +736,21 @@ router.post('/curso/admin/enviar-correo-bienvenida', async (req, res) => {
     }
 });
 
-// 18. Cerrar año
+// 18. Cerrar año escolar y migrar estudiantes con cuotas en 0 al siguiente ciclo
 router.post('/curso/admin/cerrar-anio', async (req, res) => {
     try {
         const datos = await dbConfig.leerDatos();
-        const anioActual = datos.anio_activo || "2026";
+        const anioActual = req.body.anio || datos.anio_activo || "2026";
         const infoActual = datos.anios[anioActual];
 
         if (!infoActual) return res.status(404).json({ error: "Año no encontrado" });
         if (infoActual.cerrado) return res.status(400).json({ error: "Este año ya se encuentra cerrado" });
 
+        // Cálculo exacto del balance final de arrastre
         const saldoInicial = Number(infoActual.saldo_inicial || 0);
         let totalRecaudado = 0;
         (infoActual.apoderados || []).forEach(apo => {
+            if (apo.activo === false) return;
             (infoActual.meses || []).forEach(m => {
                 const p = apo.pagos ? apo.pagos[m] : null;
                 if (p && !p.exonerado) totalRecaudado += Number(p.monto || 0);
@@ -726,21 +760,24 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
         const totalIngresos = (infoActual.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto || 0), 0);
         const saldoRealCaja = saldoInicial + totalRecaudado + totalIngresos - totalGastos;
 
+        // Bloquear año actual
         infoActual.cerrado = true;
 
         const siguienteAnio = String(Number(anioActual) + 1);
-        if (!datos.anios[siguienteAnio]) {
-            const apoderadosMigrados = (infoActual.apoderados || [])
-                .filter(a => a.activo !== false)
-                .map(a => ({
-                    id: a.id,
-                    nombre: a.nombre,
-                    alumno: a.alumno,
-                    email: a.email || '',
-                    activo: true,
-                    pagos: {}
-                }));
 
+        // Migración de los estudiantes con pagos vacíos (en $0)
+        const apoderadosMigrados = (infoActual.apoderados || [])
+            .filter(a => a.activo !== false)
+            .map(a => ({
+                id: a.id,
+                nombre: a.nombre,
+                alumno: a.alumno,
+                email: a.email || '',
+                activo: true,
+                pagos: {}
+            }));
+
+        if (!datos.anios[siguienteAnio]) {
             datos.anios[siguienteAnio] = {
                 cerrado: false,
                 saldo_inicial: saldoRealCaja,
@@ -756,6 +793,7 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
             };
         } else {
             datos.anios[siguienteAnio].saldo_inicial = saldoRealCaja;
+            datos.anios[siguienteAnio].apoderados = apoderadosMigrados;
         }
 
         datos.anio_activo = siguienteAnio;
@@ -763,10 +801,11 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
 
         res.json({ 
             success: true, 
-            mensaje: `Año ${anioActual} cerrado. Periodo ${siguienteAnio} aperturado con saldo inicial de $${saldoRealCaja.toLocaleString('es-CL')}.`,
+            mensaje: `Año ${anioActual} cerrado exitosamente. Periodo ${siguienteAnio} aperturado con saldo inicial de $${saldoRealCaja.toLocaleString('es-CL')} y estudiantes con pagos en $0.`,
             anio_activo: siguienteAnio 
         });
     } catch (error) {
+        console.error("Error al cerrar año escolar:", error);
         res.status(500).json({ error: "Error interno al cerrar el año" });
     }
 });
@@ -806,6 +845,9 @@ router.post('/curso/admin/reset-cuotas', async (req, res) => {
         if (!infoAnio) {
             return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
         }
+        if (infoAnio.cerrado) {
+            return res.status(400).json({ error: "No se puede reiniciar un año cerrado" });
+        }
 
         infoAnio.gastos = [];
         infoAnio.ingresos_extra = [];
@@ -831,6 +873,9 @@ router.post('/curso/admin/reset-total', async (req, res) => {
 
         if (!infoAnio) {
             return res.status(404).json({ error: `No existen datos para el año ${anioSel}` });
+        }
+        if (infoAnio.cerrado) {
+            return res.status(400).json({ error: "No se puede reiniciar un año cerrado" });
         }
 
         infoAnio.gastos = [];

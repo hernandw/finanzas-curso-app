@@ -845,7 +845,8 @@
                   "fecha": "2026-11-10",
                   "responsable": "Esteban Abarca"
                 }
-              ]
+              ],
+              "exonerado": false
             }
           }
         },
@@ -1202,7 +1203,14 @@
           "comprobante": "https://finanzas-curso-app.onrender.com/uploads/comprobante-1794312816679-75591164.png"
         }
       ],
-      "ingresos_extra": []
+      "ingresos_extra": [
+        {
+          "id": "ext-1794315355886",
+          "titulo": "Rifa",
+          "monto": 50000,
+          "fecha": "2026-11-10"
+        }
+      ]
     }
   }
 }

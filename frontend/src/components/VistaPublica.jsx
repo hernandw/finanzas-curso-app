@@ -6,8 +6,9 @@ export default function VistaPublica({ datos, onCambiarAnio }) {
 
     if (!datos || !datos.apoderados) {
         return (
-            <div className="flex items-center justify-center p-12 text-slate-400 text-xs font-sans">
-                <i className="fa-solid fa-spinner animate-spin mr-2 text-[#00d084]"></i> Cargando información del curso...
+            <div className="flex items-center justify-center p-12 text-slate-400 text-xs">
+                <i className="fa-solid fa-spinner animate-spin mr-2 text-[#00c5ff]"></i>
+                <span>Cargando información financiera del curso...</span>
             </div>
         );
     }
@@ -16,13 +17,16 @@ export default function VistaPublica({ datos, onCambiarAnio }) {
     const infoConfig = datos.configuracion || {};
     const cuotaOficial = Number(infoConfig.cuota_mensual || 21000);
     const saldoInicial = Number(infoConfig.saldo_inicial || 0);
-    const meses = infoConfig.meses || [];
-    const aniosDisponibles = datos.aniosDisponibles || ["2024", "2025", "2026"];
+    const meses = infoConfig.meses || ["Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const aniosDisponibles = datos.aniosDisponibles || [anioActivo];
+
+    const gastos = datos.gastos || [];
+    const ingresosExtra = datos.ingresos_extra || [];
 
     const abreviarMes = (m) => m.substring(0, 3).toUpperCase();
 
-    // Función precisa para extraer el apellido paterno
-    const obtenerApellidoPaterno = (nombreCompleto = '') => {
+    // Extracción de apellido paterno para ordenamiento alfabético uniforme
+    const extraerApellidoPaterno = (nombreCompleto = '') => {
         if (!nombreCompleto) return '';
         const partes = nombreCompleto.trim().split(/\s+/);
         if (partes.length === 1) return partes[0].toLowerCase();
@@ -31,8 +35,8 @@ export default function VistaPublica({ datos, onCambiarAnio }) {
         return partes[partes.length - 2].toLowerCase();
     };
 
-    // Cálculos de balance general (solo estudiantes activos)
-    let totalCuotasRecaudadas = 0;
+    // Cálculos financieros excluyendo apoderados ocultos (activo === false)
+    let totalRecaudado = 0;
     let totalDeudaPorRecoger = 0;
 
     (datos.apoderados || []).forEach(apo => {
@@ -40,253 +44,347 @@ export default function VistaPublica({ datos, onCambiarAnio }) {
         meses.forEach(m => {
             const p = apo.pagos ? apo.pagos[m] : null;
             if (p?.exonerado) return;
-            const montoAbonado = Number(p?.monto || 0);
-            totalCuotasRecaudadas += montoAbonado;
-            const pendiente = Math.max(0, cuotaOficial - montoAbonado);
-            totalDeudaPorRecoger += pendiente;
+            const monto = Number(p?.monto || 0);
+            totalRecaudado += monto;
+            totalDeudaPorRecoger += Math.max(0, cuotaOficial - monto);
         });
     });
 
-    const totalGastos = (datos.gastos || []).reduce((acc, g) => acc + Number(g.monto || 0), 0);
-    const totalIngresosExtra = (datos.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto || 0), 0);
-    const saldoRealCaja = saldoInicial + totalCuotasRecaudadas + totalIngresosExtra - totalGastos;
+    const totalGastos = gastos.reduce((acc, g) => acc + Number(g.monto || 0), 0);
+    const totalIngresosExtra = ingresosExtra.reduce((acc, e) => acc + Number(e.monto || 0), 0);
+    const saldoRealCaja = saldoInicial + totalRecaudado + totalIngresosExtra - totalGastos;
 
-    // Filtro por búsqueda Y ordenamiento alfabético por Apellido Paterno
-    const apoderadosFiltrados = (datos.apoderados || [])
-        .filter(a => a.activo !== false && (
-            a.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+    // Filtrar solo estudiantes activos y ordenar por apellido paterno
+    const apoderadosVisibles = (datos.apoderados || [])
+        .filter(a => a.activo !== false)
+        .filter(a =>
+            a.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
             a.alumno.toLowerCase().includes(busqueda.toLowerCase())
-        ))
+        )
         .sort((a, b) => {
-            const apA = obtenerApellidoPaterno(a.alumno);
-            const apB = obtenerApellidoPaterno(b.alumno);
+            const apA = extraerApellidoPaterno(a.alumno);
+            const apB = extraerApellidoPaterno(b.alumno);
             return apA.localeCompare(apB, 'es', { sensitivity: 'base', numeric: true });
         });
 
     return (
         <div className="space-y-6 font-sans text-slate-100">
-            {/* 1. FICHA OFICIAL CON DATOS GENERALES DEL CURSO */}
+            {/* CABECERA E INFORMACIÓN DEL CURSO */}
             <div className="bg-[#0b1120] border border-[#162035] p-5 rounded-2xl shadow-xl space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#162035] pb-3">
-                    <div className="flex items-center gap-2">
-                        <i className="fa-solid fa-school text-[#00d084] text-base"></i>
-                        <h2 className="text-base font-bold text-white tracking-wide">
-                            {infoConfig.nombre_curso || '8° Básico B'} — Datos del Curso
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#162035] pb-4">
+                    <div>
+                        <h2 className="text-base font-bold text-white flex items-center gap-2">
+                            <i className="fa-solid fa-shield-halved text-[#00d084]"></i>
+                            <span>Rendición de Cuentas y Transparencia ({anioActivo})</span>
                         </h2>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Cuota mensual oficial del periodo: <strong className="text-[#00d084] font-mono">${cuotaOficial.toLocaleString('es-CL')}</strong>
+                        </p>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-[#070b14] border border-[#162035] px-3 py-1.5 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Periodo:</span>
-                        <select 
-                            value={anioActivo}
-                            onChange={(e) => onCambiarAnio && onCambiarAnio(e.target.value)}
-                            className="bg-transparent text-[#00d084] font-bold text-xs outline-none cursor-pointer"
-                        >
-                            {aniosDisponibles.map(anio => (
-                                <option key={anio} value={anio} className="bg-[#0b1120] text-white">
-                                    {anio}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        {onCambiarAnio && aniosDisponibles.length > 1 && (
+                            <div className="flex items-center gap-1.5 bg-[#070b14] border border-[#162035] px-3 py-2 rounded-xl">
+                                <span className="text-xs text-slate-400">Año:</span>
+                                <select
+                                    value={anioActivo}
+                                    onChange={(e) => onCambiarAnio(e.target.value)}
+                                    className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer"
+                                >
+                                    {aniosDisponibles.map(a => (
+                                        <option key={a} value={a} className="bg-[#0b1120]">{a}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <input
+                            type="text"
+                            placeholder="Buscar estudiante o apoderado..."
+                            value={busqueda}
+                            onChange={(e) => setBusqueda(e.target.value)}
+                            className="bg-[#070b14] border border-[#162035] rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00c5ff] w-full sm:w-64"
+                        />
                     </div>
                 </div>
 
+                {/* Directiva */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-medium block">Profesor/a Jefe:</span>
-                        <span className="text-sm font-bold text-[#00d084]">{infoConfig.profesor || 'Aylin Chong'}</span>
+                        <span className="text-[10px] text-slate-400 block">Curso:</span>
+                        <span className="text-sm font-bold text-white">{infoConfig.nombre_curso || '8° Básico B'}</span>
                     </div>
                     <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-medium block">Presidente/a:</span>
-                        <span className="text-sm font-bold text-[#38bdf8]">{infoConfig.presidente || 'Ingrid Brito'}</span>
+                        <span className="text-[10px] text-slate-400 block">Profesor/a Jefe:</span>
+                        <span className="text-sm font-bold text-[#00d084]">{infoConfig.profesor || '-'}</span>
                     </div>
                     <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-medium block">Tesorero/a:</span>
-                        <span className="text-sm font-bold text-[#f59e0b]">{infoConfig.tesorero || 'Natalya Zakharova'}</span>
+                        <span className="text-[10px] text-slate-400 block">Presidente/a:</span>
+                        <span className="text-sm font-bold text-[#00c5ff]">{infoConfig.presidente || '-'}</span>
                     </div>
                     <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
-                        <span className="text-[10px] text-slate-400 font-medium block">Cuota Mensual Oficial:</span>
-                        <span className="text-sm font-bold text-white font-mono">${cuotaOficial.toLocaleString('es-CL')}</span>
+                        <span className="text-[10px] text-slate-400 block">Tesorero/a:</span>
+                        <span className="text-sm font-bold text-[#f59e0b]">{infoConfig.tesorero || '-'}</span>
                     </div>
                 </div>
             </div>
 
-            {/* 2. BALANCE GENERAL Y FLUJO DE CAJA (LAS 6 CARDS KPI) */}
+            {/* BALANCE GENERAL Y FLUJO DE CAJA */}
             <div className="bg-[#0b1120] border border-[#162035] p-5 rounded-2xl shadow-xl space-y-4">
                 <h3 className="text-sm font-bold text-[#00d084] flex items-center gap-2">
-                    <i className="fa-solid fa-scale-balanced text-base"></i> Balance General y Flujo de Caja ({anioActivo})
+                    <i className="fa-solid fa-scale-balanced"></i> Balance General del Curso ({anioActivo})
                 </h3>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
-                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
                         <span className="text-[10px] text-slate-400 font-medium block mb-1">Saldo Anterior</span>
-                        <span className="text-base font-bold text-white tracking-tight">
-                            ${saldoInicial.toLocaleString('es-CL')}
-                        </span>
+                        <span className="text-base font-bold text-white tracking-tight">${saldoInicial.toLocaleString('es-CL')}</span>
                     </div>
-
-                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Cuotas Recaudadas</span>
-                        <span className="text-base font-bold text-[#00d084] tracking-tight">
-                            ${totalCuotasRecaudadas.toLocaleString('es-CL')}
-                        </span>
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Cuotas</span>
+                        <span className="text-base font-bold text-[#00d084] tracking-tight">${totalRecaudado.toLocaleString('es-CL')}</span>
                     </div>
-
-                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
                         <span className="text-[10px] text-slate-400 font-medium block mb-1">Ingresos Extra</span>
-                        <span className="text-base font-bold text-[#38bdf8] tracking-tight">
-                            ${totalIngresosExtra.toLocaleString('es-CL')}
-                        </span>
+                        <span className="text-base font-bold text-[#00c5ff] tracking-tight">${totalIngresosExtra.toLocaleString('es-CL')}</span>
                     </div>
-
-                    <div className="bg-[#070b14] border border-[#162035] p-3.5 rounded-xl flex flex-col justify-center">
-                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Total Egresos</span>
-                        <span className="text-base font-bold text-[#f43f5e] tracking-tight">
-                            ${totalGastos.toLocaleString('es-CL')}
-                        </span>
+                    <div className="bg-[#070b14] border border-[#162035] p-3 rounded-xl">
+                        <span className="text-[10px] text-slate-400 font-medium block mb-1">Gastos</span>
+                        <span className="text-base font-bold text-[#f43f5e] tracking-tight">${totalGastos.toLocaleString('es-CL')}</span>
                     </div>
-
-                    <div className="bg-[#070b14] border border-[#00d084]/40 p-3.5 rounded-xl flex flex-col justify-center">
+                    <div className="bg-[#070b14] border border-[#00d084]/40 p-3 rounded-xl">
                         <span className="text-[10px] text-[#00d084] font-semibold block mb-1">Saldo Real en Caja</span>
-                        <span className="text-lg font-black text-[#00d084] tracking-tight">
-                            ${saldoRealCaja.toLocaleString('es-CL')}
-                        </span>
+                        <span className="text-lg font-black text-[#00d084] tracking-tight">${saldoRealCaja.toLocaleString('es-CL')}</span>
                     </div>
-
-                    <div className="bg-[#070b14] border border-[#f59e0b] p-3.5 rounded-xl flex flex-col justify-center shadow-lg shadow-[#f59e0b]/5">
-                        <span className="text-[10px] text-[#f59e0b] font-bold block mb-1">Deuda por Recoger</span>
-                        <span className="text-lg font-black text-[#f59e0b] tracking-tight">
-                            ${totalDeudaPorRecoger.toLocaleString('es-CL')}
-                        </span>
+                    <div className="bg-[#070b14] border border-[#f59e0b]/60 p-3 rounded-xl">
+                        <span className="text-[10px] text-[#f59e0b] font-bold block mb-1">Por Recaudar</span>
+                        <span className="text-lg font-black text-[#f59e0b] tracking-tight">${totalDeudaPorRecoger.toLocaleString('es-CL')}</span>
                     </div>
                 </div>
             </div>
 
-            {/* 3. BARRA DE BÚSQUEDA Y TOTAL POR RECOGER */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-1">
-                <div className="flex items-center gap-2">
-                    <i className="fa-solid fa-users text-[#00d084]"></i>
-                    <h3 className="text-sm font-bold text-white tracking-wide">
-                        Estado Mensual por Estudiante ({apoderadosFiltrados.length})
-                    </h3>
-                </div>
+            {/* RELACIÓN DETALLADA DE GASTOS E INGRESOS EXTRA (SI EXISTEN) */}
+            <div className={`grid grid-cols-1 ${ingresosExtra.length > 0 ? 'lg:grid-cols-2' : ''} gap-5`}>
+                {/* Relación Detallada de Gastos */}
+                <div className="bg-[#0b1120] border border-[#162035] p-5 rounded-2xl shadow-xl space-y-3">
+                    <div className="flex justify-between items-center border-b border-[#162035] pb-3">
+                        <h3 className="text-sm font-bold text-[#f43f5e] flex items-center gap-2">
+                            <i className="fa-solid fa-receipt"></i> Relación Detallada de Gastos
+                        </h3>
+                        <span className="text-xs text-slate-400">
+                            Total Egresos: <strong className="text-[#f43f5e] font-mono">${totalGastos.toLocaleString('es-CL')}</strong>
+                        </span>
+                    </div>
 
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <span className="text-xs text-slate-400 font-medium whitespace-nowrap">
-                        Total por Recoger: <strong className="text-[#f59e0b] font-bold">${totalDeudaPorRecoger.toLocaleString('es-CL')}</strong>
-                    </span>
-                    <input 
-                        type="text" 
-                        placeholder="Buscar estudiante..." 
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                        className="bg-[#0b1120] border border-[#162035] rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00d084] w-full sm:w-56"
-                    />
-                </div>
-            </div>
-
-            {/* 4. TARJETAS HORIZONTALES ORDENADAS POR APELLIDO PATERNO */}
-            <div className="space-y-4">
-                {apoderadosFiltrados.map(apo => {
-                    let totalAbonado = 0;
-                    let deudaEstudiante = 0;
-
-                    meses.forEach(m => {
-                        const p = apo.pagos ? apo.pagos[m] : null;
-                        if (p?.exonerado) return;
-                        const monto = Number(p?.monto || 0);
-                        totalAbonado += monto;
-                        deudaEstudiante += Math.max(0, cuotaOficial - monto);
-                    });
-
-                    // Si no tiene deuda pendiente, está Al Día
-                    const alDia = deudaEstudiante === 0;
-
-                    return (
-                        <div 
-                            key={apo.id} 
-                            className="bg-[#0b1120] border border-[#162035] rounded-2xl p-4 md:p-5 shadow-xl space-y-4 hover:border-[#223150] transition"
-                        >
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <i className="fa-solid fa-graduation-cap text-[#00d084] text-sm"></i>
-                                        <h4 className="text-base font-bold text-white tracking-wide">
-                                            {apo.alumno}
-                                        </h4>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-0.5">
-                                        Apoderado: <span className="text-slate-300 font-medium">{apo.nombre}</span>
-                                    </p>
-                                </div>
-
-                                {/* ESTADO: SI ESTÁ AL DÍA DESAPARECE "ABONÓ" Y "DEBE", QUEDA SOLO EL BOTÓN AZUL */}
-                                <div className="flex items-center gap-2">
-                                    {alDia ? (
-                                        <span className="bg-blue-600/20 border border-blue-500/40 text-blue-400 px-4 py-1.5 rounded-xl text-xs font-bold tracking-wide shadow-sm shadow-blue-500/10">
-                                            Al Día ✓
-                                        </span>
-                                    ) : (
-                                        <>
-                                            <span className="bg-[#00d084]/10 border border-[#00d084]/25 text-[#00d084] px-3 py-1 rounded-full text-xs font-bold">
-                                                Abonado: ${totalAbonado.toLocaleString('es-CL')}
-                                            </span>
-                                            <span className="bg-[#f43f5e]/10 border border-[#f43f5e]/25 text-[#f43f5e] px-3 py-1 rounded-full text-xs font-bold">
-                                                Debe: ${deudaEstudiante.toLocaleString('es-CL')}
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Tira completa de los 10 meses */}
-                            <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                                {meses.map(m => {
-                                    const p = apo.pagos ? apo.pagos[m] : null;
-                                    const esExonerado = p?.exonerado;
-                                    const monto = Number(p?.monto || 0);
-                                    const esPagado = p?.pagado || monto >= cuotaOficial;
-                                    const esAbono = !esPagado && monto > 0;
-
-                                    return (
-                                        <div 
-                                            key={m} 
-                                            className="bg-[#070b14] border border-[#162035] p-2.5 rounded-xl flex flex-col justify-between items-center text-center space-y-1.5"
-                                        >
-                                            <span className="text-[10px] font-bold text-slate-400 tracking-wider">
-                                                {abreviarMes(m)}
-                                            </span>
-
-                                            <div className="w-full">
-                                                {esExonerado ? (
-                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#1e293b] text-slate-400 border border-slate-700">
-                                                        Exon.
-                                                    </span>
-                                                ) : esPagado ? (
-                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#00d084]/15 text-[#00d084] border border-[#00d084]/30">
-                                                        Pagado
-                                                    </span>
-                                                ) : esAbono ? (
-                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
-                                                        Abono
-                                                    </span>
+                    <div className="overflow-x-auto max-h-72 overflow-y-auto">
+                        {gastos.length > 0 ? (
+                            <table className="w-full text-left text-xs">
+                                <thead className="bg-[#070b14] text-slate-400 border-b border-[#162035] sticky top-0">
+                                    <tr>
+                                        <th className="p-2.5">Fecha</th>
+                                        <th className="p-2.5">Mes</th>
+                                        <th className="p-2.5">Descripción / Concepto</th>
+                                        <th className="p-2.5 text-right">Monto</th>
+                                        <th className="p-2.5 text-center">Respaldo</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#162035] text-slate-300">
+                                    {gastos.map(g => (
+                                        <tr key={g.id} className="hover:bg-[#070b14]/50 transition">
+                                            <td className="p-2.5 font-mono text-[11px] text-slate-400 whitespace-nowrap">{g.fecha}</td>
+                                            <td className="p-2.5 text-[11px] text-slate-400">{g.mes || '-'}</td>
+                                            <td className="p-2.5 font-semibold text-white">{g.titulo}</td>
+                                            <td className="p-2.5 text-right font-bold text-[#f43f5e] font-mono whitespace-nowrap">
+                                                ${Number(g.monto).toLocaleString('es-CL')}
+                                            </td>
+                                            <td className="p-2.5 text-center">
+                                                {g.comprobante ? (
+                                                    <a
+                                                        href={g.comprobante}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-1 text-[#00c5ff] hover:underline text-[11px] font-medium"
+                                                    >
+                                                        <i className="fa-solid fa-paperclip"></i> Ver
+                                                    </a>
                                                 ) : (
-                                                    <span className="block w-full py-0.5 rounded text-[10px] font-bold bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/25">
-                                                        Pend.
-                                                    </span>
+                                                    <span className="text-slate-600">-</span>
                                                 )}
-                                            </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-xs text-slate-500 text-center py-6">
+                                No se registran gastos en este periodo escolar.
+                            </p>
+                        )}
+                    </div>
+                </div>
 
-                                            <span className="text-[10px] text-slate-500 font-mono">
-                                                {monto > 0 ? `$${monto.toLocaleString('es-CL')}` : '-'}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                {/* Relación Detallada de Ingresos Extra (solo se muestra si hay ingresos extra) */}
+                {ingresosExtra.length > 0 && (
+                    <div className="bg-[#0b1120] border border-[#162035] p-5 rounded-2xl shadow-xl space-y-3">
+                        <div className="flex justify-between items-center border-b border-[#162035] pb-3">
+                            <h3 className="text-sm font-bold text-[#00d084] flex items-center gap-2">
+                                <i className="fa-solid fa-coins"></i> Relación Detallada de Ingresos Extra
+                            </h3>
+                            <span className="text-xs text-slate-400">
+                                Total Ingresos: <strong className="text-[#00d084] font-mono">${totalIngresosExtra.toLocaleString('es-CL')}</strong>
+                            </span>
                         </div>
-                    );
-                })}
+
+                        <div className="overflow-x-auto max-h-72 overflow-y-auto">
+                            <table className="w-full text-left text-xs">
+                                <thead className="bg-[#070b14] text-slate-400 border-b border-[#162035] sticky top-0">
+                                    <tr>
+                                        <th className="p-2.5">Fecha</th>
+                                        <th className="p-2.5">Concepto / Actividad</th>
+                                        <th className="p-2.5 text-right">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#162035] text-slate-300">
+                                    {ingresosExtra.map(e => (
+                                        <tr key={e.id} className="hover:bg-[#070b14]/50 transition">
+                                            <td className="p-2.5 font-mono text-[11px] text-slate-400 whitespace-nowrap">{e.fecha}</td>
+                                            <td className="p-2.5 font-semibold text-white">{e.titulo}</td>
+                                            <td className="p-2.5 text-right font-bold text-[#00d084] font-mono whitespace-nowrap">
+                                                +${Number(e.monto).toLocaleString('es-CL')}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ESTADO DE CUOTAS MENSUALES POR ESTUDIANTE */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                    <i className="fa-solid fa-users text-[#00c5ff]"></i>
+                    <h3 className="text-sm font-bold text-white tracking-wide">
+                        Estado de Cuotas por Estudiante
+                    </h3>
+                    <span className="bg-[#00c5ff]/15 border border-[#00c5ff]/30 text-[#00c5ff] text-[10px] font-bold px-2.5 py-0.5 rounded-full ml-1">
+                        {apoderadosVisibles.length} Estudiantes
+                    </span>
+                </div>
+
+                <div className="space-y-4">
+                    {apoderadosVisibles.length > 0 ? (
+                        apoderadosVisibles.map(apo => {
+                            let totalAbonado = 0;
+                            let deudaEstudiante = 0;
+
+                            meses.forEach(m => {
+                                const p = apo.pagos ? apo.pagos[m] : null;
+                                if (p?.exonerado) return;
+                                const monto = Number(p?.monto || 0);
+                                totalAbonado += monto;
+                                deudaEstudiante += Math.max(0, cuotaOficial - monto);
+                            });
+
+                            const alDia = deudaEstudiante === 0;
+
+                            return (
+                                <div
+                                    key={apo.id}
+                                    className="bg-[#0b1120] border border-[#162035] rounded-2xl p-5 md:p-6 shadow-xl flex flex-col xl:flex-row justify-start items-start xl:items-center gap-6 hover:border-[#223150] transition duration-200"
+                                >
+                                    {/* Datos del Estudiante y Resumen de Estado */}
+                                    <div className="space-y-2.5 w-full xl:w-72 flex-shrink-0">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <i className="fa-solid fa-graduation-cap text-[#00c5ff] text-base"></i>
+                                                <h4 className="text-base font-bold text-white tracking-wide">
+                                                    {apo.alumno}
+                                                </h4>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                Apoderado: <span className="text-slate-300 font-medium">{apo.nombre}</span>
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-1">
+                                            {alDia ? (
+                                                <span className="bg-blue-600/20 border border-blue-500/40 text-blue-400 px-3.5 py-1.5 rounded-xl text-xs font-bold tracking-wide shadow inline-flex items-center gap-1">
+                                                    Al Día ✓
+                                                </span>
+                                            ) : (
+                                                <div className="inline-flex items-center gap-1.5 bg-[#070b14] border border-[#162035] px-2.5 py-1 rounded-xl text-[11px] font-mono">
+                                                    <span className="text-slate-400 text-[10px]">Abonó:</span>
+                                                    <span className="font-bold text-[#00d084]">
+                                                        ${totalAbonado.toLocaleString('es-CL')}
+                                                    </span>
+                                                    <span className="text-slate-600">|</span>
+                                                    <span className="text-slate-400 text-[10px]">Debe:</span>
+                                                    <span className="font-bold text-[#f43f5e]">
+                                                        ${deudaEstudiante.toLocaleString('es-CL')}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Cuadrícula de los 10 meses */}
+                                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-2.5 flex-1 w-full">
+                                        {meses.map(m => {
+                                            const p = apo.pagos ? apo.pagos[m] : null;
+                                            const esExonerado = Boolean(p?.exonerado);
+                                            const monto = Number(p?.monto || 0);
+                                            const esPagado = Boolean(p?.pagado) || monto >= cuotaOficial;
+                                            const esAbono = monto > 0 && monto < cuotaOficial;
+
+                                            return (
+                                                <div
+                                                    key={m}
+                                                    className="bg-[#070b14] border border-[#162035] p-3 rounded-2xl flex flex-col justify-between items-center text-center w-full h-[88px] shadow-sm"
+                                                >
+                                                    <span className="text-[11px] font-bold text-slate-300 tracking-wider">
+                                                        {abreviarMes(m)}
+                                                    </span>
+
+                                                    <div className="w-full py-0.5">
+                                                        {esExonerado ? (
+                                                            <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#1e293b] text-slate-400 border border-slate-700">
+                                                                Exon.
+                                                            </span>
+                                                        ) : esPagado ? (
+                                                            <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#00d084]/15 text-[#00d084] border border-[#00d084]/30">
+                                                                ✓ Pagado
+                                                            </span>
+                                                        ) : esAbono ? (
+                                                            <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
+                                                                Abono
+                                                            </span>
+                                                        ) : (
+                                                            <span className="block w-full py-1 rounded-lg text-[10px] font-bold bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/25">
+                                                                Pend.
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <span className="text-[10px] text-slate-400 font-mono">
+                                                        {esAbono
+                                                            ? `$${monto.toLocaleString('es-CL')}`
+                                                            : (p?.fecha ? p.fecha.slice(5) : '-')}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="text-center py-12 text-slate-500 text-xs bg-[#0b1120] border border-[#162035] rounded-2xl">
+                            No se encontraron estudiantes con ese criterio de búsqueda.
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -306,7 +306,7 @@ export default function VistaAdmin({ datos, onActualizar }) {
         }
     };
 
-    const handleNotificarMorosos = async (apoderadoId = null, nombreApo = '') => {
+   const handleNotificarMorosos = async (apoderadoId = null, nombreApo = '') => {
         try {
             if (apoderadoId) setEnviandoId(apoderadoId);
             else setCargando(true);
@@ -315,8 +315,13 @@ export default function VistaAdmin({ datos, onActualizar }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Fallo en el envío");
 
-            if (nombreApo) toast(`📧 Aviso enviado a ${nombreApo}.`);
-            else toast(`📧 Notificaciones enviadas a morosos.`);
+            if (data.enviados === 0) {
+                toast("⚠️ No se envió el correo (verifica que el apoderado tenga email válido y deuda pendiente).", 'error');
+            } else if (nombreApo) {
+                toast(`📧 Aviso de cobro enviado a ${nombreApo}.`);
+            } else {
+                toast(`📧 Notificaciones enviadas a ${data.enviados} apoderado(s) con saldo pendiente.`);
+            }
         } catch (error) {
             toast(`❌ ${error.message}`, 'error');
         } finally {
@@ -429,16 +434,16 @@ export default function VistaAdmin({ datos, onActualizar }) {
 
     return (
         <div className="space-y-6 font-sans text-slate-100">
-            {/* NOTIFICACIÓN AUTOMÁTICA */}
             {notificacion && (
-                <div className={`p-4 rounded-xl text-xs font-bold shadow-2xl border transition-all duration-300 ${
-                    notificacion.tipo === 'error' 
-                        ? 'bg-rose-950/90 border-rose-500/50 text-rose-200' 
-                        : 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
-                }`}>
-                    <span>{notificacion.msg}</span>
-                </div>
-            )}
+    <div className={`fixed top-5 right-5 z-50 max-w-md p-4 rounded-2xl text-xs font-bold shadow-2xl border backdrop-blur-md flex items-center gap-2.5 transition-all duration-300 ${
+        notificacion.tipo === 'error' 
+            ? 'bg-rose-950/95 border-rose-500/60 text-rose-200' 
+            : 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200'
+    }`}>
+        <i className={`fa-solid ${notificacion.tipo === 'error' ? 'fa-circle-exclamation text-rose-400' : 'fa-circle-check text-emerald-400'} text-base`}></i>
+        <span>{notificacion.msg}</span>
+    </div>
+)}
 
             {/* AVISO VISUAL DE AÑO CERRADO */}
             {estaCerrado && (
@@ -787,14 +792,18 @@ export default function VistaAdmin({ datos, onActualizar }) {
                                         </td>
                                         <td className="p-3 text-center">
                                             {deudaEstimada > 0 && apo.email && !estaCerrado ? (
-                                                <button
-                                                    onClick={() => handleNotificarMorosos(apo.id, apo.nombre)}
-                                                    disabled={enviandoId === apo.id}
-                                                    title={`Enviar aviso a ${apo.nombre}`}
-                                                    className="text-[#f59e0b] hover:text-[#fbbf24] transition cursor-pointer"
-                                                >
-                                                    <i className="fa-solid fa-paper-plane"></i>
-                                                </button>
+                                               <button
+            onClick={() => handleNotificarMorosos(apo.id, apo.nombre)}
+            disabled={enviandoId === apo.id}
+            title={`Enviar aviso de deuda a ${apo.nombre}`}
+            className="text-[#f59e0b] hover:text-[#fbbf24] disabled:opacity-50 transition cursor-pointer p-1.5 rounded-lg hover:bg-[#f59e0b]/10"
+        >
+            {enviandoId === apo.id ? (
+                <i className="fa-solid fa-spinner animate-spin text-[#00c5ff]"></i>
+            ) : (
+                <i className="fa-solid fa-paper-plane"></i>
+            )}
+        </button>
                                             ) : (
                                                 <span className="text-slate-600">-</span>
                                             )}

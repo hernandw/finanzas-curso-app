@@ -2,46 +2,34 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dbConfig } from '../config/db.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { dbConfig, supabase } from '../config/db.js';
 
 const router = express.Router();
 
-// Configuración de almacenamiento físico unificada exactamente con app.js
-// Apunta exactamente a backend/uploads
-const uploadDir = path.resolve(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Configuración de almacenamiento en memoria para subir directo a Supabase Storage
+const upload = multer({ storage: multer.memoryStorage() });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, 'comprobante-' + uniqueSuffix + ext);
-    }
-});
-const upload = multer({ storage });
+// Helper para subir archivos (comprobantes de gastos o reportes PDF) a Supabase Storage
+const subirArchivoSupabase = async (file, prefijo = 'archivo') => {
+    const ext = path.extname(file.originalname) || '.pdf';
+    const nombreArchivo = `${prefijo}-${Date.now()}-${Math.round(Math.random() * 1E6)}${ext}`;
 
-// Función para forzar la URL pública remota de Render y evitar localhost
-const obtenerUrlPublica = (req) => {
-    if (process.env.APP_URL) {
-        return process.env.APP_URL.replace(/\/$/, '');
+    const { error } = await supabase.storage
+        .from('comprobantes')
+        .upload(nombreArchivo, file.buffer, {
+            contentType: file.mimetype || 'application/octet-stream',
+            upsert: true
+        });
+
+    if (error) {
+        throw new Error(`Error subiendo archivo a Supabase Storage: ${error.message}`);
     }
-    if (process.env.RENDER_EXTERNAL_URL) {
-        return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
-    }
-    const host = req.get('host') || '';
-    if (host.includes('localhost') || host.includes('127.0.0.1')) {
-        return 'https://finanzas-curso-app.onrender.com';
-    }
-    const proto = req.headers['x-forwarded-proto'] || req.protocol;
-    return `${proto}://${host}`;
+
+    const { data } = supabase.storage
+        .from('comprobantes')
+        .getPublicUrl(nombreArchivo);
+
+    return data.publicUrl;
 };
 
 // 1. Obtener datos generales por año (?anio=YYYY)
@@ -117,7 +105,7 @@ router.get('/curso/datos', async (req, res) => {
         });
     } catch (error) {
         console.error("Error al obtener datos:", error);
-        res.status(500).json({ error: "Error al obtener los datos" });
+        res.status(500).json({ error: "Error al obtener los datos desde Supabase" });
     }
 });
 
@@ -357,7 +345,7 @@ router.put('/curso/admin/pago/exonerar/:apoderadoId/:mes', async (req, res) => {
     }
 });
 
-// 11. Registrar gasto con recibo opcional
+// 11. Registrar gasto con recibo opcional subido a Supabase Storage
 router.post('/curso/admin/gasto', upload.single('comprobante'), async (req, res) => {
     const { mes, titulo, monto, fecha, anio } = req.body;
     try {
@@ -370,8 +358,7 @@ router.post('/curso/admin/gasto', upload.single('comprobante'), async (req, res)
 
         let comprobanteUrl = null;
         if (req.file) {
-            const baseUrl = obtenerUrlPublica(req);
-            comprobanteUrl = `${baseUrl}/uploads/${req.file.filename}`;
+            comprobanteUrl = await subirArchivoSupabase(req.file, 'comprobante');
         }
 
         const nuevoGasto = {
@@ -387,7 +374,8 @@ router.post('/curso/admin/gasto', upload.single('comprobante'), async (req, res)
         await dbConfig.guardarDatos(datos);
         res.json({ success: true, nuevoGasto });
     } catch (error) {
-        res.status(500).json({ error: "Error al registrar gasto" });
+        console.error("Error al registrar gasto:", error);
+        res.status(500).json({ error: error.message || "Error al registrar gasto" });
     }
 });
 
@@ -560,7 +548,7 @@ router.post('/curso/admin/enviar-correo-morosos', async (req, res) => {
     }
 });
 
-// 16. Enviar PDF por Correo con resolución de infoAnio y URL en Render
+// 16. Enviar PDF por Correo subiendo el archivo a Supabase Storage
 router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, res) => {
     const { anio } = req.body;
     if (!req.file) return res.status(400).json({ error: "No se recibió el documento PDF." });
@@ -581,8 +569,8 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
             return res.status(400).json({ error: "No hay correos registrados para recibir el informe." });
         }
 
-        const baseUrl = obtenerUrlPublica(req);
-        const pdfPublicUrl = `${baseUrl}/uploads/${req.file.filename}`;
+        // Subida permanente a Supabase Storage (nunca se pierde ni da 404 en Render)
+        const pdfPublicUrl = await subirArchivoSupabase(req.file, `balance-${anioSel}`);
 
         const bloquePdfHTML = `
             <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; text-align: center; margin: 0 0 20px 0;">
@@ -646,6 +634,7 @@ router.post('/curso/admin/enviar-pdf-correo', upload.single('pdf'), async (req, 
 
         res.json({ success: true, destinatarios: enviados, url: pdfPublicUrl });
     } catch (error) {
+        console.error("Error al enviar PDF por correo:", error);
         res.status(500).json({ error: error.message || "Error al procesar el envío del informe." });
     }
 });
@@ -746,7 +735,6 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
         if (!infoActual) return res.status(404).json({ error: "Año no encontrado" });
         if (infoActual.cerrado) return res.status(400).json({ error: "Este año ya se encuentra cerrado" });
 
-        // Cálculo exacto del balance final de arrastre
         const saldoInicial = Number(infoActual.saldo_inicial || 0);
         let totalRecaudado = 0;
         (infoActual.apoderados || []).forEach(apo => {
@@ -760,16 +748,15 @@ router.post('/curso/admin/cerrar-anio', async (req, res) => {
         const totalIngresos = (infoActual.ingresos_extra || []).reduce((acc, e) => acc + Number(e.monto || 0), 0);
         const saldoRealCaja = saldoInicial + totalRecaudado + totalIngresos - totalGastos;
 
-        // Bloquear año actual
         infoActual.cerrado = true;
 
         const siguienteAnio = String(Number(anioActual) + 1);
 
-        // Migración de los estudiantes con pagos vacíos (en $0)
+        // Asignar nuevos IDs únicos por año para no colisionar en la tabla apoderados de Supabase
         const apoderadosMigrados = (infoActual.apoderados || [])
             .filter(a => a.activo !== false)
-            .map(a => ({
-                id: a.id,
+            .map((a, index) => ({
+                id: `apo-${siguienteAnio}-${index + 1}-${Date.now().toString().slice(-4)}`,
                 nombre: a.nombre,
                 alumno: a.alumno,
                 email: a.email || '',
@@ -829,9 +816,10 @@ router.post('/curso/backup/restaurar', async (req, res) => {
             return res.status(400).json({ error: "Estructura JSON inválida." });
         }
         await dbConfig.guardarDatos(nuevosDatos);
-        res.json({ success: true, mensaje: "Backup restaurado exitosamente." });
+        res.json({ success: true, mensaje: "Backup restaurado en Supabase exitosamente." });
     } catch (error) {
-        res.status(500).json({ error: "Error al restaurar backup" });
+        console.error("Error al restaurar backup en Supabase:", error);
+        res.status(500).json({ error: "Error al restaurar backup en Supabase" });
     }
 });
 
